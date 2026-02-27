@@ -26,7 +26,7 @@ const AddressAutocomplete = ({ value, onChange, placeholder, iconColor = "text-p
     if (q.length < 3) { setSuggestions([]); return; }
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&countrycodes=ca&viewbox=-136.5,60.0,-102.0,72.0&bounded=1`,
         { headers: { "Accept-Language": "en" } }
       );
       const data: GeoResult[] = await res.json();
