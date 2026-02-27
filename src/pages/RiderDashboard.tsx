@@ -31,8 +31,7 @@ const RiderDashboard = () => {
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
   const [pendingRideId, setPendingRideId] = useState<string | null>(null);
-  const [overageSecret, setOverageSecret] = useState<string | null>(null);
-  const [overageCents, setOverageCents] = useState(0);
+  // overageSecret/overageCents removed — outstanding handled via pay_driver flow
   const [passengerCount, setPassengerCount] = useState(1);
 
   // Fetch service pricing
@@ -270,17 +269,13 @@ const RiderDashboard = () => {
     enabled: !!profile?.id,
   });
 
-  // Detect overage from completed ride via realtime DB updates
-  useEffect(() => {
-    if (!rides) return;
-    const overageRide = rides.find(
-      (r: any) => r.overage_client_secret && r.overage_cents && r.overage_cents > 0
-    );
-    if (overageRide && !overageSecret) {
-      setOverageSecret((overageRide as any).overage_client_secret);
-      setOverageCents((overageRide as any).overage_cents);
-    }
-  }, [rides, overageSecret]);
+  // Detect outstanding balance from completed ride
+  const outstandingRide = useMemo(() => {
+    if (!rides) return null;
+    return rides.find(
+      (r) => r.payment_status === "partial" && (r.outstanding_amount_cents ?? 0) > 0
+    ) || null;
+  }, [rides]);
 
   // Find most recent completed ride that hasn't been rated yet
   const { data: unratedRide, refetch: refetchUnrated } = useQuery({
@@ -691,22 +686,22 @@ const RiderDashboard = () => {
             />
           )}
 
-          {/* Overage payment for completed ride */}
-          {overageSecret && (
-            <div className="space-y-2">
-              <p className="text-sm text-yellow-500 font-medium">
-                Your fare exceeded the authorized amount. Please confirm the additional charge:
+          {/* Outstanding balance notice */}
+          {outstandingRide && (
+            <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 space-y-2">
+              <p className="text-sm text-yellow-500 font-semibold flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" /> Remaining Balance Due to Driver
               </p>
-              <PaymentConfirmation
-                clientSecret={overageSecret}
-                amountCents={overageCents}
-                onSuccess={() => {
-                  setOverageSecret(null);
-                  setOverageCents(0);
-                  toast.success("Additional payment completed!");
-                }}
-                label="Pay Additional Fare"
-              />
+              <div className="text-xs font-mono space-y-1 text-muted-foreground">
+                <p>Total fare: ${((outstandingRide.final_fare_cents || 0) / 100).toFixed(2)}</p>
+                <p>Paid in app: ${((outstandingRide.captured_amount_cents || 0) / 100).toFixed(2)}</p>
+                <p className="text-yellow-500 font-bold text-sm">
+                  Amount due to driver: ${((outstandingRide.outstanding_amount_cents || 0) / 100).toFixed(2)}
+                </p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Please pay the remaining balance directly to your driver.
+              </p>
             </div>
           )}
 
@@ -725,7 +720,11 @@ const RiderDashboard = () => {
           {rides?.length === 0 && (
             <p className="text-sm text-muted-foreground">No rides yet.</p>
           )}
-          {rides?.map((ride) => (
+          {rides?.map((ride) => {
+            const totalFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
+            const captured = ride.captured_amount_cents || 0;
+            const outstanding = ride.outstanding_amount_cents || 0;
+            return (
             <div key={ride.id} className="glass-surface rounded-lg p-4 flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -737,6 +736,14 @@ const RiderDashboard = () => {
                 <p className="text-xs text-muted-foreground">
                   {new Date(ride.created_at).toLocaleDateString()}
                 </p>
+                {/* Fare breakdown for completed rides */}
+                {ride.status === "completed" && totalFare > 0 && (
+                  <div className="text-[10px] font-mono text-muted-foreground space-x-2">
+                    <span>Total: ${(totalFare / 100).toFixed(2)}</span>
+                    {captured > 0 && <span>• In-app: ${(captured / 100).toFixed(2)}</span>}
+                    {outstanding > 0 && <span className="text-yellow-500">• Due: ${(outstanding / 100).toFixed(2)}</span>}
+                  </div>
+                )}
               </div>
               <div className="text-right flex items-center gap-3">
                 {ride.status === "completed" && ride.driver_id && (
@@ -757,13 +764,14 @@ const RiderDashboard = () => {
                   <p className={`text-xs font-mono uppercase ${statusColor[ride.status] || ""}`}>
                     {ride.status.replace("_", " ")}
                   </p>
-                  {ride.estimated_price && (
-                    <p className="text-sm font-mono">${Number(ride.estimated_price).toFixed(2)}</p>
+                  {ride.payment_status === "partial" && (
+                    <p className="text-[10px] font-mono text-yellow-500">partial payment</p>
                   )}
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
