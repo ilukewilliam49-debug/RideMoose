@@ -35,9 +35,8 @@ const Login = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        // useEffect will handle redirect after profile loads
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -46,7 +45,12 @@ const Login = () => {
           },
         });
         if (error) throw error;
-        toast.success("Check your email to confirm your account!");
+        // If auto-confirm is on, user gets a session immediately
+        if (data.session) {
+          toast.success("Account created! Redirecting...");
+        } else {
+          toast.success("Check your email to confirm your account!");
+        }
       }
     } catch (error: any) {
       toast.error(error.message);

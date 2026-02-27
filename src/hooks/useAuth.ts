@@ -22,35 +22,35 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchProfile = async (userId: string) => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      setProfile(data as Profile | null);
+      setLoading(false);
+    };
+
+    // Set up auth listener first — keep it synchronous to avoid deadlocks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          const { data } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("user_id", session.user.id)
-            .single();
-          setProfile(data as Profile | null);
+          // Use setTimeout to avoid Supabase client deadlock
+          setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
+    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .single()
-          .then(({ data }) => {
-            setProfile(data as Profile | null);
-            setLoading(false);
-          });
+        fetchProfile(session.user.id);
       } else {
         setLoading(false);
       }
