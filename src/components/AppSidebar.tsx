@@ -49,11 +49,8 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
-        <div className="flex items-center gap-2 px-4 py-4">
-          <img src={logoImg} alt="OnlyKnifers" className="h-6 shrink-0 rounded" />
-          {!collapsed && (
-            <span className="font-bold text-lg text-gradient-gold">OnlyKnifers</span>
-          )}
+        <div className="flex items-center px-4 py-4">
+          <img src={logoImg} alt="OnlyKnifers" className="h-8 shrink-0 rounded" />
         </div>
 
         <SidebarGroup>
