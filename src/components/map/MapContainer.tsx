@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { MapContainer as LeafletMapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -45,24 +44,6 @@ export interface MapMarker {
   label?: string;
 }
 
-interface FitBoundsProps {
-  markers: MapMarker[];
-}
-
-const FitBounds = ({ markers }: FitBoundsProps) => {
-  const map = useMap();
-  useEffect(() => {
-    if (markers.length === 0) return;
-    if (markers.length === 1) {
-      map.setView([markers[0].lat, markers[0].lng], 14);
-    } else {
-      const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [markers, map]);
-  return null;
-};
-
 interface RideMapProps {
   markers: MapMarker[];
   center?: [number, number];
@@ -71,24 +52,66 @@ interface RideMapProps {
 
 const iconMap = { pickup: pickupIcon, dropoff: dropoffIcon, driver: driverIcon };
 
-const RideMap = ({ markers, center = [0, 0], className = "" }: RideMapProps) => {
-  const mapCenter = markers.length > 0 ? [markers[0].lat, markers[0].lng] as [number, number] : center;
+const RideMap = ({ markers, center = [62.454, -114.372], className = "" }: RideMapProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+
+  // Initialize map once
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    const mapCenter: L.LatLngExpression = markers.length > 0
+      ? [markers[0].lat, markers[0].lng]
+      : center;
+
+    mapRef.current = L.map(containerRef.current, {
+      center: mapCenter,
+      zoom: 13,
+      scrollWheelZoom: false,
+    });
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(mapRef.current);
+
+    return () => {
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    // Add new markers
+    markers.forEach((m) => {
+      const marker = L.marker([m.lat, m.lng], { icon: iconMap[m.type] }).addTo(map);
+      if (m.label) marker.bindPopup(m.label);
+      markersRef.current.push(marker);
+    });
+
+    // Fit bounds
+    if (markers.length === 1) {
+      map.setView([markers[0].lat, markers[0].lng], 14);
+    } else if (markers.length > 1) {
+      const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng] as L.LatLngExpression));
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [markers]);
 
   return (
-    <div className={`rounded-lg overflow-hidden border border-border ${className}`} style={{ height: 300 }}>
-      <LeafletMapContainer center={mapCenter} zoom={13} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
-        {markers.map((m, i) => (
-          <Marker key={i} position={[m.lat, m.lng]} icon={iconMap[m.type]}>
-            {m.label && <Popup>{m.label}</Popup>}
-          </Marker>
-        ))}
-        <FitBounds markers={markers} />
-      </LeafletMapContainer>
-    </div>
+    <div
+      ref={containerRef}
+      className={`rounded-lg overflow-hidden border border-border ${className}`}
+      style={{ height: 300 }}
+    />
   );
 };
 
