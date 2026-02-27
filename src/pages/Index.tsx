@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Swords, Zap, Shield, MapPin } from "lucide-react";
+import { Zap, Shield, MapPin } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -12,8 +13,8 @@ const Index = () => {
       <nav className="fixed top-0 w-full z-50 glass-surface">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <Swords className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold text-gradient-crimson">OnlyKnifers</span>
+            <img src={logoImg} alt="OnlyKnifers" className="h-8 rounded" />
+            <span className="text-lg font-bold text-gradient-gold">OnlyKnifers</span>
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
             Sign In
@@ -31,7 +32,7 @@ const Index = () => {
           >
             <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
               Cut Through <br />
-              <span className="text-gradient-crimson">The Traffic</span>
+              <span className="text-gradient-gold">The Traffic</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto">
               Lightning-fast dispatch. Real-time tracking. Razor-sharp precision for every ride.

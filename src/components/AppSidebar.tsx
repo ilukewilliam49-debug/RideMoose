@@ -1,4 +1,5 @@
-import { Home, Car, Shield, BarChart3, LogOut, Swords } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,9 +50,9 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="flex items-center gap-2 px-4 py-4">
-          <Swords className="h-6 w-6 text-primary shrink-0" />
+          <img src={logoImg} alt="OnlyKnifers" className="h-6 shrink-0 rounded" />
           {!collapsed && (
-            <span className="font-bold text-lg text-gradient-crimson">OnlyKnifers</span>
+            <span className="font-bold text-lg text-gradient-gold">OnlyKnifers</span>
           )}
         </div>
 

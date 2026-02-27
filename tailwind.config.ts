@@ -51,7 +51,8 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        crimson: "hsl(var(--crimson))",
+        crimson: "hsl(var(--gold))",
+        gold: "hsl(var(--gold))",
         steel: "hsl(var(--steel))",
         "steel-light": "hsl(var(--steel-light))",
         surface: "hsl(var(--surface))",
@@ -81,8 +82,8 @@ export default {
           to: { height: "0" },
         },
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 20px -5px hsl(0 85% 55% / 0.3)" },
-          "50%": { boxShadow: "0 0 40px -5px hsl(0 85% 55% / 0.5)" },
+          "0%, 100%": { boxShadow: "0 0 20px -5px hsl(45 95% 55% / 0.3)" },
+          "50%": { boxShadow: "0 0 40px -5px hsl(45 95% 55% / 0.5)" },
         },
         "slide-up": {
           from: { opacity: "0", transform: "translateY(20px)" },
