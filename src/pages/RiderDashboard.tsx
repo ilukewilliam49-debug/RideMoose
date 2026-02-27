@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import { Input } from "@/components/ui/input";
+import RideRatingDialog from "@/components/RideRatingDialog";
 
 type ServiceType = "taxi" | "shuttle";
 
@@ -144,6 +145,64 @@ const RiderDashboard = () => {
     },
     enabled: !!profile?.id,
   });
+
+  // Find most recent completed ride that hasn't been rated yet
+  const { data: unratedRide, refetch: refetchUnrated } = useQuery({
+    queryKey: ["unrated-ride", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      // Get completed rides
+      const { data: completedRides, error } = await supabase
+        .from("rides")
+        .select("id, driver_id, dropoff_address, completed_at")
+        .eq("rider_id", profile.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      if (!completedRides?.length) return null;
+
+      // Check which have already been rated
+      const { data: existingRatings } = await supabase
+        .from("ride_ratings")
+        .select("ride_id")
+        .eq("rated_by", profile.id)
+        .in("ride_id", completedRides.map((r) => r.id));
+
+      const ratedIds = new Set(existingRatings?.map((r) => r.ride_id) || []);
+      return completedRides.find((r) => !ratedIds.has(r.id)) || null;
+    },
+    enabled: !!profile?.id,
+  });
+
+  // Fetch driver name for rating dialog
+  const { data: ratingDriverName } = useQuery({
+    queryKey: ["rating-driver-name", unratedRide?.driver_id],
+    queryFn: async () => {
+      if (!unratedRide?.driver_id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", unratedRide.driver_id)
+        .single();
+      return data?.full_name || null;
+    },
+    enabled: !!unratedRide?.driver_id,
+  });
+
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [manualRateRideId, setManualRateRideId] = useState<string | null>(null);
+  const [manualRateDriverId, setManualRateDriverId] = useState<string | null>(null);
+
+  // Auto-open rating dialog when unrated ride is found
+  useEffect(() => {
+    if (unratedRide && !manualRateRideId) {
+      setRatingDialogOpen(true);
+    }
+  }, [unratedRide, manualRateRideId]);
+
+  const currentRatingRideId = manualRateRideId || unratedRide?.id;
+  const currentRatingDriverId = manualRateDriverId || unratedRide?.driver_id;
 
   const requestRide = async () => {
     if (!profile?.id || !pickup || !dropoff || !pickupCoords || !dropoffCoords) return;
@@ -350,18 +409,57 @@ const RiderDashboard = () => {
                   {new Date(ride.created_at).toLocaleDateString()}
                 </p>
               </div>
-              <div className="text-right">
-                <p className={`text-xs font-mono uppercase ${statusColor[ride.status] || ""}`}>
-                  {ride.status.replace("_", " ")}
-                </p>
-                {ride.estimated_price && (
-                  <p className="text-sm font-mono">${Number(ride.estimated_price).toFixed(2)}</p>
+              <div className="text-right flex items-center gap-3">
+                {ride.status === "completed" && ride.driver_id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs gap-1"
+                    onClick={() => {
+                      setManualRateRideId(ride.id);
+                      setManualRateDriverId(ride.driver_id);
+                      setRatingDialogOpen(true);
+                    }}
+                  >
+                    <Star className="h-3.5 w-3.5" /> Rate
+                  </Button>
                 )}
+                <div>
+                  <p className={`text-xs font-mono uppercase ${statusColor[ride.status] || ""}`}>
+                    {ride.status.replace("_", " ")}
+                  </p>
+                  {ride.estimated_price && (
+                    <p className="text-sm font-mono">${Number(ride.estimated_price).toFixed(2)}</p>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Rating dialog */}
+      {currentRatingRideId && currentRatingDriverId && profile?.id && (
+        <RideRatingDialog
+          open={ratingDialogOpen}
+          onOpenChange={(open) => {
+            setRatingDialogOpen(open);
+            if (!open) {
+              setManualRateRideId(null);
+              setManualRateDriverId(null);
+            }
+          }}
+          rideId={currentRatingRideId}
+          driverId={currentRatingDriverId}
+          ratedBy={profile.id}
+          driverName={ratingDriverName || undefined}
+          onRated={() => {
+            refetchUnrated();
+            setManualRateRideId(null);
+            setManualRateDriverId(null);
+          }}
+        />
+      )}
     </div>
   );
 };
