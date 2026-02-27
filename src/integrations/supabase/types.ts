@@ -56,6 +56,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          can_private_hire: boolean
           can_shuttle: boolean
           can_taxi: boolean
           created_at: string
@@ -72,6 +73,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
           created_at?: string
@@ -88,6 +90,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
           created_at?: string
@@ -172,7 +175,9 @@ export type Database = {
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
+          pricing_model: string
           rider_id: string
+          scheduled_at: string | null
           service_type: Database["public"]["Enums"]["service_type"]
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
@@ -193,7 +198,9 @@ export type Database = {
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pricing_model?: string
           rider_id: string
+          scheduled_at?: string | null
           service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
@@ -214,7 +221,9 @@ export type Database = {
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pricing_model?: string
           rider_id?: string
+          scheduled_at?: string | null
           service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
@@ -364,7 +373,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
-      service_type: "taxi" | "shuttle"
+      service_type: "taxi" | "shuttle" | "private_hire"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -502,7 +511,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
-      service_type: ["taxi", "shuttle"],
+      service_type: ["taxi", "shuttle", "private_hire"],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
     },
