@@ -287,6 +287,27 @@ const RiderDashboard = () => {
   const currentRatingRideId = manualRateRideId || unratedRide?.id;
   const currentRatingDriverId = manualRateDriverId || unratedRide?.driver_id;
 
+  const [cancellingRide, setCancellingRide] = useState(false);
+
+  const cancelRide = async () => {
+    if (!activeRide) return;
+    setCancellingRide(true);
+    try {
+      const { error } = await supabase
+        .from("rides")
+        .update({ status: "cancelled" })
+        .eq("id", activeRide.id);
+      if (error) throw error;
+      toast.success("Ride cancelled");
+      queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
+      queryClient.invalidateQueries({ queryKey: ["my-rides"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setCancellingRide(false);
+    }
+  };
+
   const requestRide = async () => {
     if (!profile?.id || !pickup || !dropoff || !pickupCoords || !dropoffCoords) return;
     setLoading(true);
@@ -348,7 +369,7 @@ const RiderDashboard = () => {
       {showActiveMap && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <RideMap markers={activeMarkers} />
-          <div className="glass-surface rounded-lg p-4 mt-3 space-y-1">
+          <div className="glass-surface rounded-lg p-4 mt-3 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
                 {activeRide.service_type === "private_hire" ? "Private Hire – Flat Rate" : activeRide.service_type}
@@ -360,6 +381,17 @@ const RiderDashboard = () => {
             </p>
             {driverProfile && (
               <p className="text-xs text-muted-foreground">Driver: {driverProfile.full_name}</p>
+            )}
+            {(activeRide.status === "requested" || activeRide.status === "accepted") && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full mt-2"
+                disabled={cancellingRide}
+                onClick={cancelRide}
+              >
+                {cancellingRide ? "Cancelling..." : "Cancel Ride"}
+              </Button>
             )}
           </div>
         </motion.div>
