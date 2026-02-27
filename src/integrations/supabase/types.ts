@@ -218,6 +218,7 @@ export type Database = {
       }
       rides: {
         Row: {
+          authorized_amount_cents: number | null
           completed_at: string | null
           created_at: string
           distance_km: number | null
@@ -233,7 +234,10 @@ export type Database = {
           meter_ended_at: string | null
           meter_started_at: string | null
           meter_status: string
+          paid_at: string | null
           passenger_count: number
+          payment_option: string
+          payment_status: string
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
@@ -243,10 +247,12 @@ export type Database = {
           service_type: Database["public"]["Enums"]["service_type"]
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
+          stripe_payment_intent_id: string | null
           updated_at: string
           waiting_min: number
         }
         Insert: {
+          authorized_amount_cents?: number | null
           completed_at?: string | null
           created_at?: string
           distance_km?: number | null
@@ -262,7 +268,10 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          paid_at?: string | null
           passenger_count?: number
+          payment_option?: string
+          payment_status?: string
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -272,10 +281,12 @@ export type Database = {
           service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          stripe_payment_intent_id?: string | null
           updated_at?: string
           waiting_min?: number
         }
         Update: {
+          authorized_amount_cents?: number | null
           completed_at?: string | null
           created_at?: string
           distance_km?: number | null
@@ -291,7 +302,10 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          paid_at?: string | null
           passenger_count?: number
+          payment_option?: string
+          payment_status?: string
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -301,6 +315,7 @@ export type Database = {
           service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          stripe_payment_intent_id?: string | null
           updated_at?: string
           waiting_min?: number
         }
