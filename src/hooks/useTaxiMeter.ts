@@ -315,7 +315,32 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
 
     setState((s) => ({ ...s, status: "completed", receipt, distanceKm: dist, waitingMin: wait, isWaiting: false, liveFareCents: receipt.totalCents }));
     queryClient.invalidateQueries({ queryKey: ["active-ride"] });
-    toast.success("Meter stopped – ride complete!");
+
+    // Attempt to capture payment
+    try {
+      const { data: captureData, error: captureError } = await supabase.functions.invoke(
+        "capture-payment",
+        { body: { ride_id: rideId } }
+      );
+      if (captureError) {
+        console.error("Capture error:", captureError);
+      } else if (captureData?.status === "overage") {
+        // Emit overage event for the rider UI to handle
+        window.dispatchEvent(
+          new CustomEvent("payment-overage", {
+            detail: {
+              overageClientSecret: captureData.overage_client_secret,
+              overageCents: captureData.overage_cents,
+            },
+          })
+        );
+      }
+      toast.success("Meter stopped – ride complete!");
+    } catch (e) {
+      // Non-fatal: payment capture can be retried
+      console.error("Payment capture failed:", e);
+      toast.success("Meter stopped – ride complete! Payment will be processed.");
+    }
   }, [rideId, stopGeo, stopTick, stopDbSync, computeReceipt, queryClient]);
 
   // Cleanup on unmount
