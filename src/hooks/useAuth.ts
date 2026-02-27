@@ -13,6 +13,7 @@ export interface Profile {
   latitude: number | null;
   longitude: number | null;
   can_taxi: boolean;
+  can_private_hire: boolean;
   can_shuttle: boolean;
   seat_capacity: number | null;
   created_at: string;

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -13,7 +13,7 @@ import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import { Input } from "@/components/ui/input";
 import RideRatingDialog from "@/components/RideRatingDialog";
 
-type ServiceType = "taxi" | "shuttle";
+type ServiceType = "taxi" | "private_hire" | "shuttle";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
@@ -60,9 +60,11 @@ const RiderDashboard = () => {
   // Dynamic price estimate from service_pricing
   const estimatedPrice = useMemo(() => {
     if (!distanceKm || !currentPricing) return null;
-    if (currentPricing.is_flat_rate && currentPricing.flat_rate) {
-      return (Number(currentPricing.flat_rate) * (serviceType === "shuttle" ? passengerCount : 1)).toFixed(2);
+    // Private hire: flat fare
+    if (serviceType === "private_hire" && currentPricing.is_flat_rate && currentPricing.flat_rate) {
+      return (Number(currentPricing.flat_rate) * Number(currentPricing.surge_multiplier)).toFixed(2);
     }
+    // Shuttle: distance + per-seat
     let price = Number(currentPricing.base_fare) + distanceKm * Number(currentPricing.per_km_rate);
     if (serviceType === "shuttle" && currentPricing.per_seat_rate) {
       price += passengerCount * Number(currentPricing.per_seat_rate);
@@ -291,37 +293,27 @@ const RiderDashboard = () => {
           {/* Service Type Toggle */}
           <div className="space-y-2">
             <Label>Service Type</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => { setServiceType("taxi"); setPassengerCount(1); }}
-                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                  serviceType === "taxi"
-                    ? "border-primary bg-primary/10 shadow-sm"
-                    : "border-border bg-secondary hover:bg-accent"
-                }`}
-              >
-                <Car className={`h-6 w-6 ${serviceType === "taxi" ? "text-primary" : "text-muted-foreground"}`} />
-                <div className="text-left">
-                  <p className="text-sm font-semibold">Taxi</p>
-                  <p className="text-xs text-muted-foreground">Private ride</p>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setServiceType("shuttle")}
-                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                  serviceType === "shuttle"
-                    ? "border-primary bg-primary/10 shadow-sm"
-                    : "border-border bg-secondary hover:bg-accent"
-                }`}
-              >
-                <Bus className={`h-6 w-6 ${serviceType === "shuttle" ? "text-primary" : "text-muted-foreground"}`} />
-                <div className="text-left">
-                  <p className="text-sm font-semibold">Shuttle</p>
-                  <p className="text-xs text-muted-foreground">Shared ride</p>
-                </div>
-              </button>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { key: "taxi" as ServiceType, icon: Car, label: "Taxi", desc: "Metered ride" },
+                { key: "private_hire" as ServiceType, icon: Briefcase, label: "Private Hire", desc: "Flat fare" },
+                { key: "shuttle" as ServiceType, icon: Bus, label: "Shuttle", desc: "Per-seat pricing" },
+              ]).map(({ key, icon: Icon, label, desc }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => { setServiceType(key); if (key !== "shuttle") setPassengerCount(1); }}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+                    serviceType === key
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : "border-border bg-secondary hover:bg-accent"
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 ${serviceType === key ? "text-primary" : "text-muted-foreground"}`} />
+                  <p className="text-xs font-semibold">{label}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -384,7 +376,7 @@ const RiderDashboard = () => {
           )}
 
           <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
-            {loading ? "Requesting..." : `Request ${serviceType === "taxi" ? "Taxi" : "Shuttle"}`}
+            {loading ? "Requesting..." : `Request ${serviceType === "taxi" ? "Taxi" : serviceType === "private_hire" ? "Private Hire" : "Shuttle"}`}
           </Button>
         </motion.div>
       )}

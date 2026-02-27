@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus } from "lucide-react";
+import { Check, MapPin, Car, Bus, Briefcase } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -17,10 +17,11 @@ const DriverDispatch = () => {
 
   // Only fetch rides matching driver's capabilities
   const { data: pendingRides } = useQuery({
-    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_shuttle],
+    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle],
     queryFn: async () => {
-      const serviceTypes: ("taxi" | "shuttle")[] = [];
+      const serviceTypes: ("taxi" | "private_hire" | "shuttle")[] = [];
       if (profile?.can_taxi) serviceTypes.push("taxi");
+      if (profile?.can_private_hire) serviceTypes.push("private_hire");
       if (profile?.can_shuttle) serviceTypes.push("shuttle");
       if (serviceTypes.length === 0) return [];
 
@@ -106,7 +107,7 @@ const DriverDispatch = () => {
     }));
 
   const ServiceIcon = ({ type }: { type: string }) =>
-    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
+    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
 
   return (
     <div className="space-y-6 pt-4">
@@ -114,6 +115,7 @@ const DriverDispatch = () => {
         <h1 className="text-2xl font-bold">Dispatch Board</h1>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {profile?.can_taxi && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Car className="h-3 w-3" /> Taxi</span>}
+          {profile?.can_private_hire && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Briefcase className="h-3 w-3" /> Private</span>}
           {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> Shuttle</span>}
         </div>
       </div>
