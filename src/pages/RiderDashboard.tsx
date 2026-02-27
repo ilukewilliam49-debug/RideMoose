@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -13,6 +13,7 @@ import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import { Input } from "@/components/ui/input";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import { detectGeoZone } from "@/lib/geofence";
+import PaymentConfirmation from "@/components/PaymentConfirmation";
 
 type ServiceType = "taxi" | "private_hire" | "shuttle";
 
@@ -26,6 +27,12 @@ const RiderDashboard = () => {
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [serviceType, setServiceType] = useState<ServiceType>("taxi");
+  const [paymentOption, setPaymentOption] = useState<"in_app" | "pay_driver">("in_app");
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
+  const [pendingRideId, setPendingRideId] = useState<string | null>(null);
+  const [overageSecret, setOverageSecret] = useState<string | null>(null);
+  const [overageCents, setOverageCents] = useState(0);
   const [passengerCount, setPassengerCount] = useState(1);
 
   // Fetch service pricing
@@ -237,6 +244,19 @@ const RiderDashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
+  // Listen for overage payment events from driver's meter completion
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.overageClientSecret && detail?.overageCents) {
+        setOverageSecret(detail.overageClientSecret);
+        setOverageCents(detail.overageCents);
+      }
+    };
+    window.addEventListener("payment-overage", handler);
+    return () => window.removeEventListener("payment-overage", handler);
+  }, []);
+
   const activeMarkers: MapMarker[] = activeRide
     ? [
         ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: "Pickup" }] : []),
@@ -344,7 +364,8 @@ const RiderDashboard = () => {
     if (!profile?.id || !pickup || !dropoff || !pickupCoords || !dropoffCoords) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("rides").insert({
+      const estCents = Math.round(parseFloat(estimatedPrice || "0") * 100);
+      const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
         pickup_address: pickup,
         dropoff_address: dropoff,
@@ -358,8 +379,24 @@ const RiderDashboard = () => {
         passenger_count: passengerCount,
         pricing_model: serviceType === "private_hire" ? "flat_zone" : "metered",
         status: "requested",
-      });
+        payment_option: paymentOption,
+      }).select("id").single();
       if (error) throw error;
+
+      // If in_app payment for taxi, create payment intent
+      if (paymentOption === "in_app" && serviceType === "taxi" && rideData) {
+        const { data: piData, error: piError } = await supabase.functions.invoke(
+          "create-payment-intent",
+          { body: { ride_id: rideData.id, estimated_fare_cents: estCents } }
+        );
+        if (piError) throw new Error(piError.message || "Payment intent failed");
+        setPaymentClientSecret(piData.clientSecret);
+        setAuthorizedAmountCents(piData.authorized_amount_cents);
+        setPendingRideId(rideData.id);
+        setLoading(false);
+        return; // Don't clear form yet — show payment confirmation
+      }
+
       toast.success("Ride requested! Looking for a driver...");
       setPickup("");
       setDropoff("");
@@ -372,6 +409,19 @@ const RiderDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setPaymentClientSecret(null);
+    setPendingRideId(null);
+    setAuthorizedAmountCents(0);
+    toast.success("Payment authorized! Looking for a driver...");
+    setPickup("");
+    setDropoff("");
+    setPickupCoords(null);
+    setDropoffCoords(null);
+    setPassengerCount(1);
+    refetch();
   };
 
   const statusColor: Record<string, string> = {
@@ -577,9 +627,79 @@ const RiderDashboard = () => {
             </div>
           )}
 
-          <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
-            {loading ? "Requesting..." : `Request ${serviceType === "taxi" ? "Taxi" : serviceType === "private_hire" ? "Private Hire" : "Shuttle"}`}
-          </Button>
+          {/* Payment option selector for taxi */}
+          {serviceType === "taxi" && (
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentOption("in_app")}
+                  className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${
+                    paymentOption === "in_app"
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-secondary hover:bg-accent"
+                  }`}
+                >
+                  <CreditCard className={`h-4 w-4 ${paymentOption === "in_app" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Pay in App</p>
+                    <p className="text-[10px] text-muted-foreground">Card on file</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentOption("pay_driver")}
+                  className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${
+                    paymentOption === "pay_driver"
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-secondary hover:bg-accent"
+                  }`}
+                >
+                  <Banknote className={`h-4 w-4 ${paymentOption === "pay_driver" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Pay Driver</p>
+                    <p className="text-[10px] text-muted-foreground">Cash/tap</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Payment confirmation with Stripe Elements */}
+          {paymentClientSecret && (
+            <PaymentConfirmation
+              clientSecret={paymentClientSecret}
+              amountCents={authorizedAmountCents}
+              onSuccess={handlePaymentSuccess}
+              label="Authorize Ride Payment"
+            />
+          )}
+
+          {/* Overage payment for completed ride */}
+          {overageSecret && (
+            <div className="space-y-2">
+              <p className="text-sm text-yellow-500 font-medium">
+                Your fare exceeded the authorized amount. Please confirm the additional charge:
+              </p>
+              <PaymentConfirmation
+                clientSecret={overageSecret}
+                amountCents={overageCents}
+                onSuccess={() => {
+                  setOverageSecret(null);
+                  setOverageCents(0);
+                  toast.success("Additional payment completed!");
+                }}
+                label="Pay Additional Fare"
+              />
+            </div>
+          )}
+
+          {!paymentClientSecret && (
+            <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
+              {loading ? "Requesting..." : `Request ${serviceType === "taxi" ? "Taxi" : serviceType === "private_hire" ? "Private Hire" : "Shuttle"}`}
+            </Button>
+          )}
         </motion.div>
       )}
 
