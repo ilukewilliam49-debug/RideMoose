@@ -56,6 +56,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          can_shuttle: boolean
+          can_taxi: boolean
           created_at: string
           full_name: string
           id: string
@@ -64,11 +66,14 @@ export type Database = {
           longitude: number | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          seat_capacity: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          can_shuttle?: boolean
+          can_taxi?: boolean
           created_at?: string
           full_name?: string
           id?: string
@@ -77,11 +82,14 @@ export type Database = {
           longitude?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          seat_capacity?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          can_shuttle?: boolean
+          can_taxi?: boolean
           created_at?: string
           full_name?: string
           id?: string
@@ -90,6 +98,7 @@ export type Database = {
           longitude?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          seat_capacity?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -159,10 +168,12 @@ export type Database = {
           estimated_price: number | null
           final_price: number | null
           id: string
+          passenger_count: number
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
           rider_id: string
+          service_type: Database["public"]["Enums"]["service_type"]
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
           updated_at: string
@@ -178,10 +189,12 @@ export type Database = {
           estimated_price?: number | null
           final_price?: number | null
           id?: string
+          passenger_count?: number
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
           rider_id: string
+          service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           updated_at?: string
@@ -197,10 +210,12 @@ export type Database = {
           estimated_price?: number | null
           final_price?: number | null
           id?: string
+          passenger_count?: number
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
           rider_id?: string
+          service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           updated_at?: string
@@ -221,6 +236,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_pricing: {
+        Row: {
+          base_fare: number
+          created_at: string
+          flat_rate: number | null
+          id: string
+          is_active: boolean
+          is_flat_rate: boolean
+          minimum_fare: number
+          per_km_rate: number
+          per_min_rate: number
+          per_seat_rate: number | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          surge_multiplier: number
+          updated_at: string
+        }
+        Insert: {
+          base_fare?: number
+          created_at?: string
+          flat_rate?: number | null
+          id?: string
+          is_active?: boolean
+          is_flat_rate?: boolean
+          minimum_fare?: number
+          per_km_rate?: number
+          per_min_rate?: number
+          per_seat_rate?: number | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          surge_multiplier?: number
+          updated_at?: string
+        }
+        Update: {
+          base_fare?: number
+          created_at?: string
+          flat_rate?: number | null
+          id?: string
+          is_active?: boolean
+          is_flat_rate?: boolean
+          minimum_fare?: number
+          per_km_rate?: number
+          per_min_rate?: number
+          per_seat_rate?: number | null
+          service_type?: Database["public"]["Enums"]["service_type"]
+          surge_multiplier?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       verifications: {
         Row: {
@@ -278,6 +341,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      driver_can_serve: {
+        Args: {
+          _service: Database["public"]["Enums"]["service_type"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -294,6 +364,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+      service_type: "taxi" | "shuttle"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -431,6 +502,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      service_type: ["taxi", "shuttle"],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
     },

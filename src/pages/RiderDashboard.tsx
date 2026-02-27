@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
+import { Input } from "@/components/ui/input";
+
+type ServiceType = "taxi" | "shuttle";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
@@ -20,27 +23,59 @@ const RiderDashboard = () => {
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [serviceType, setServiceType] = useState<ServiceType>("taxi");
+  const [passengerCount, setPassengerCount] = useState(1);
 
-  // Calculate distance-based price estimate
-  const estimatedPrice = pickupCoords && dropoffCoords
-    ? (() => {
-        const R = 6371;
-        const dLat = ((dropoffCoords.lat - pickupCoords.lat) * Math.PI) / 180;
-        const dLon = ((dropoffCoords.lng - pickupCoords.lng) * Math.PI) / 180;
-        const a = Math.sin(dLat / 2) ** 2 +
-          Math.cos((pickupCoords.lat * Math.PI) / 180) * Math.cos((dropoffCoords.lat * Math.PI) / 180) *
-          Math.sin(dLon / 2) ** 2;
-        const km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return Math.max(5, 2.5 + km * 1.2).toFixed(2);
-      })()
-    : null;
+  // Fetch service pricing
+  const { data: servicePricing } = useQuery({
+    queryKey: ["service-pricing"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_pricing")
+        .select("*")
+        .eq("is_active", true);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const currentPricing = useMemo(
+    () => servicePricing?.find((p) => p.service_type === serviceType),
+    [servicePricing, serviceType]
+  );
+
+  // Calculate distance
+  const distanceKm = useMemo(() => {
+    if (!pickupCoords || !dropoffCoords) return null;
+    const R = 6371;
+    const dLat = ((dropoffCoords.lat - pickupCoords.lat) * Math.PI) / 180;
+    const dLon = ((dropoffCoords.lng - pickupCoords.lng) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos((pickupCoords.lat * Math.PI) / 180) * Math.cos((dropoffCoords.lat * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }, [pickupCoords, dropoffCoords]);
+
+  // Dynamic price estimate from service_pricing
+  const estimatedPrice = useMemo(() => {
+    if (!distanceKm || !currentPricing) return null;
+    if (currentPricing.is_flat_rate && currentPricing.flat_rate) {
+      return (Number(currentPricing.flat_rate) * (serviceType === "shuttle" ? passengerCount : 1)).toFixed(2);
+    }
+    let price = Number(currentPricing.base_fare) + distanceKm * Number(currentPricing.per_km_rate);
+    if (serviceType === "shuttle" && currentPricing.per_seat_rate) {
+      price += passengerCount * Number(currentPricing.per_seat_rate);
+    }
+    price *= Number(currentPricing.surge_multiplier);
+    return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
+  }, [distanceKm, currentPricing, serviceType, passengerCount]);
 
   const mapMarkers: MapMarker[] = [
     ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: "Pickup" }] : []),
     ...(dropoffCoords ? [{ lat: dropoffCoords.lat, lng: dropoffCoords.lng, type: "dropoff" as const, label: "Dropoff" }] : []),
   ];
 
-  // Active ride — show driver location
+  // Active ride
   const { data: activeRide } = useQuery({
     queryKey: ["rider-active-ride", profile?.id],
     queryFn: async () => {
@@ -59,7 +94,6 @@ const RiderDashboard = () => {
     enabled: !!profile?.id,
   });
 
-  // Fetch driver profile for active ride (for location)
   const { data: driverProfile } = useQuery({
     queryKey: ["driver-location", activeRide?.driver_id],
     queryFn: async () => {
@@ -76,7 +110,6 @@ const RiderDashboard = () => {
     refetchInterval: 5000,
   });
 
-  // Realtime subscription for ride updates
   useEffect(() => {
     const channel = supabase
       .channel("rider-rides")
@@ -88,7 +121,6 @@ const RiderDashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  // Build active ride markers
   const activeMarkers: MapMarker[] = activeRide
     ? [
         ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: "Pickup" }] : []),
@@ -126,6 +158,9 @@ const RiderDashboard = () => {
         dropoff_lat: dropoffCoords.lat,
         dropoff_lng: dropoffCoords.lng,
         estimated_price: parseFloat(estimatedPrice || "0"),
+        distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
+        service_type: serviceType,
+        passenger_count: passengerCount,
         status: "requested",
       });
       if (error) throw error;
@@ -134,6 +169,7 @@ const RiderDashboard = () => {
       setDropoff("");
       setPickupCoords(null);
       setDropoffCoords(null);
+      setPassengerCount(1);
       refetch();
     } catch (err: any) {
       toast.error(err.message);
@@ -170,7 +206,12 @@ const RiderDashboard = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <RideMap markers={activeMarkers} />
           <div className="glass-surface rounded-lg p-4 mt-3 space-y-1">
-            <p className="text-sm font-medium">{activeRide.pickup_address} → {activeRide.dropoff_address}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
+                {activeRide.service_type}
+              </span>
+              <p className="text-sm font-medium">{activeRide.pickup_address} → {activeRide.dropoff_address}</p>
+            </div>
             <p className={`text-xs font-mono uppercase ${statusColor[activeRide.status]}`}>
               {activeRide.status.replace("_", " ")}
             </p>
@@ -188,6 +229,61 @@ const RiderDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="glass-surface rounded-lg p-6 space-y-4"
         >
+          {/* Service Type Toggle */}
+          <div className="space-y-2">
+            <Label>Service Type</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => { setServiceType("taxi"); setPassengerCount(1); }}
+                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+                  serviceType === "taxi"
+                    ? "border-primary bg-primary/10 shadow-sm"
+                    : "border-border bg-secondary hover:bg-accent"
+                }`}
+              >
+                <Car className={`h-6 w-6 ${serviceType === "taxi" ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="text-left">
+                  <p className="text-sm font-semibold">Taxi</p>
+                  <p className="text-xs text-muted-foreground">Private ride</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setServiceType("shuttle")}
+                className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+                  serviceType === "shuttle"
+                    ? "border-primary bg-primary/10 shadow-sm"
+                    : "border-border bg-secondary hover:bg-accent"
+                }`}
+              >
+                <Bus className={`h-6 w-6 ${serviceType === "shuttle" ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="text-left">
+                  <p className="text-sm font-semibold">Shuttle</p>
+                  <p className="text-xs text-muted-foreground">Shared ride</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Passenger count for shuttle */}
+          {serviceType === "shuttle" && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Passengers
+              </Label>
+              <Input
+                type="number"
+                min={1}
+                max={12}
+                value={passengerCount}
+                onChange={(e) => setPassengerCount(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
+                className="w-24 bg-secondary"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Pickup Location</Label>
             <AddressAutocomplete
@@ -220,11 +316,16 @@ const RiderDashboard = () => {
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">Estimated price:</span>
               <span className="font-mono font-bold">${estimatedPrice}</span>
+              {serviceType === "shuttle" && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({passengerCount} seat{passengerCount > 1 ? "s" : ""})
+                </span>
+              )}
             </div>
           )}
 
           <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
-            {loading ? "Requesting..." : "Request Ride"}
+            {loading ? "Requesting..." : `Request ${serviceType === "taxi" ? "Taxi" : "Shuttle"}`}
           </Button>
         </motion.div>
       )}
@@ -239,7 +340,12 @@ const RiderDashboard = () => {
           {rides?.map((ride) => (
             <div key={ride.id} className="glass-surface rounded-lg p-4 flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium">{ride.pickup_address} → {ride.dropoff_address}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                    {ride.service_type}
+                  </span>
+                  <p className="text-sm font-medium">{ride.pickup_address} → {ride.dropoff_address}</p>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {new Date(ride.created_at).toLocaleDateString()}
                 </p>

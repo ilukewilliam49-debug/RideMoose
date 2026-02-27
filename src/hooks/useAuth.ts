@@ -12,6 +12,9 @@ export interface Profile {
   is_available: boolean;
   latitude: number | null;
   longitude: number | null;
+  can_taxi: boolean;
+  can_shuttle: boolean;
+  seat_capacity: number | null;
   created_at: string;
   updated_at: string;
 }
