@@ -29,7 +29,7 @@ serve(async (req) => {
     if (!ride_id || !estimated_fare_cents) throw new Error("ride_id and estimated_fare_cents required");
 
     // Calculate authorized amount: 125% of estimate, minimum $20
-    const authorized_amount_cents = Math.max(Math.round(estimated_fare_cents * 1.25), 2000);
+    const authorized_amount_cents = Math.min(Math.max(Math.round(estimated_fare_cents * 1.25), 2000), 50000);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
