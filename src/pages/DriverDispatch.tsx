@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin } from "lucide-react";
+import { Check, MapPin, Car, Bus } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -13,21 +13,28 @@ const DriverDispatch = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
-  // Track driver location in real-time
   useDriverLocation(profile?.id, !!profile?.is_available);
 
+  // Only fetch rides matching driver's capabilities
   const { data: pendingRides } = useQuery({
-    queryKey: ["dispatch-rides"],
+    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_shuttle],
     queryFn: async () => {
+      const serviceTypes: ("taxi" | "shuttle")[] = [];
+      if (profile?.can_taxi) serviceTypes.push("taxi");
+      if (profile?.can_shuttle) serviceTypes.push("shuttle");
+      if (serviceTypes.length === 0) return [];
+
       const { data, error } = await supabase
         .from("rides")
         .select("*")
         .in("status", ["requested", "dispatched"])
+        .in("service_type", serviceTypes)
         .order("created_at", { ascending: true })
         .limit(20);
       if (error) throw error;
       return data;
     },
+    enabled: !!profile,
     refetchInterval: 5000,
   });
 
@@ -81,7 +88,6 @@ const DriverDispatch = () => {
     else toast.success(`Ride ${status.replace("_", " ")}!`);
   };
 
-  // Build map markers for active ride
   const activeMarkers: MapMarker[] = activeRide
     ? [
         ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: "Pickup" }] : []),
@@ -90,7 +96,6 @@ const DriverDispatch = () => {
       ]
     : [];
 
-  // Map for pending rides overview
   const pendingMarkers: MapMarker[] = (pendingRides || [])
     .filter((r) => r.pickup_lat && r.pickup_lng)
     .map((r) => ({
@@ -100,16 +105,30 @@ const DriverDispatch = () => {
       label: r.pickup_address,
     }));
 
+  const ServiceIcon = ({ type }: { type: string }) =>
+    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
+
   return (
     <div className="space-y-6 pt-4">
-      <h1 className="text-2xl font-bold">Dispatch Board</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Dispatch Board</h1>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {profile?.can_taxi && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Car className="h-3 w-3" /> Taxi</span>}
+          {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> Shuttle</span>}
+        </div>
+      </div>
 
       {/* Active ride with map */}
       {activeRide && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
           {activeMarkers.length > 0 && <RideMap markers={activeMarkers} />}
           <div className="glass-surface rounded-lg p-5 border border-primary/30">
-            <h2 className="text-sm font-semibold text-primary mb-3">ACTIVE RIDE</h2>
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-sm font-semibold text-primary">ACTIVE RIDE</h2>
+              <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                {activeRide.service_type}
+              </span>
+            </div>
             <div className="space-y-2 mb-4">
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-green-400 mt-0.5" />
@@ -139,12 +158,10 @@ const DriverDispatch = () => {
         </motion.div>
       )}
 
-      {/* Pending rides map overview */}
       {!activeRide && pendingMarkers.length > 0 && (
         <RideMap markers={pendingMarkers} />
       )}
 
-      {/* Pending rides list */}
       <div>
         <h2 className="text-lg font-semibold mb-3">Incoming Requests</h2>
         {pendingRides?.length === 0 && (
@@ -159,6 +176,15 @@ const DriverDispatch = () => {
               className="glass-surface rounded-lg p-4 flex items-center justify-between"
             >
               <div className="space-y-1 flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                    <ServiceIcon type={ride.service_type} />
+                    {ride.service_type}
+                  </span>
+                  {ride.service_type === "shuttle" && (
+                    <span className="text-xs text-muted-foreground">{ride.passenger_count} pax</span>
+                  )}
+                </div>
                 <p className="text-sm font-medium truncate">
                   {ride.pickup_address} → {ride.dropoff_address}
                 </p>
