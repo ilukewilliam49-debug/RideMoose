@@ -234,6 +234,8 @@ export type Database = {
           meter_ended_at: string | null
           meter_started_at: string | null
           meter_status: string
+          overage_cents: number | null
+          overage_client_secret: string | null
           paid_at: string | null
           passenger_count: number
           payment_option: string
@@ -268,6 +270,8 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          overage_cents?: number | null
+          overage_client_secret?: string | null
           paid_at?: string | null
           passenger_count?: number
           payment_option?: string
@@ -302,6 +306,8 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          overage_cents?: number | null
+          overage_client_secret?: string | null
           paid_at?: string | null
           passenger_count?: number
           payment_option?: string
