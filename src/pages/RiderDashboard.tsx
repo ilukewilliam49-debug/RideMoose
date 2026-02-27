@@ -244,18 +244,7 @@ const RiderDashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  // Listen for overage payment events from driver's meter completion
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.overageClientSecret && detail?.overageCents) {
-        setOverageSecret(detail.overageClientSecret);
-        setOverageCents(detail.overageCents);
-      }
-    };
-    window.addEventListener("payment-overage", handler);
-    return () => window.removeEventListener("payment-overage", handler);
-  }, []);
+  // Overage detection moved after rides query below
 
   const activeMarkers: MapMarker[] = activeRide
     ? [
@@ -280,6 +269,18 @@ const RiderDashboard = () => {
     },
     enabled: !!profile?.id,
   });
+
+  // Detect overage from completed ride via realtime DB updates
+  useEffect(() => {
+    if (!rides) return;
+    const overageRide = rides.find(
+      (r: any) => r.overage_client_secret && r.overage_cents && r.overage_cents > 0
+    );
+    if (overageRide && !overageSecret) {
+      setOverageSecret((overageRide as any).overage_client_secret);
+      setOverageCents((overageRide as any).overage_cents);
+    }
+  }, [rides, overageSecret]);
 
   // Find most recent completed ride that hasn't been rated yet
   const { data: unratedRide, refetch: refetchUnrated } = useQuery({

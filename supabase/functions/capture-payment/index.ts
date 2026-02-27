@@ -88,6 +88,8 @@ serve(async (req) => {
         .update({
           payment_status: "paid",
           paid_at: new Date().toISOString(),
+          overage_client_secret: overageIntent.client_secret,
+          overage_cents: overage,
         })
         .eq("id", ride_id);
 
