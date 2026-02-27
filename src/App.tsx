@@ -12,6 +12,7 @@ import AdminVerifications from "./pages/AdminVerifications";
 import AdminReports from "./pages/AdminReports";
 import AdminUsers from "./pages/AdminUsers";
 import AdminPricing from "./pages/AdminPricing";
+import AdminZones from "./pages/AdminZones";
 import DriverDashboard from "./pages/DriverDashboard";
 import DriverDispatch from "./pages/DriverDispatch";
 import DashboardHome from "./pages/DashboardHome";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="reports" element={<AdminReports />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="pricing" element={<AdminPricing />} />
+            <Route path="zones" element={<AdminZones />} />
           </Route>
 
           <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>

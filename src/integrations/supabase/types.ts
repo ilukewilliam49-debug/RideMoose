@@ -53,6 +53,36 @@ export type Database = {
         }
         Relationships: []
       }
+      private_hire_zones: {
+        Row: {
+          active: boolean
+          created_at: string
+          dropoff_zone: string
+          flat_fare_cents: number
+          id: string
+          pickup_zone: string
+          zone_name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          dropoff_zone: string
+          flat_fare_cents: number
+          id?: string
+          pickup_zone: string
+          zone_name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          dropoff_zone?: string
+          flat_fare_cents?: number
+          id?: string
+          pickup_zone?: string
+          zone_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

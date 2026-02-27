@@ -128,7 +128,7 @@ const DriverDispatch = () => {
             <div className="flex items-center gap-2 mb-3">
               <h2 className="text-sm font-semibold text-primary">ACTIVE RIDE</h2>
               <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                {activeRide.service_type}
+                {activeRide.service_type === "private_hire" ? "Private Hire – Flat Rate" : activeRide.service_type}
               </span>
             </div>
             <div className="space-y-2 mb-4">

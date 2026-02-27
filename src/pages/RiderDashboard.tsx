@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -40,6 +40,19 @@ const RiderDashboard = () => {
     },
   });
 
+  // Fetch private hire zones
+  const { data: privateHireZones } = useQuery({
+    queryKey: ["private-hire-zones"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("private_hire_zones")
+        .select("*")
+        .eq("active", true);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const currentPricing = useMemo(
     () => servicePricing?.find((p) => p.service_type === serviceType),
     [servicePricing, serviceType]
@@ -57,21 +70,41 @@ const RiderDashboard = () => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }, [pickupCoords, dropoffCoords]);
 
-  // Dynamic price estimate from service_pricing
+  // Zone detection helper
+  const detectZone = (address: string): string => {
+    const lower = address.toLowerCase();
+    if (lower.includes("airport")) return "airport";
+    if (lower.includes("ingraham")) return "ingraham_trail";
+    return "city";
+  };
+
+  // Matched zone for private hire
+  const matchedZone = useMemo(() => {
+    if (serviceType !== "private_hire" || !pickup || !dropoff || !privateHireZones) return null;
+    const pickupZone = detectZone(pickup);
+    const dropoffZone = detectZone(dropoff);
+    return privateHireZones.find(
+      (z) => z.pickup_zone === pickupZone && z.dropoff_zone === dropoffZone
+    ) || null;
+  }, [serviceType, pickup, dropoff, privateHireZones]);
+
+  // Dynamic price estimate
   const estimatedPrice = useMemo(() => {
-    if (!distanceKm || !currentPricing) return null;
-    // Private hire: flat fare
-    if (serviceType === "private_hire" && currentPricing.is_flat_rate && currentPricing.flat_rate) {
-      return (Number(currentPricing.flat_rate) * Number(currentPricing.surge_multiplier)).toFixed(2);
+    // Private hire: zone-based flat pricing
+    if (serviceType === "private_hire") {
+      if (!pickup || !dropoff) return null;
+      const fareCents = matchedZone ? matchedZone.flat_fare_cents : 5000; // fallback 5000 cents
+      return (fareCents / 100).toFixed(2);
     }
-    // Shuttle: distance + per-seat
+    // Taxi / shuttle: distance-based
+    if (!distanceKm || !currentPricing) return null;
     let price = Number(currentPricing.base_fare) + distanceKm * Number(currentPricing.per_km_rate);
     if (serviceType === "shuttle" && currentPricing.per_seat_rate) {
       price += passengerCount * Number(currentPricing.per_seat_rate);
     }
     price *= Number(currentPricing.surge_multiplier);
     return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
-  }, [distanceKm, currentPricing, serviceType, passengerCount]);
+  }, [distanceKm, currentPricing, serviceType, passengerCount, pickup, dropoff, matchedZone]);
 
   const mapMarkers: MapMarker[] = [
     ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: "Pickup" }] : []),
@@ -222,6 +255,7 @@ const RiderDashboard = () => {
         distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
         service_type: serviceType,
         passenger_count: passengerCount,
+        pricing_model: serviceType === "private_hire" ? "flat_zone" : "metered",
         status: "requested",
       });
       if (error) throw error;
@@ -269,7 +303,7 @@ const RiderDashboard = () => {
           <div className="glass-surface rounded-lg p-4 mt-3 space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
-                {activeRide.service_type}
+                {activeRide.service_type === "private_hire" ? "Private Hire – Flat Rate" : activeRide.service_type}
               </span>
               <p className="text-sm font-medium">{activeRide.pickup_address} → {activeRide.dropoff_address}</p>
             </div>
@@ -362,7 +396,23 @@ const RiderDashboard = () => {
 
           {showBookingMap && <RideMap markers={mapMarkers} />}
 
-          {estimatedPrice && (
+          {estimatedPrice && serviceType === "private_hire" && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">Private Hire – Flat Rate</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPinned className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {matchedZone ? matchedZone.zone_name : "Standard Route (fallback)"}
+                </span>
+              </div>
+              <p className="text-2xl font-mono font-bold">${estimatedPrice}</p>
+            </div>
+          )}
+
+          {estimatedPrice && serviceType !== "private_hire" && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-secondary">
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">Estimated price:</span>
@@ -393,7 +443,7 @@ const RiderDashboard = () => {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                    {ride.service_type}
+                    {ride.service_type === "private_hire" ? "Private Hire – Flat Rate" : ride.service_type}
                   </span>
                   <p className="text-sm font-medium">{ride.pickup_address} → {ride.dropoff_address}</p>
                 </div>
