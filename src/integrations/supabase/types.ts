@@ -41,6 +41,39 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          billing_email: string
+          created_at: string
+          credit_limit_cents: number
+          current_balance_cents: number
+          id: string
+          name: string
+          payment_terms_days: number
+          status: string
+        }
+        Insert: {
+          billing_email: string
+          created_at?: string
+          credit_limit_cents?: number
+          current_balance_cents?: number
+          id?: string
+          name: string
+          payment_terms_days?: number
+          status?: string
+        }
+        Update: {
+          billing_email?: string
+          created_at?: string
+          credit_limit_cents?: number
+          current_balance_cents?: number
+          id?: string
+          name?: string
+          payment_terms_days?: number
+          status?: string
+        }
+        Relationships: []
+      }
       pricing_config: {
         Row: {
           base_fare: number
@@ -122,8 +155,10 @@ export type Database = {
           is_available: boolean | null
           latitude: number | null
           longitude: number | null
+          organization_id: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          role_in_org: string | null
           seat_capacity: number | null
           updated_at: string
           user_id: string
@@ -139,8 +174,10 @@ export type Database = {
           is_available?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          organization_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          role_in_org?: string | null
           seat_capacity?: number | null
           updated_at?: string
           user_id: string
@@ -156,13 +193,23 @@ export type Database = {
           is_available?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          organization_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          role_in_org?: string | null
           seat_capacity?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ride_ratings: {
         Row: {
@@ -219,6 +266,7 @@ export type Database = {
       rides: {
         Row: {
           authorized_amount_cents: number | null
+          billed_to: string
           captured_amount_cents: number | null
           completed_at: string | null
           created_at: string
@@ -233,9 +281,11 @@ export type Database = {
           final_fare_cents: number | null
           final_price: number | null
           id: string
+          invoiced: boolean
           meter_ended_at: string | null
           meter_started_at: string | null
           meter_status: string
+          organization_id: string | null
           outstanding_amount_cents: number | null
           outstanding_reason: string | null
           overage_cents: number | null
@@ -259,6 +309,7 @@ export type Database = {
         }
         Insert: {
           authorized_amount_cents?: number | null
+          billed_to?: string
           captured_amount_cents?: number | null
           completed_at?: string | null
           created_at?: string
@@ -273,9 +324,11 @@ export type Database = {
           final_fare_cents?: number | null
           final_price?: number | null
           id?: string
+          invoiced?: boolean
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          organization_id?: string | null
           outstanding_amount_cents?: number | null
           outstanding_reason?: string | null
           overage_cents?: number | null
@@ -299,6 +352,7 @@ export type Database = {
         }
         Update: {
           authorized_amount_cents?: number | null
+          billed_to?: string
           captured_amount_cents?: number | null
           completed_at?: string | null
           created_at?: string
@@ -313,9 +367,11 @@ export type Database = {
           final_fare_cents?: number | null
           final_price?: number | null
           id?: string
+          invoiced?: boolean
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          organization_id?: string | null
           outstanding_amount_cents?: number | null
           outstanding_reason?: string | null
           overage_cents?: number | null
@@ -343,6 +399,13 @@ export type Database = {
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
