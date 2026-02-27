@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      pricing_config: {
+        Row: {
+          base_fare: number
+          created_at: string
+          id: string
+          is_active: boolean
+          minimum_fare: number
+          per_km_rate: number
+          per_min_rate: number
+          surge_multiplier: number
+          surge_threshold_pending: number
+          updated_at: string
+        }
+        Insert: {
+          base_fare?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          minimum_fare?: number
+          per_km_rate?: number
+          per_min_rate?: number
+          surge_multiplier?: number
+          surge_threshold_pending?: number
+          updated_at?: string
+        }
+        Update: {
+          base_fare?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          minimum_fare?: number
+          per_km_rate?: number
+          per_min_rate?: number
+          surge_multiplier?: number
+          surge_threshold_pending?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -55,6 +94,58 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ride_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rated_by: string
+          rated_user: string
+          rating: number
+          ride_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rated_by: string
+          rated_user: string
+          rating: number
+          ride_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rated_by?: string
+          rated_user?: string
+          rating?: number
+          ride_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ride_ratings_rated_by_fkey"
+            columns: ["rated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ride_ratings_rated_user_fkey"
+            columns: ["rated_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ride_ratings_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rides: {
         Row: {
