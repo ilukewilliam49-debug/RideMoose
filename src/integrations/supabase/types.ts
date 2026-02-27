@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      geo_zones: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          polygon: Json
+          zone_key: string
+          zone_name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          polygon?: Json
+          zone_key: string
+          zone_name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          polygon?: Json
+          zone_key?: string
+          zone_name?: string
+        }
+        Relationships: []
+      }
       pricing_config: {
         Row: {
           base_fare: number
