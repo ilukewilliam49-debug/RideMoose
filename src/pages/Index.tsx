@@ -15,7 +15,7 @@ const Index = () => {
             <Swords className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold text-gradient-crimson">OnlyKnifers</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+          <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
             Sign In
           </Button>
         </div>
@@ -40,7 +40,7 @@ const Index = () => {
               <Button
                 size="lg"
                 className="text-lg px-8 animate-pulse-glow"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/login")}
               >
                 Request a Ride
               </Button>
@@ -48,7 +48,7 @@ const Index = () => {
                 variant="outline"
                 size="lg"
                 className="text-lg px-8"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/login")}
               >
                 Drive with Us
               </Button>

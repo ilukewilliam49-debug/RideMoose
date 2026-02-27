@@ -1,6 +1,6 @@
 import { Home, Car, Shield, BarChart3, LogOut, Swords } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
@@ -17,23 +17,30 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const allNavItems = [
-  { icon: Home, title: "Dashboard", url: "/dashboard", roles: ["rider", "driver", "admin"] },
-  { icon: Car, title: "My Rides", url: "/dashboard/rides", roles: ["rider"] },
-  { icon: Car, title: "Dispatch", url: "/dashboard/dispatch", roles: ["driver"] },
-  { icon: Shield, title: "Verifications", url: "/dashboard/verifications", roles: ["admin"] },
-  { icon: BarChart3, title: "Reports", url: "/dashboard/reports", roles: ["admin"] },
-];
+const navByRole: Record<string, { icon: any; title: string; url: string }[]> = {
+  rider: [
+    { icon: Home, title: "Dashboard", url: "/rider" },
+    { icon: Car, title: "My Rides", url: "/rider/rides" },
+  ],
+  driver: [
+    { icon: Home, title: "Dashboard", url: "/driver" },
+    { icon: Car, title: "Dispatch", url: "/driver/dispatch" },
+  ],
+  admin: [
+    { icon: Home, title: "Dashboard", url: "/admin" },
+    { icon: Shield, title: "Verifications", url: "/admin/verifications" },
+    { icon: BarChart3, title: "Reports", url: "/admin/reports" },
+  ],
+};
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const role = profile?.role || "rider";
 
-  const navItems = allNavItems.filter((item) => item.roles.includes(role));
+  const navItems = navByRole[role] || navByRole.rider;
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
@@ -41,7 +48,6 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
-        {/* Logo */}
         <div className="flex items-center gap-2 px-4 py-4">
           <Swords className="h-6 w-6 text-primary shrink-0" />
           {!collapsed && (
@@ -58,7 +64,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/dashboard"}
+                      end={item.url === `/rider` || item.url === `/driver` || item.url === `/admin`}
                       className="hover:bg-accent/50"
                       activeClassName="bg-accent text-primary font-medium"
                     >
@@ -92,7 +98,7 @@ export function AppSidebar() {
             className="shrink-0 h-8 w-8"
             onClick={async () => {
               await signOut();
-              navigate("/");
+              navigate("/login");
             }}
           >
             <LogOut className="h-4 w-4" />
