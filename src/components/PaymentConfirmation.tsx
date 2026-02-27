@@ -24,10 +24,12 @@ function getStripe() {
 
 function PaymentForm({
   onSuccess,
+  onFailure,
   amountCents,
   label,
 }: {
   onSuccess: () => void;
+  onFailure?: () => void;
   amountCents: number;
   label?: string;
 }) {
@@ -52,6 +54,7 @@ function PaymentForm({
     if (error) {
       toast.error(error.message || "Payment failed");
       setProcessing(false);
+      onFailure?.();
     } else {
       setSucceeded(true);
       setProcessing(false);
@@ -105,6 +108,7 @@ interface PaymentConfirmationProps {
   clientSecret: string;
   amountCents: number;
   onSuccess: () => void;
+  onFailure?: () => void;
   label?: string;
 }
 
@@ -112,6 +116,7 @@ export default function PaymentConfirmation({
   clientSecret,
   amountCents,
   onSuccess,
+  onFailure,
   label,
 }: PaymentConfirmationProps) {
   const options = {
@@ -127,7 +132,7 @@ export default function PaymentConfirmation({
 
   return (
     <Elements stripe={getStripe()} options={options}>
-      <PaymentForm onSuccess={onSuccess} amountCents={amountCents} label={label} />
+      <PaymentForm onSuccess={onSuccess} onFailure={onFailure} amountCents={amountCents} label={label} />
     </Elements>
   );
 }

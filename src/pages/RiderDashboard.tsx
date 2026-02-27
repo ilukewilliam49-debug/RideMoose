@@ -389,7 +389,11 @@ const RiderDashboard = () => {
           "create-payment-intent",
           { body: { ride_id: rideData.id, estimated_fare_cents: estCents } }
         );
-        if (piError) throw new Error(piError.message || "Payment intent failed");
+        if (piError) {
+          // Mark payment as failed and cancel the ride
+          await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
+          throw new Error(piError.message || "Payment authorization failed");
+        }
         setPaymentClientSecret(piData.clientSecret);
         setAuthorizedAmountCents(piData.authorized_amount_cents);
         setPendingRideId(rideData.id);
@@ -672,6 +676,16 @@ const RiderDashboard = () => {
               clientSecret={paymentClientSecret}
               amountCents={authorizedAmountCents}
               onSuccess={handlePaymentSuccess}
+              onFailure={async () => {
+                if (pendingRideId) {
+                  await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", pendingRideId);
+                }
+                setPaymentClientSecret(null);
+                setPendingRideId(null);
+                setAuthorizedAmountCents(0);
+                toast.error("Payment failed. Ride cancelled.");
+                refetch();
+              }}
               label="Authorize Ride Payment"
             />
           )}
