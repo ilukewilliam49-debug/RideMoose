@@ -1,4 +1,4 @@
-import { Home, Car, Shield, BarChart3, LogOut } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +31,7 @@ const navByRole: Record<string, { icon: any; title: string; url: string }[]> = {
     { icon: Home, title: "Dashboard", url: "/admin" },
     { icon: Shield, title: "Verifications", url: "/admin/verifications" },
     { icon: BarChart3, title: "Reports", url: "/admin/reports" },
+    { icon: Users, title: "Users", url: "/admin/users" },
   ],
 };
 
