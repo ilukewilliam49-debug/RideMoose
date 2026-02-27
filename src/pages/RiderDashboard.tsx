@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { MapPin, Navigation, DollarSign } from "lucide-react";
+import { MapPin, Navigation, DollarSign, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,12 @@ const RiderDashboard = () => {
 
   return (
     <div className="space-y-6 pt-4">
-      <h1 className="text-2xl font-bold">Request a Ride</h1>
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/rider")} className="shrink-0">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-2xl font-bold">Request a Ride</h1>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
