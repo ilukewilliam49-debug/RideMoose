@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -56,7 +56,38 @@ const RiderDashboard = () => {
     },
   });
 
-  // Fetch private hire zones
+  // Fetch Google Directions with traffic for taxi rides
+  const { data: directionsData, isFetching: directionsFetching } = useQuery({
+    queryKey: ["directions-traffic", pickupCoords?.lat, pickupCoords?.lng, dropoffCoords?.lat, dropoffCoords?.lng],
+    queryFn: async () => {
+      if (!pickupCoords || !dropoffCoords) return null;
+      const { data, error } = await supabase.functions.invoke("directions", {
+        body: {
+          origin_lat: pickupCoords.lat,
+          origin_lng: pickupCoords.lng,
+          dest_lat: dropoffCoords.lat,
+          dest_lng: dropoffCoords.lng,
+        },
+      });
+      if (error) throw error;
+      return data as {
+        distance_km: number;
+        duration_sec: number;
+        duration_text: string;
+        duration_in_traffic_sec: number;
+        duration_in_traffic_text: string;
+      };
+    },
+    enabled: !!pickupCoords && !!dropoffCoords && serviceType === "taxi",
+    staleTime: 60_000,
+  });
+
+  const trafficDelayMin = useMemo(() => {
+    if (!directionsData) return 0;
+    return Math.max((directionsData.duration_in_traffic_sec - directionsData.duration_sec) / 60, 0);
+  }, [directionsData]);
+
+
   const { data: privateHireZones } = useQuery({
     queryKey: ["private-hire-zones"],
     queryFn: async () => {
@@ -138,10 +169,11 @@ const RiderDashboard = () => {
       const fareCents = matchedZone ? matchedZone.flat_fare_cents : 5000;
       return (fareCents / 100).toFixed(2);
     }
-    // Taxi: use taxi_rates (same as the live meter)
+    // Taxi: use taxi_rates with route distance from Directions API when available
     if (serviceType === "taxi") {
-      if (!distanceKm || !taxiRates) return null;
-      const fareCents = taxiRates.base_fare_cents + distanceKm * taxiRates.per_km_cents;
+      const routeKm = directionsData?.distance_km ?? distanceKm;
+      if (!routeKm || !taxiRates) return null;
+      const fareCents = taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents;
       return (fareCents / 100).toFixed(2);
     }
     // Shuttle: distance-based from service_pricing
@@ -152,7 +184,7 @@ const RiderDashboard = () => {
     }
     price *= Number(currentPricing.surge_multiplier);
     return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
-  }, [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone]);
+  }, [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone, directionsData]);
 
   const mapMarkers: MapMarker[] = [
     ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: "Pickup" }] : []),
@@ -500,16 +532,48 @@ const RiderDashboard = () => {
             </div>
           )}
 
-          {estimatedPrice && serviceType !== "private_hire" && (
+          {estimatedPrice && serviceType === "taxi" && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">Taxi Meter Estimate</span>
+                </div>
+                <span className="text-2xl font-mono font-bold">${estimatedPrice}</span>
+              </div>
+              {directionsData && (
+                <div className="space-y-1 pt-1 border-t border-border/50">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Car className="h-3.5 w-3.5" />
+                    <span>Route: {directionsData.distance_km.toFixed(1)} km</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>ETA: {directionsData.duration_in_traffic_text}</span>
+                  </div>
+                  {trafficDelayMin >= 1 && (
+                    <div className="flex items-center gap-2 text-sm text-yellow-500">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span>Traffic delay: {Math.round(trafficDelayMin)} min</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {directionsFetching && !directionsData && (
+                <p className="text-xs text-muted-foreground animate-pulse">Checking traffic...</p>
+              )}
+              <p className="text-[10px] text-muted-foreground">Final fare based on metered distance + waiting only</p>
+            </div>
+          )}
+
+          {estimatedPrice && serviceType === "shuttle" && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-secondary">
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">Estimated price:</span>
               <span className="font-mono font-bold">${estimatedPrice}</span>
-              {serviceType === "shuttle" && (
-                <span className="text-xs text-muted-foreground ml-1">
-                  ({passengerCount} seat{passengerCount > 1 ? "s" : ""})
-                </span>
-              )}
+              <span className="text-xs text-muted-foreground ml-1">
+                ({passengerCount} seat{passengerCount > 1 ? "s" : ""})
+              </span>
             </div>
           )}
 
