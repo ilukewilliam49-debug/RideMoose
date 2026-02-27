@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -31,8 +31,27 @@ const RiderDashboard = () => {
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
   const [pendingRideId, setPendingRideId] = useState<string | null>(null);
-  // overageSecret/overageCents removed — outstanding handled via pay_driver flow
   const [passengerCount, setPassengerCount] = useState(1);
+  const [billToOrg, setBillToOrg] = useState(false);
+
+  // Fetch rider's approved org membership
+  const { data: riderOrgMembership } = useQuery({
+    queryKey: ["rider-org-membership", profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return null;
+      const { data: memberships, error } = await supabase
+        .from("org_members")
+        .select("organization_id, role, organizations(id, name, status)")
+        .eq("user_id", profile.user_id);
+      if (error) throw error;
+      // Find first approved org
+      const approved = memberships?.find(
+        (m: any) => m.organizations?.status === "approved"
+      );
+      return approved ? { organization_id: approved.organization_id, org_name: (approved.organizations as any)?.name, role: approved.role } : null;
+    },
+    enabled: !!profile?.user_id,
+  });
 
   // Fetch service pricing
   const { data: servicePricing } = useQuery({
@@ -361,6 +380,7 @@ const RiderDashboard = () => {
     setLoading(true);
     try {
       const estCents = Math.round(parseFloat(estimatedPrice || "0") * 100);
+      const isOrgBilling = billToOrg && riderOrgMembership;
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
         pickup_address: pickup,
@@ -375,18 +395,20 @@ const RiderDashboard = () => {
         passenger_count: passengerCount,
         pricing_model: serviceType === "private_hire" ? "flat_zone" : "metered",
         status: "requested",
-        payment_option: paymentOption,
+        payment_option: isOrgBilling ? "pay_driver" : paymentOption,
+        billed_to: isOrgBilling ? "organization" : "individual",
+        organization_id: isOrgBilling ? riderOrgMembership.organization_id : null,
+        payment_status: isOrgBilling ? "invoiced_pending" : "unpaid",
       }).select("id").single();
       if (error) throw error;
 
-      // If in_app payment for taxi, create payment intent
-      if (paymentOption === "in_app" && serviceType === "taxi" && rideData) {
+      // Skip Stripe for org-billed rides
+      if (!isOrgBilling && paymentOption === "in_app" && serviceType === "taxi" && rideData) {
         const { data: piData, error: piError } = await supabase.functions.invoke(
           "create-payment-intent",
           { body: { ride_id: rideData.id, estimated_fare_cents: estCents } }
         );
         if (piError) {
-          // Mark payment as failed and cancel the ride
           await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
           throw new Error(piError.message || "Payment authorization failed");
         }
@@ -394,15 +416,16 @@ const RiderDashboard = () => {
         setAuthorizedAmountCents(piData.authorized_amount_cents);
         setPendingRideId(rideData.id);
         setLoading(false);
-        return; // Don't clear form yet — show payment confirmation
+        return;
       }
 
-      toast.success("Ride requested! Looking for a driver...");
+      toast.success(billToOrg ? "Ride requested! Will be billed to your organization." : "Ride requested! Looking for a driver...");
       setPickup("");
       setDropoff("");
       setPickupCoords(null);
       setDropoffCoords(null);
       setPassengerCount(1);
+      setBillToOrg(false);
       refetch();
     } catch (err: any) {
       toast.error(err.message);
@@ -663,6 +686,37 @@ const RiderDashboard = () => {
                   </div>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Bill to Organization option */}
+          {riderOrgMembership && (
+            <div className="space-y-2">
+              <Label>Billing</Label>
+              <button
+                type="button"
+                onClick={() => {
+                  const newVal = !billToOrg;
+                  setBillToOrg(newVal);
+                  if (newVal) setPaymentOption("pay_driver"); // org billing skips Stripe
+                }}
+                className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all ${
+                  billToOrg
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-secondary hover:bg-accent"
+                }`}
+              >
+                <Building2 className={`h-5 w-5 ${billToOrg ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="text-left flex-1">
+                  <p className="text-xs font-semibold">Bill to {riderOrgMembership.org_name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {billToOrg ? "Ride will be invoiced to your organization" : "Tap to bill this ride to your organization"}
+                  </p>
+                </div>
+                <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${billToOrg ? "border-primary" : "border-muted-foreground"}`}>
+                  {billToOrg && <div className="h-2 w-2 rounded-full bg-primary" />}
+                </div>
+              </button>
             </div>
           )}
 
