@@ -25,6 +25,8 @@ export interface FareReceipt {
   waitingCharge: number;
   freeWaitingMin: number;
   billableWaitingMin: number;
+  grossFareCents: number;
+  serviceFeeCents: number;
   totalCents: number;
   distanceKm: number;
   totalWaitingMin: number;
@@ -111,13 +113,17 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
       const billableWait = Math.max(waitMin - rates.free_waiting_min, 0);
       const distCharge = Math.round(dist * rates.per_km_cents);
       const waitCharge = Math.round(billableWait * rates.waiting_per_min_cents);
+      const grossFare = rates.base_fare_cents + distCharge + waitCharge;
+      const serviceFeeCents = 99;
       return {
         baseFare: rates.base_fare_cents,
         distanceCharge: distCharge,
         waitingCharge: waitCharge,
         freeWaitingMin: rates.free_waiting_min,
         billableWaitingMin: billableWait,
-        totalCents: rates.base_fare_cents + distCharge + waitCharge,
+        grossFareCents: grossFare,
+        serviceFeeCents,
+        totalCents: grossFare + serviceFeeCents,
         distanceKm: dist,
         totalWaitingMin: waitMin,
       };
@@ -303,8 +309,9 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         completed_at: now.toISOString(),
         distance_km: Math.round(dist * 1000) / 1000,
         waiting_min: Math.round(wait * 100) / 100,
-        final_fare_cents: receipt.totalCents,
+        final_fare_cents: receipt.grossFareCents,
         final_price: receipt.totalCents / 100,
+        service_fee_cents: receipt.serviceFeeCents,
       })
       .eq("id", rideId);
 
