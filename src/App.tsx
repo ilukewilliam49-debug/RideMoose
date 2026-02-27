@@ -10,6 +10,7 @@ import RoleLayout from "./components/RoleLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminVerifications from "./pages/AdminVerifications";
 import AdminReports from "./pages/AdminReports";
+import AdminUsers from "./pages/AdminUsers";
 import DriverDashboard from "./pages/DriverDashboard";
 import DriverDispatch from "./pages/DriverDispatch";
 import DashboardHome from "./pages/DashboardHome";
@@ -33,6 +34,7 @@ const App = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="verifications" element={<AdminVerifications />} />
             <Route path="reports" element={<AdminReports />} />
+            <Route path="users" element={<AdminUsers />} />
           </Route>
 
           <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
