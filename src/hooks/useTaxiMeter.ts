@@ -6,15 +6,15 @@ import { useQueryClient } from "@tanstack/react-query";
 interface TaxiRates {
   base_fare_cents: number;
   per_km_cents: number;
-  per_min_cents: number;
   waiting_per_min_cents: number;
+  free_waiting_min: number;
 }
 
 interface MeterState {
   status: "idle" | "running" | "paused" | "completed";
   distanceKm: number;
-  durationMin: number;
   waitingMin: number;
+  isWaiting: boolean;
   liveFareCents: number;
   receipt: FareReceipt | null;
 }
@@ -22,17 +22,15 @@ interface MeterState {
 export interface FareReceipt {
   baseFare: number;
   distanceCharge: number;
-  movingCharge: number;
   waitingCharge: number;
+  freeWaitingMin: number;
+  billableWaitingMin: number;
   totalCents: number;
   distanceKm: number;
-  durationMin: number;
-  waitingMin: number;
-  movingMin: number;
+  totalWaitingMin: number;
 }
 
-const SPEED_THRESHOLD_KMH = 10;
-const DB_SYNC_INTERVAL = 15_000;
+const DB_SYNC_INTERVAL = 12_000;
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
@@ -50,8 +48,8 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   const [state, setState] = useState<MeterState>({
     status: "idle",
     distanceKm: 0,
-    durationMin: 0,
     waitingMin: 0,
+    isWaiting: false,
     liveFareCents: 0,
     receipt: null,
   });
@@ -59,11 +57,11 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   const lastPos = useRef<{ lat: number; lng: number; time: number } | null>(null);
   const distRef = useRef(0);
   const waitRef = useRef(0);
-  const startedAt = useRef<Date | null>(null);
+  const waitingOn = useRef(false);
+  const waitingStartedAt = useRef<number | null>(null);
   const watchId = useRef<number | null>(null);
   const tickInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const syncInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isWaiting = useRef(false);
 
   // Load rates
   useEffect(() => {
@@ -74,7 +72,14 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
       .limit(1)
       .single()
       .then(({ data, error }) => {
-        if (data && !error) setRates(data as unknown as TaxiRates);
+        if (data && !error) {
+          setRates({
+            base_fare_cents: data.base_fare_cents,
+            per_km_cents: data.per_km_cents,
+            waiting_per_min_cents: data.waiting_per_min_cents,
+            free_waiting_min: (data as any).free_waiting_min ?? 3,
+          });
+        }
       });
   }, []);
 
@@ -88,54 +93,55 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   }, [meterStatusFromDb]);
 
   const computeFare = useCallback(
-    (dist: number, durMin: number, waitMin: number): number => {
+    (dist: number, waitMin: number): number => {
       if (!rates) return 0;
-      const movingMin = Math.max(durMin - waitMin, 0);
+      const billableWait = Math.max(waitMin - rates.free_waiting_min, 0);
       return (
         rates.base_fare_cents +
         Math.round(dist * rates.per_km_cents) +
-        Math.round(movingMin * rates.per_min_cents) +
-        Math.round(waitMin * rates.waiting_per_min_cents)
+        Math.round(billableWait * rates.waiting_per_min_cents)
       );
     },
     [rates]
   );
 
   const computeReceipt = useCallback(
-    (dist: number, durMin: number, waitMin: number): FareReceipt | null => {
+    (dist: number, waitMin: number): FareReceipt | null => {
       if (!rates) return null;
-      const movingMin = Math.max(durMin - waitMin, 0);
+      const billableWait = Math.max(waitMin - rates.free_waiting_min, 0);
+      const distCharge = Math.round(dist * rates.per_km_cents);
+      const waitCharge = Math.round(billableWait * rates.waiting_per_min_cents);
       return {
         baseFare: rates.base_fare_cents,
-        distanceCharge: Math.round(dist * rates.per_km_cents),
-        movingCharge: Math.round(movingMin * rates.per_min_cents),
-        waitingCharge: Math.round(waitMin * rates.waiting_per_min_cents),
-        totalCents:
-          rates.base_fare_cents +
-          Math.round(dist * rates.per_km_cents) +
-          Math.round(movingMin * rates.per_min_cents) +
-          Math.round(waitMin * rates.waiting_per_min_cents),
+        distanceCharge: distCharge,
+        waitingCharge: waitCharge,
+        freeWaitingMin: rates.free_waiting_min,
+        billableWaitingMin: billableWait,
+        totalCents: rates.base_fare_cents + distCharge + waitCharge,
         distanceKm: dist,
-        durationMin: durMin,
-        waitingMin: waitMin,
-        movingMin,
+        totalWaitingMin: waitMin,
       };
     },
     [rates]
   );
 
-  // Live tick: update duration + fare every second
+  // Live tick: update fare every second
   const startTick = useCallback(() => {
     if (tickInterval.current) return;
     tickInterval.current = setInterval(() => {
-      if (!startedAt.current) return;
-      const durMin = (Date.now() - startedAt.current.getTime()) / 60_000;
-      const fare = computeFare(distRef.current, durMin, waitRef.current);
+      // If waiting toggle is on, accumulate waiting time
+      if (waitingOn.current && waitingStartedAt.current) {
+        const elapsed = (Date.now() - waitingStartedAt.current) / 60_000;
+        // We already captured prior waiting in waitRef; elapsed is the current session
+      }
+      const totalWait = waitRef.current + (waitingOn.current && waitingStartedAt.current
+        ? (Date.now() - waitingStartedAt.current) / 60_000
+        : 0);
+      const fare = computeFare(distRef.current, totalWait);
       setState((s) => ({
         ...s,
-        durationMin: durMin,
         distanceKm: distRef.current,
-        waitingMin: waitRef.current,
+        waitingMin: totalWait,
         liveFareCents: fare,
       }));
     }, 1000);
@@ -148,6 +154,24 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
     }
   }, []);
 
+  // Toggle waiting
+  const toggleWaiting = useCallback(() => {
+    if (waitingOn.current) {
+      // Stop waiting: accumulate elapsed into waitRef
+      if (waitingStartedAt.current) {
+        waitRef.current += (Date.now() - waitingStartedAt.current) / 60_000;
+      }
+      waitingStartedAt.current = null;
+      waitingOn.current = false;
+      setState((s) => ({ ...s, isWaiting: false }));
+    } else {
+      // Start waiting
+      waitingStartedAt.current = Date.now();
+      waitingOn.current = true;
+      setState((s) => ({ ...s, isWaiting: true }));
+    }
+  }, []);
+
   // Geolocation tracking
   const startGeo = useCallback(() => {
     if (watchId.current !== null) return;
@@ -157,34 +181,22 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
     }
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const { latitude, longitude, speed } = pos.coords;
+        const { latitude, longitude } = pos.coords;
         const now = Date.now();
 
         if (lastPos.current) {
-          const dt = (now - lastPos.current.time) / 60_000; // minutes
+          const dt = (now - lastPos.current.time) / 60_000;
           const dd = haversineKm(lastPos.current.lat, lastPos.current.lng, latitude, longitude);
-
-          // Filter out GPS noise (>150km/h or <2m)
+          // Filter GPS noise (>150km/h or <2m)
           const speedKmh = dd / (dt / 60);
           if (dd > 0.002 && speedKmh < 150) {
             distRef.current += dd;
-          }
-
-          // Auto-detect waiting: speed < threshold
-          const reportedSpeedKmh = speed !== null ? speed * 3.6 : speedKmh;
-          if (reportedSpeedKmh < SPEED_THRESHOLD_KMH) {
-            if (!isWaiting.current) isWaiting.current = true;
-            waitRef.current += dt;
-          } else {
-            isWaiting.current = false;
           }
         }
 
         lastPos.current = { lat: latitude, lng: longitude, time: now };
       },
-      (err) => {
-        console.error("Geo error:", err);
-      },
+      (err) => console.error("Geo error:", err),
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
   }, []);
@@ -199,12 +211,14 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   // DB sync
   const syncToDb = useCallback(async () => {
     if (!rideId) return;
+    const totalWait = waitRef.current + (waitingOn.current && waitingStartedAt.current
+      ? (Date.now() - waitingStartedAt.current) / 60_000
+      : 0);
     await supabase
       .from("rides")
       .update({
         distance_km: Math.round(distRef.current * 1000) / 1000,
-        duration_min: Math.round(((Date.now() - (startedAt.current?.getTime() ?? Date.now())) / 60_000) * 100) / 100,
-        waiting_min: Math.round(waitRef.current * 100) / 100,
+        waiting_min: Math.round(totalWait * 100) / 100,
       })
       .eq("id", rideId);
   }, [rideId]);
@@ -226,9 +240,10 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   const startMeter = useCallback(async () => {
     if (!rideId) return;
     const now = new Date();
-    startedAt.current = now;
     distRef.current = 0;
     waitRef.current = 0;
+    waitingOn.current = false;
+    waitingStartedAt.current = null;
     lastPos.current = null;
 
     const { error } = await supabase
@@ -239,7 +254,6 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         status: "in_progress",
         started_at: now.toISOString(),
         distance_km: 0,
-        duration_min: 0,
         waiting_min: 0,
       })
       .eq("id", rideId);
@@ -249,7 +263,7 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
       return;
     }
 
-    setState((s) => ({ ...s, status: "running", distanceKm: 0, durationMin: 0, waitingMin: 0, liveFareCents: 0, receipt: null }));
+    setState((s) => ({ ...s, status: "running", distanceKm: 0, waitingMin: 0, isWaiting: false, liveFareCents: 0, receipt: null }));
     startGeo();
     startTick();
     startDbSync();
@@ -257,18 +271,24 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   }, [rideId, startGeo, startTick, startDbSync, queryClient]);
 
   const endMeter = useCallback(async () => {
-    if (!rideId || !startedAt.current) return;
+    if (!rideId) return;
 
     stopGeo();
     stopTick();
     stopDbSync();
 
+    // Finalize waiting
+    if (waitingOn.current && waitingStartedAt.current) {
+      waitRef.current += (Date.now() - waitingStartedAt.current) / 60_000;
+      waitingOn.current = false;
+      waitingStartedAt.current = null;
+    }
+
     const now = new Date();
-    const durMin = (now.getTime() - startedAt.current.getTime()) / 60_000;
     const dist = distRef.current;
     const wait = waitRef.current;
 
-    const receipt = computeReceipt(dist, durMin, wait);
+    const receipt = computeReceipt(dist, wait);
     if (!receipt) {
       toast.error("Could not compute fare");
       return;
@@ -282,7 +302,6 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         status: "completed",
         completed_at: now.toISOString(),
         distance_km: Math.round(dist * 1000) / 1000,
-        duration_min: Math.round(durMin * 100) / 100,
         waiting_min: Math.round(wait * 100) / 100,
         final_fare_cents: receipt.totalCents,
         final_price: receipt.totalCents / 100,
@@ -294,7 +313,7 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
       return;
     }
 
-    setState((s) => ({ ...s, status: "completed", receipt, durationMin: durMin, distanceKm: dist, waitingMin: wait, liveFareCents: receipt.totalCents }));
+    setState((s) => ({ ...s, status: "completed", receipt, distanceKm: dist, waitingMin: wait, isWaiting: false, liveFareCents: receipt.totalCents }));
     queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     toast.success("Meter stopped – ride complete!");
   }, [rideId, stopGeo, stopTick, stopDbSync, computeReceipt, queryClient]);
@@ -308,5 +327,5 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
     };
   }, [stopGeo, stopTick, stopDbSync]);
 
-  return { state, rates, startMeter, endMeter };
+  return { state, rates, startMeter, endMeter, toggleWaiting };
 }

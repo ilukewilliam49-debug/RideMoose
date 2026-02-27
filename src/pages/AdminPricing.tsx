@@ -17,8 +17,8 @@ interface TaxiRate {
   id: string;
   base_fare_cents: number;
   per_km_cents: number;
-  per_min_cents: number;
   waiting_per_min_cents: number;
+  free_waiting_min: number;
   active: boolean;
   created_at: string;
 }
@@ -151,15 +151,19 @@ const AdminPricing = () => {
                     onChange={(v) => setTaxiEdit((p) => ({ ...p, per_km_cents: v }))}
                   />
                   <CentsField
-                    label="Per Minute (moving)"
-                    cents={editedTaxi.per_min_cents}
-                    onChange={(v) => setTaxiEdit((p) => ({ ...p, per_min_cents: v }))}
-                  />
-                  <CentsField
                     label="Per Minute (waiting)"
                     cents={editedTaxi.waiting_per_min_cents}
                     onChange={(v) => setTaxiEdit((p) => ({ ...p, waiting_per_min_cents: v }))}
                   />
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Free Waiting (min)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editedTaxi.free_waiting_min}
+                      onChange={(e) => setTaxiEdit((p) => ({ ...p, free_waiting_min: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
                 </div>
                 <Button
                   className="mt-4"
