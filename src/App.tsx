@@ -18,6 +18,7 @@ import DriverDashboard from "./pages/DriverDashboard";
 import DriverDispatch from "./pages/DriverDispatch";
 import DashboardHome from "./pages/DashboardHome";
 import RiderDashboard from "./pages/RiderDashboard";
+import CorporateApply from "./pages/CorporateApply";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>
             <Route index element={<DashboardHome />} />
             <Route path="rides" element={<RiderDashboard />} />
+            <Route path="corporate-apply" element={<CorporateApply />} />
           </Route>
 
           <Route path="/dashboard/*" element={<Navigate to="/rider" replace />} />

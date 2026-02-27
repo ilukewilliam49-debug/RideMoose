@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Plus, FileText, Loader2, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, Plus, FileText, Loader2, Users, ChevronDown, ChevronUp, ClipboardList, CheckCircle, XCircle, HelpCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,11 +30,30 @@ const AdminCorporate = () => {
   const [newMemberRole, setNewMemberRole] = useState("booker");
   const [addingMember, setAddingMember] = useState(false);
 
+  // Application review
+  const [reviewApp, setReviewApp] = useState<any | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewCreditLimit, setReviewCreditLimit] = useState(500000);
+  const [reviewTerms, setReviewTerms] = useState(30);
+  const [processing, setProcessing] = useState(false);
+
   const { data: orgs, isLoading } = useQuery({
     queryKey: ["organizations"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("organizations")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: applications } = useQuery({
+    queryKey: ["org-applications"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("organization_applications")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -56,25 +76,22 @@ const AdminCorporate = () => {
   const { data: allMembers } = useQuery({
     queryKey: ["all-org-members"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("org_members")
-        .select("*");
+      const { data, error } = await supabase.from("org_members").select("*");
       if (error) throw error;
       return data;
     },
   });
 
-  // Fetch profiles for member names
   const { data: profiles } = useQuery({
     queryKey: ["all-profiles-for-members"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name, phone");
+      const { data, error } = await supabase.from("profiles").select("id, user_id, full_name, phone");
       if (error) throw error;
       return data;
     },
   });
+
+  const pendingApps = applications?.filter((a) => a.status === "pending" || a.status === "needs_info") || [];
 
   const createOrg = async () => {
     setCreating(true);
@@ -102,34 +119,24 @@ const AdminCorporate = () => {
     if (!memberDialogOrg || !newMemberEmail) return;
     setAddingMember(true);
     try {
-      // Find user by email via profiles (match on full_name or phone as fallback — we need user_id)
-      // Actually we need to find the profile by looking up auth user by email — we'll search profiles
       const { data: matchedProfiles, error: searchError } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .limit(100);
       if (searchError) throw searchError;
-
-      // We can't search by email directly in profiles, so let's just accept user_id input
-      // For better UX, search by name
       const match = matchedProfiles?.find(
         (p) => p.full_name?.toLowerCase().includes(newMemberEmail.toLowerCase())
       );
-
-      if (!match) {
-        throw new Error("No user found matching that name. Enter the user's display name.");
-      }
-
+      if (!match) throw new Error("No user found matching that name.");
       const { error } = await supabase.from("org_members").insert({
         organization_id: memberDialogOrg,
         user_id: match.user_id,
         role: newMemberRole,
       });
       if (error) {
-        if (error.code === "23505") throw new Error("User is already a member of this organization");
+        if (error.code === "23505") throw new Error("User is already a member");
         throw error;
       }
-
       toast.success(`Added ${match.full_name} as ${newMemberRole}`);
       setNewMemberEmail("");
       setNewMemberRole("booker");
@@ -165,7 +172,7 @@ const AdminCorporate = () => {
       } else if (result?.error) {
         throw new Error(result.error);
       } else {
-        toast.success(`Invoice generated: ${result.ride_count} rides, $${(result.total_cents / 100).toFixed(2)}`);
+        toast.success(`Invoice ${result.invoice_number}: ${result.ride_count} rides, $${(result.total_cents / 100).toFixed(2)}`);
       }
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       queryClient.invalidateQueries({ queryKey: ["all-invoices"] });
@@ -194,10 +201,103 @@ const AdminCorporate = () => {
     }
   };
 
+  // Application approval flow
+  const approveApplication = async () => {
+    if (!reviewApp) return;
+    setProcessing(true);
+    try {
+      // 1. Create org
+      const { data: newOrgData, error: orgError } = await supabase
+        .from("organizations")
+        .insert({
+          name: reviewApp.company_name,
+          billing_email: reviewApp.billing_email,
+          accounts_payable_email: reviewApp.accounts_payable_email || null,
+          credit_limit_cents: reviewCreditLimit,
+          payment_terms_days: reviewTerms,
+          status: "approved",
+        })
+        .select("id")
+        .single();
+      if (orgError) throw orgError;
+
+      // 2. Add applicant as org admin
+      const { error: memberError } = await supabase.from("org_members").insert({
+        organization_id: newOrgData.id,
+        user_id: reviewApp.applicant_user_id,
+        role: "admin",
+      });
+      if (memberError) throw memberError;
+
+      // 3. Update application status
+      const { error: appError } = await supabase
+        .from("organization_applications")
+        .update({ status: "approved", admin_notes: reviewNotes || null })
+        .eq("id", reviewApp.id);
+      if (appError) throw appError;
+
+      toast.success(`${reviewApp.company_name} approved and organization created!`);
+      setReviewApp(null);
+      setReviewNotes("");
+      queryClient.invalidateQueries({ queryKey: ["org-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["all-org-members"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const rejectApplication = async () => {
+    if (!reviewApp) return;
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("organization_applications")
+        .update({ status: "rejected", admin_notes: reviewNotes || null })
+        .eq("id", reviewApp.id);
+      if (error) throw error;
+      toast.success("Application rejected");
+      setReviewApp(null);
+      setReviewNotes("");
+      queryClient.invalidateQueries({ queryKey: ["org-applications"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const requestInfoApplication = async () => {
+    if (!reviewApp || !reviewNotes) {
+      toast.error("Please add a note explaining what info is needed.");
+      return;
+    }
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from("organization_applications")
+        .update({ status: "needs_info", admin_notes: reviewNotes })
+        .eq("id", reviewApp.id);
+      if (error) throw error;
+      toast.success("Requested additional info from applicant");
+      setReviewApp(null);
+      setReviewNotes("");
+      queryClient.invalidateQueries({ queryKey: ["org-applications"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const statusColor: Record<string, string> = {
     pending: "text-yellow-500",
     approved: "text-green-500",
     suspended: "text-destructive",
+    rejected: "text-destructive",
+    needs_info: "text-orange-500",
     issued: "text-yellow-500",
     paid: "text-green-500",
     overdue: "text-destructive",
@@ -221,9 +321,7 @@ const AdminCorporate = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Organization</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>New Organization</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Name</Label><Input value={newOrg.name} onChange={(e) => setNewOrg({ ...newOrg, name: e.target.value })} /></div>
               <div><Label>Billing Email</Label><Input type="email" value={newOrg.billing_email} onChange={(e) => setNewOrg({ ...newOrg, billing_email: e.target.value })} /></div>
@@ -247,12 +345,8 @@ const AdminCorporate = () => {
               <Label>Role</Label>
               <div className="grid grid-cols-3 gap-2 mt-1">
                 {["admin", "booker", "viewer"].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setNewMemberRole(r)}
-                    className={`p-2 rounded-lg border text-xs font-semibold capitalize transition-all ${newMemberRole === r ? "border-primary bg-primary/10" : "border-border bg-secondary"}`}
-                  >
+                  <button key={r} type="button" onClick={() => setNewMemberRole(r)}
+                    className={`p-2 rounded-lg border text-xs font-semibold capitalize transition-all ${newMemberRole === r ? "border-primary bg-primary/10" : "border-border bg-secondary"}`}>
                     {r}
                   </button>
                 ))}
@@ -265,8 +359,114 @@ const AdminCorporate = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Review Application Dialog */}
+      <Dialog open={!!reviewApp} onOpenChange={(open) => { if (!open) { setReviewApp(null); setReviewNotes(""); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Review Application</DialogTitle></DialogHeader>
+          {reviewApp && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-[10px] text-muted-foreground">Company</p><p className="font-semibold">{reviewApp.company_name}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Registration #</p><p className="font-mono text-xs">{reviewApp.registration_number || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Billing Email</p><p className="font-mono text-xs">{reviewApp.billing_email}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">AP Email</p><p className="font-mono text-xs">{reviewApp.accounts_payable_email || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Phone</p><p className="text-xs">{reviewApp.phone || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Address</p><p className="text-xs">{reviewApp.address || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Contact Name</p><p className="text-xs">{reviewApp.contact_person_name}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Contact Email</p><p className="font-mono text-xs">{reviewApp.contact_person_email}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Est. Monthly Spend</p><p className="font-mono text-xs">${(reviewApp.estimated_monthly_spend_cents / 100).toFixed(2)}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Submitted</p><p className="font-mono text-xs">{new Date(reviewApp.created_at).toLocaleDateString()}</p></div>
+              </div>
+
+              <div className="border-t border-border pt-3 space-y-3">
+                <Label className="text-xs text-muted-foreground">Approval Settings</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Credit Limit ($)</Label>
+                    <Input type="number" value={reviewCreditLimit / 100} onChange={(e) => setReviewCreditLimit(Math.round(parseFloat(e.target.value || "0") * 100))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Payment Terms (days)</Label>
+                    <Input type="number" value={reviewTerms} onChange={(e) => setReviewTerms(parseInt(e.target.value) || 30)} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Admin Notes</Label>
+                  <Textarea value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} placeholder="Internal notes or info request for applicant..." rows={3} />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={approveApplication} disabled={processing} className="flex-1 gap-1.5">
+                  <CheckCircle className="h-4 w-4" /> Approve
+                </Button>
+                <Button variant="outline" onClick={requestInfoApplication} disabled={processing} className="gap-1.5">
+                  <HelpCircle className="h-4 w-4" /> Request Info
+                </Button>
+                <Button variant="destructive" onClick={rejectApplication} disabled={processing} className="gap-1.5">
+                  <XCircle className="h-4 w-4" /> Reject
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Applications section */}
+      {pendingApps.length > 0 && (
+        <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 space-y-3">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-yellow-500" />
+            Pending Applications ({pendingApps.length})
+          </h2>
+          <div className="space-y-2">
+            {pendingApps.map((app) => (
+              <div key={app.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
+                <div>
+                  <p className="text-sm font-semibold">{app.company_name}</p>
+                  <p className="text-xs text-muted-foreground">{app.contact_person_name} • {app.billing_email}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Requested: ${(app.requested_credit_limit_cents / 100).toFixed(0)} limit, Net {app.payment_terms_requested}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-mono uppercase ${statusColor[app.status] || ""}`}>{app.status.replace("_", " ")}</span>
+                  <Button size="sm" onClick={() => {
+                    setReviewApp(app);
+                    setReviewCreditLimit(app.requested_credit_limit_cents);
+                    setReviewTerms(app.payment_terms_requested);
+                    setReviewNotes(app.admin_notes || "");
+                  }}>Review</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Applications history */}
+      {applications && applications.length > 0 && (
+        <details className="group">
+          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+            All Applications ({applications.length})
+          </summary>
+          <div className="mt-2 space-y-1">
+            {applications.map((app) => (
+              <div key={app.id} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{app.company_name}</span>
+                  <span className={`text-[10px] font-mono uppercase ${statusColor[app.status] || ""}`}>{app.status.replace("_", " ")}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">{new Date(app.created_at).toLocaleDateString()}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
 
+      {/* Organizations list */}
       <div className="space-y-4">
         {orgs?.map((org) => {
           const orgInvoices = getOrgInvoices(org.id);
@@ -275,7 +475,6 @@ const AdminCorporate = () => {
 
           return (
             <div key={org.id} className="glass-surface rounded-lg overflow-hidden">
-              {/* Org header */}
               <div className="p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -317,7 +516,6 @@ const AdminCorporate = () => {
                 </div>
               </div>
 
-              {/* Expanded: members + invoices */}
               {isExpanded && (
                 <div className="border-t border-border p-5">
                   <Tabs defaultValue="members">
@@ -353,7 +551,7 @@ const AdminCorporate = () => {
                             <div key={inv.id} className="rounded-lg border border-border p-3 space-y-2">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-sm font-medium">{inv.period_start} → {inv.period_end}</p>
+                                  <p className="text-sm font-medium">{(inv as any).invoice_number || `${inv.period_start} → ${inv.period_end}`}</p>
                                   <p className="text-xs text-muted-foreground">Issued: {inv.issue_date} • Due: {inv.due_date}</p>
                                 </div>
                                 <div className="text-right">
@@ -386,6 +584,10 @@ const AdminCorporate = () => {
             </div>
           );
         })}
+
+        {!isLoading && (!orgs || orgs.length === 0) && (
+          <p className="text-sm text-muted-foreground text-center py-8">No organizations yet.</p>
+        )}
       </div>
     </div>
   );

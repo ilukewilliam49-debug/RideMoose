@@ -126,8 +126,69 @@ export type Database = {
           },
         ]
       }
+      organization_applications: {
+        Row: {
+          accounts_payable_email: string | null
+          address: string | null
+          admin_notes: string | null
+          applicant_user_id: string
+          billing_email: string
+          company_name: string
+          contact_person_email: string
+          contact_person_name: string
+          created_at: string
+          estimated_monthly_spend_cents: number
+          id: string
+          payment_terms_requested: number
+          phone: string | null
+          registration_number: string | null
+          requested_credit_limit_cents: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accounts_payable_email?: string | null
+          address?: string | null
+          admin_notes?: string | null
+          applicant_user_id: string
+          billing_email: string
+          company_name: string
+          contact_person_email: string
+          contact_person_name: string
+          created_at?: string
+          estimated_monthly_spend_cents?: number
+          id?: string
+          payment_terms_requested?: number
+          phone?: string | null
+          registration_number?: string | null
+          requested_credit_limit_cents?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accounts_payable_email?: string | null
+          address?: string | null
+          admin_notes?: string | null
+          applicant_user_id?: string
+          billing_email?: string
+          company_name?: string
+          contact_person_email?: string
+          contact_person_name?: string
+          created_at?: string
+          estimated_monthly_spend_cents?: number
+          id?: string
+          payment_terms_requested?: number
+          phone?: string | null
+          registration_number?: string | null
+          requested_credit_limit_cents?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
+          accounts_payable_email: string | null
           billing_email: string
           created_at: string
           credit_limit_cents: number
@@ -138,6 +199,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          accounts_payable_email?: string | null
           billing_email: string
           created_at?: string
           credit_limit_cents?: number
@@ -148,6 +210,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          accounts_payable_email?: string | null
           billing_email?: string
           created_at?: string
           credit_limit_cents?: number
