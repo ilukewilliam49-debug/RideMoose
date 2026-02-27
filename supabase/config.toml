@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.generate-monthly-invoices]
 verify_jwt = false
+
+[functions.check-overdue-invoices]
+verify_jwt = false
