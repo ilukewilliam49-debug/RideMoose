@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Swords, Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 
 const Login = () => {
@@ -67,9 +68,9 @@ const Login = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <Swords className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-gradient-crimson">OnlyKnifers</h1>
+          <div className="inline-flex items-center gap-3 mb-4">
+            <img src={logoImg} alt="OnlyKnifers" className="h-10 rounded" />
+            <h1 className="text-3xl font-bold text-gradient-gold">OnlyKnifers</h1>
           </div>
           <p className="text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}

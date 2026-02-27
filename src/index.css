@@ -6,55 +6,55 @@
 
 @layer base {
   :root {
-    --background: 220 20% 6%;
+    --background: 220 30% 10%;
     --foreground: 0 0% 95%;
 
-    --card: 220 18% 10%;
+    --card: 220 28% 14%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 220 18% 10%;
+    --popover: 220 28% 14%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 0 85% 55%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 45 95% 55%;
+    --primary-foreground: 220 30% 12%;
 
-    --secondary: 220 15% 16%;
+    --secondary: 220 25% 18%;
     --secondary-foreground: 0 0% 90%;
 
-    --muted: 220 14% 14%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 220 22% 16%;
+    --muted-foreground: 220 15% 55%;
 
-    --accent: 220 15% 18%;
+    --accent: 220 25% 20%;
     --accent-foreground: 0 0% 95%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 18%;
-    --ring: 0 85% 55%;
+    --border: 220 25% 20%;
+    --input: 220 25% 20%;
+    --ring: 45 95% 55%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 220 18% 8%;
+    --sidebar-background: 220 30% 12%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 0 85% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 14%;
+    --sidebar-primary: 45 95% 55%;
+    --sidebar-primary-foreground: 220 30% 12%;
+    --sidebar-accent: 220 25% 16%;
     --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 220 15% 16%;
-    --sidebar-ring: 0 85% 55%;
+    --sidebar-border: 220 25% 18%;
+    --sidebar-ring: 45 95% 55%;
 
     /* Custom tokens */
-    --crimson: 0 85% 55%;
-    --crimson-glow: 0 90% 60%;
-    --steel: 220 10% 55%;
-    --steel-light: 220 10% 70%;
-    --surface: 220 18% 10%;
-    --surface-hover: 220 16% 14%;
-    --gradient-crimson: linear-gradient(135deg, hsl(0 85% 55%), hsl(15 80% 50%));
-    --gradient-dark: linear-gradient(180deg, hsl(220 20% 6%), hsl(220 20% 3%));
-    --shadow-crimson: 0 0 30px -5px hsl(0 85% 55% / 0.3);
+    --gold: 45 95% 55%;
+    --gold-glow: 40 100% 60%;
+    --steel: 220 15% 55%;
+    --steel-light: 220 15% 70%;
+    --surface: 220 28% 14%;
+    --surface-hover: 220 24% 18%;
+    --gradient-gold: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
+    --gradient-dark: linear-gradient(180deg, hsl(220 30% 10%), hsl(220 30% 6%));
+    --shadow-gold: 0 0 30px -5px hsl(45 95% 55% / 0.3);
     --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
   }
 
@@ -84,20 +84,32 @@
 }
 
 @layer utilities {
-  .text-gradient-crimson {
-    background: linear-gradient(135deg, hsl(0 85% 55%), hsl(15 80% 50%));
+  .text-gradient-gold {
+    background: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
+  /* Keep old class as alias */
+  .text-gradient-crimson {
+    background: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 30px -5px hsl(45 95% 55% / 0.3);
+  }
+
   .glow-crimson {
-    box-shadow: 0 0 30px -5px hsl(0 85% 55% / 0.3);
+    box-shadow: 0 0 30px -5px hsl(45 95% 55% / 0.3);
   }
 
   .glass-surface {
-    background: hsl(220 18% 10% / 0.8);
+    background: hsl(220 28% 14% / 0.8);
     backdrop-filter: blur(12px);
-    border: 1px solid hsl(220 15% 18%);
+    border: 1px solid hsl(220 25% 20%);
   }
 }
