@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { useState, useEffect } from "react";
+import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
@@ -9,9 +9,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, CreditCard, CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-// Stripe publishable key – safe to expose client-side
-const stripePromise = loadStripe("pk_test_TYooMQauvdEDq54NiTphI7jx");
+let stripePromise: Promise<Stripe | null> | null = null;
+
+function getStripe() {
+  if (!stripePromise) {
+    stripePromise = supabase.functions
+      .invoke("get-stripe-key")
+      .then(({ data }) => loadStripe(data?.publishableKey || ""));
+  }
+  return stripePromise;
+}
 
 function PaymentForm({
   onSuccess,
@@ -117,7 +126,7 @@ export default function PaymentConfirmation({
   };
 
   return (
-    <Elements stripe={stripePromise} options={options}>
+    <Elements stripe={getStripe()} options={options}>
       <PaymentForm onSuccess={onSuccess} amountCents={amountCents} label={label} />
     </Elements>
   );
