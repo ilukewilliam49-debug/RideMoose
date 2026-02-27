@@ -76,7 +76,7 @@ const AddressAutocomplete = ({ value, onChange, placeholder, iconColor = "text-p
   }, []);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative" style={{ zIndex: 1000 }}>
       <MapPin className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4", iconColor)} />
       {loading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
       <Input
