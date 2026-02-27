@@ -37,6 +37,12 @@ function ReceiptBreakdown({ receipt }: { receipt: FareReceipt }) {
           </>
         )}
       </div>
+      <div className="grid grid-cols-2 gap-1 text-xs border-t border-border pt-2">
+        <span className="text-muted-foreground">Subtotal</span>
+        <span className="text-right font-mono">{cents(receipt.grossFareCents)}</span>
+        <span className="text-muted-foreground">Service fee</span>
+        <span className="text-right font-mono">{cents(receipt.serviceFeeCents)}</span>
+      </div>
       <div className="flex justify-between items-center pt-2 border-t border-border">
         <span className="text-sm font-semibold">Total</span>
         <span className="text-lg font-bold text-primary font-mono">{cents(receipt.totalCents)}</span>

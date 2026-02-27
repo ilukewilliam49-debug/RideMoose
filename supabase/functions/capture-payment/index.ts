@@ -8,6 +8,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SERVICE_FEE_CENTS = 99;
+const COMMISSION_RATE = 0.049;
+const STRIPE_RATE = 0.029;
+const STRIPE_FIXED_CENTS = 30;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,9 +44,14 @@ serve(async (req) => {
       .eq("id", ride_id)
       .single();
     if (rideError || !ride) throw new Error("Ride not found");
+
+    const grossFareCents = ride.final_fare_cents || 0;
+    const commissionCents = Math.round(grossFareCents * COMMISSION_RATE);
+    const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS;
+
     // Check if ride is billed to organization — skip Stripe
     if (ride.billed_to === "organization" && ride.organization_id) {
-      const finalAmount = ride.final_fare_cents;
+      const driverEarnings = grossFareCents - commissionCents;
 
       // Add to org balance
       const { data: org } = await serviceClient
@@ -53,7 +63,7 @@ serve(async (req) => {
       if (org) {
         await serviceClient
           .from("organizations")
-          .update({ current_balance_cents: (org.current_balance_cents || 0) + finalAmount })
+          .update({ current_balance_cents: (org.current_balance_cents || 0) + riderTotalCents })
           .eq("id", ride.organization_id);
       }
 
@@ -63,50 +73,105 @@ serve(async (req) => {
           captured_amount_cents: 0,
           outstanding_amount_cents: 0,
           payment_status: "invoiced_pending",
+          service_fee_cents: SERVICE_FEE_CENTS,
+          commission_cents: commissionCents,
+          stripe_fee_cents: 0,
+          driver_earnings_cents: driverEarnings,
         })
         .eq("id", ride_id);
 
       return new Response(
-        JSON.stringify({ status: "invoiced_pending", amount_cents: finalAmount }),
+        JSON.stringify({ status: "invoiced_pending", amount_cents: riderTotalCents }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
 
+    // pay_driver: no Stripe, but track commission owed
+    if (ride.payment_option === "pay_driver") {
+      const driverEarnings = grossFareCents - commissionCents;
+
+      // Increase driver_balance_cents (commission owed to platform)
+      if (ride.driver_id) {
+        const { data: driverProfile } = await serviceClient
+          .from("profiles")
+          .select("driver_balance_cents")
+          .eq("id", ride.driver_id)
+          .single();
+
+        if (driverProfile) {
+          await serviceClient
+            .from("profiles")
+            .update({
+              driver_balance_cents: (driverProfile.driver_balance_cents || 0) + commissionCents,
+            })
+            .eq("id", ride.driver_id);
+        }
+      }
+
+      await serviceClient
+        .from("rides")
+        .update({
+          captured_amount_cents: 0,
+          outstanding_amount_cents: 0,
+          payment_status: "paid",
+          paid_at: new Date().toISOString(),
+          service_fee_cents: SERVICE_FEE_CENTS,
+          commission_cents: commissionCents,
+          stripe_fee_cents: 0,
+          driver_earnings_cents: driverEarnings,
+        })
+        .eq("id", ride_id);
+
+      return new Response(
+        JSON.stringify({ status: "paid_driver", driver_earnings_cents: driverEarnings, commission_cents: commissionCents }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // in_app Stripe flow
     if (!ride.stripe_payment_intent_id) throw new Error("No payment intent for this ride");
-    if (!ride.final_fare_cents) throw new Error("Final fare not set");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    const finalAmount = ride.final_fare_cents;
+    const stripeFeeCents = Math.round(riderTotalCents * STRIPE_RATE + STRIPE_FIXED_CENTS);
+    const driverEarnings = grossFareCents - commissionCents - stripeFeeCents;
     const authorizedAmount = ride.authorized_amount_cents || 0;
 
-    if (finalAmount <= authorizedAmount) {
-      // Partial capture for the final amount
+    const earningsUpdate = {
+      service_fee_cents: SERVICE_FEE_CENTS,
+      commission_cents: commissionCents,
+      stripe_fee_cents: stripeFeeCents,
+      driver_earnings_cents: driverEarnings,
+    };
+
+    if (riderTotalCents <= authorizedAmount) {
+      // Partial capture for the rider total (gross fare + service fee)
       await stripe.paymentIntents.capture(ride.stripe_payment_intent_id, {
-        amount_to_capture: finalAmount,
+        amount_to_capture: riderTotalCents,
       });
 
       await serviceClient
         .from("rides")
         .update({
-          captured_amount_cents: finalAmount,
+          captured_amount_cents: riderTotalCents,
           outstanding_amount_cents: 0,
           payment_status: "paid",
           paid_at: new Date().toISOString(),
+          ...earningsUpdate,
         })
         .eq("id", ride_id);
 
       return new Response(
-        JSON.stringify({ status: "captured", amount_cents: finalAmount }),
+        JSON.stringify({ status: "captured", amount_cents: riderTotalCents }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     } else {
-      // Final fare exceeds authorization — capture full authorized amount
+      // Final total exceeds authorization — capture full authorized amount
       await stripe.paymentIntents.capture(ride.stripe_payment_intent_id);
 
-      const overage = finalAmount - authorizedAmount;
+      const overage = riderTotalCents - authorizedAmount;
 
       await serviceClient
         .from("rides")
@@ -115,6 +180,7 @@ serve(async (req) => {
           outstanding_amount_cents: overage,
           outstanding_reason: "fare_exceeded_authorization",
           payment_status: "partial",
+          ...earningsUpdate,
         })
         .eq("id", ride_id);
 

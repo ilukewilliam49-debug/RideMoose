@@ -298,6 +298,7 @@ export type Database = {
           can_shuttle: boolean
           can_taxi: boolean
           created_at: string
+          driver_balance_cents: number
           full_name: string
           id: string
           is_available: boolean | null
@@ -317,6 +318,7 @@ export type Database = {
           can_shuttle?: boolean
           can_taxi?: boolean
           created_at?: string
+          driver_balance_cents?: number
           full_name?: string
           id?: string
           is_available?: boolean | null
@@ -336,6 +338,7 @@ export type Database = {
           can_shuttle?: boolean
           can_taxi?: boolean
           created_at?: string
+          driver_balance_cents?: number
           full_name?: string
           id?: string
           is_available?: boolean | null
@@ -416,11 +419,13 @@ export type Database = {
           authorized_amount_cents: number | null
           billed_to: string
           captured_amount_cents: number | null
+          commission_cents: number
           completed_at: string | null
           cost_center: string | null
           created_at: string
           distance_km: number | null
           driver_collected_outstanding_at: string | null
+          driver_earnings_cents: number
           driver_id: string | null
           dropoff_address: string
           dropoff_lat: number | null
@@ -451,9 +456,11 @@ export type Database = {
           pricing_model: string
           rider_id: string
           scheduled_at: string | null
+          service_fee_cents: number
           service_type: Database["public"]["Enums"]["service_type"]
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
+          stripe_fee_cents: number
           stripe_payment_intent_id: string | null
           updated_at: string
           waiting_min: number
@@ -462,11 +469,13 @@ export type Database = {
           authorized_amount_cents?: number | null
           billed_to?: string
           captured_amount_cents?: number | null
+          commission_cents?: number
           completed_at?: string | null
           cost_center?: string | null
           created_at?: string
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
+          driver_earnings_cents?: number
           driver_id?: string | null
           dropoff_address: string
           dropoff_lat?: number | null
@@ -497,9 +506,11 @@ export type Database = {
           pricing_model?: string
           rider_id: string
           scheduled_at?: string | null
+          service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string
           waiting_min?: number
@@ -508,11 +519,13 @@ export type Database = {
           authorized_amount_cents?: number | null
           billed_to?: string
           captured_amount_cents?: number | null
+          commission_cents?: number
           completed_at?: string | null
           cost_center?: string | null
           created_at?: string
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
+          driver_earnings_cents?: number
           driver_id?: string | null
           dropoff_address?: string
           dropoff_lat?: number | null
@@ -543,9 +556,11 @@ export type Database = {
           pricing_model?: string
           rider_id?: string
           scheduled_at?: string | null
+          service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string
           waiting_min?: number
