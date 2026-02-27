@@ -33,6 +33,8 @@ const RiderDashboard = () => {
   const [pendingRideId, setPendingRideId] = useState<string | null>(null);
   const [passengerCount, setPassengerCount] = useState(1);
   const [billToOrg, setBillToOrg] = useState(false);
+  const [poNumber, setPoNumber] = useState("");
+  const [costCenter, setCostCenter] = useState("");
 
   // Fetch rider's approved org membership
   const { data: riderOrgMembership } = useQuery({
@@ -399,6 +401,8 @@ const RiderDashboard = () => {
         billed_to: isOrgBilling ? "organization" : "individual",
         organization_id: isOrgBilling ? riderOrgMembership.organization_id : null,
         payment_status: isOrgBilling ? "invoiced_pending" : "unpaid",
+        po_number: isOrgBilling && poNumber ? poNumber : null,
+        cost_center: isOrgBilling && costCenter ? costCenter : null,
       }).select("id").single();
       if (error) throw error;
 
@@ -426,6 +430,8 @@ const RiderDashboard = () => {
       setDropoffCoords(null);
       setPassengerCount(1);
       setBillToOrg(false);
+      setPoNumber("");
+      setCostCenter("");
       refetch();
     } catch (err: any) {
       toast.error(err.message);
@@ -717,6 +723,30 @@ const RiderDashboard = () => {
                   {billToOrg && <div className="h-2 w-2 rounded-full bg-primary" />}
                 </div>
               </button>
+            </div>
+          )}
+
+          {/* PO Number and Cost Center for org billing */}
+          {billToOrg && riderOrgMembership && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">PO Number</Label>
+                <Input
+                  value={poNumber}
+                  onChange={(e) => setPoNumber(e.target.value)}
+                  placeholder="Optional"
+                  className="bg-secondary text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Cost Center</Label>
+                <Input
+                  value={costCenter}
+                  onChange={(e) => setCostCenter(e.target.value)}
+                  placeholder="Optional"
+                  className="bg-secondary text-sm"
+                />
+              </div>
             </div>
           )}
 

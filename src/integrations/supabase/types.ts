@@ -46,6 +46,7 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          invoice_number: string | null
           issue_date: string
           organization_id: string
           pdf_url: string | null
@@ -59,6 +60,7 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          invoice_number?: string | null
           issue_date?: string
           organization_id: string
           pdf_url?: string | null
@@ -72,6 +74,7 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          invoice_number?: string | null
           issue_date?: string
           organization_id?: string
           pdf_url?: string | null
@@ -351,6 +354,7 @@ export type Database = {
           billed_to: string
           captured_amount_cents: number | null
           completed_at: string | null
+          cost_center: string | null
           created_at: string
           distance_km: number | null
           driver_collected_outstanding_at: string | null
@@ -380,6 +384,7 @@ export type Database = {
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
+          po_number: string | null
           pricing_model: string
           rider_id: string
           scheduled_at: string | null
@@ -395,6 +400,7 @@ export type Database = {
           billed_to?: string
           captured_amount_cents?: number | null
           completed_at?: string | null
+          cost_center?: string | null
           created_at?: string
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
@@ -424,6 +430,7 @@ export type Database = {
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          po_number?: string | null
           pricing_model?: string
           rider_id: string
           scheduled_at?: string | null
@@ -439,6 +446,7 @@ export type Database = {
           billed_to?: string
           captured_amount_cents?: number | null
           completed_at?: string | null
+          cost_center?: string | null
           created_at?: string
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
@@ -468,6 +476,7 @@ export type Database = {
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          po_number?: string | null
           pricing_model?: string
           rider_id?: string
           scheduled_at?: string | null
