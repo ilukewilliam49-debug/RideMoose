@@ -184,13 +184,15 @@ serve(async (req) => {
               to: [org.billing_email],
               subject: `OnlyKnifers Invoice ${invoiceNumber} – ${monthLabel}`,
               html: `
-                <h2>Invoice ${invoiceNumber}</h2>
-                <p><strong>${org.name}</strong></p>
-                <p>Period: ${periodStartStr} to ${periodEndStr}</p>
-                <p>Rides: <strong>${rides.length}</strong></p>
-                <p>Total: <strong>$${(totalCents / 100).toFixed(2)} CAD</strong></p>
-                <p>Due Date: <strong>${dueDate.toISOString().split("T")[0]}</strong> (Net ${org.payment_terms_days || 30} days)</p>
-                <p>Please find the ride details in the attached CSV.</p>
+                <p>Hello ${org.name},</p>
+                <p>Please find attached your OnlyKnifers invoice for ${periodStart.toLocaleString("en-US", { month: "long" })} ${periodStart.getDate()}–${periodEnd.getDate()}, ${periodStart.getFullYear()}.</p>
+                <p><strong>Invoice Number:</strong> ${invoiceNumber}</p>
+                <p><strong>Ride Count:</strong> ${rides.length}</p>
+                <p><strong>Total Due:</strong> $${(totalCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })} CAD</p>
+                <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} (Net ${org.payment_terms_days || 30})</p>
+                <p>A detailed ride summary is attached in CSV format.</p>
+                <p>Thank you for your business.</p>
+                <p><strong>OnlyKnifers</strong><br/>Yellowknife On Demand</p>
               `,
               attachments: [
                 {
