@@ -4,14 +4,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, X, MapPin } from "lucide-react";
+import { Check, MapPin } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import RideMap, { type MapMarker } from "@/components/map/MapContainer";
+import { useDriverLocation } from "@/hooks/useDriverLocation";
 
 const DriverDispatch = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch rides dispatched/requested
+  // Track driver location in real-time
+  useDriverLocation(profile?.id, !!profile?.is_available);
+
   const { data: pendingRides } = useQuery({
     queryKey: ["dispatch-rides"],
     queryFn: async () => {
@@ -43,7 +47,6 @@ const DriverDispatch = () => {
     enabled: !!profile?.id,
   });
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("rides-dispatch")
@@ -73,57 +76,75 @@ const DriverDispatch = () => {
     const updates: any = { status };
     if (status === "in_progress") updates.started_at = new Date().toISOString();
     if (status === "completed") updates.completed_at = new Date().toISOString();
-
     const { error } = await supabase.from("rides").update(updates).eq("id", rideId);
     if (error) toast.error(error.message);
     else toast.success(`Ride ${status.replace("_", " ")}!`);
   };
 
+  // Build map markers for active ride
+  const activeMarkers: MapMarker[] = activeRide
+    ? [
+        ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: "Pickup" }] : []),
+        ...(activeRide.dropoff_lat && activeRide.dropoff_lng ? [{ lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, type: "dropoff" as const, label: "Dropoff" }] : []),
+        ...(profile?.latitude && profile?.longitude ? [{ lat: profile.latitude, lng: profile.longitude, type: "driver" as const, label: "You" }] : []),
+      ]
+    : [];
+
+  // Map for pending rides overview
+  const pendingMarkers: MapMarker[] = (pendingRides || [])
+    .filter((r) => r.pickup_lat && r.pickup_lng)
+    .map((r) => ({
+      lat: r.pickup_lat!,
+      lng: r.pickup_lng!,
+      type: "pickup" as const,
+      label: r.pickup_address,
+    }));
+
   return (
     <div className="space-y-6 pt-4">
       <h1 className="text-2xl font-bold">Dispatch Board</h1>
 
-      {/* Active ride */}
+      {/* Active ride with map */}
       {activeRide && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="glass-surface rounded-lg p-5 border border-primary/30"
-        >
-          <h2 className="text-sm font-semibold text-primary mb-3">ACTIVE RIDE</h2>
-          <div className="space-y-2 mb-4">
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-green-400 mt-0.5" />
-              <span className="text-sm">{activeRide.pickup_address}</span>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+          {activeMarkers.length > 0 && <RideMap markers={activeMarkers} />}
+          <div className="glass-surface rounded-lg p-5 border border-primary/30">
+            <h2 className="text-sm font-semibold text-primary mb-3">ACTIVE RIDE</h2>
+            <div className="space-y-2 mb-4">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-green-400 mt-0.5" />
+                <span className="text-sm">{activeRide.pickup_address}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-sm">{activeRide.dropoff_address}</span>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-primary mt-0.5" />
-              <span className="text-sm">{activeRide.dropoff_address}</span>
+            <div className="flex gap-2">
+              {activeRide.status === "accepted" && (
+                <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
+                  Start Trip
+                </Button>
+              )}
+              {activeRide.status === "in_progress" && (
+                <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "completed")}>
+                  Complete Trip
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
+                Cancel
+              </Button>
             </div>
-          </div>
-          <div className="flex gap-2">
-            {activeRide.status === "accepted" && (
-              <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                Start Trip
-              </Button>
-            )}
-            {activeRide.status === "in_progress" && (
-              <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "completed")}>
-                Complete Trip
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => updateRideStatus(activeRide.id, "cancelled")}
-            >
-              Cancel
-            </Button>
           </div>
         </motion.div>
       )}
 
-      {/* Pending rides */}
+      {/* Pending rides map overview */}
+      {!activeRide && pendingMarkers.length > 0 && (
+        <RideMap markers={pendingMarkers} />
+      )}
+
+      {/* Pending rides list */}
       <div>
         <h2 className="text-lg font-semibold mb-3">Incoming Requests</h2>
         {pendingRides?.length === 0 && (
