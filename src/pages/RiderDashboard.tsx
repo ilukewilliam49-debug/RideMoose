@@ -349,7 +349,7 @@ const RiderDashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-surface rounded-lg p-6 space-y-4"
+          className="glass-surface rounded-lg p-6 space-y-4 overflow-visible"
         >
           {/* Service Type Toggle */}
           <div className="space-y-2">
