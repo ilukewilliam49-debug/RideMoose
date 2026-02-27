@@ -12,9 +12,8 @@ const Index = () => {
       {/* Nav */}
       <nav className="fixed top-0 w-full z-50 glass-surface">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <img src={logoImg} alt="OnlyKnifers" className="h-8 rounded" />
-            <span className="text-lg font-bold text-gradient-gold">OnlyKnifers</span>
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
             Sign In

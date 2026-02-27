@@ -68,9 +68,8 @@ const Login = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <img src={logoImg} alt="OnlyKnifers" className="h-10 rounded" />
-            <h1 className="text-3xl font-bold text-gradient-gold">OnlyKnifers</h1>
+          <div className="inline-flex items-center mb-4">
+            <img src={logoImg} alt="OnlyKnifers" className="h-12 rounded" />
           </div>
           <p className="text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}
