@@ -374,27 +374,27 @@ export type Database = {
           active: boolean
           base_fare_cents: number
           created_at: string
+          free_waiting_min: number
           id: string
           per_km_cents: number
-          per_min_cents: number
           waiting_per_min_cents: number
         }
         Insert: {
           active?: boolean
           base_fare_cents?: number
           created_at?: string
+          free_waiting_min?: number
           id?: string
           per_km_cents?: number
-          per_min_cents?: number
           waiting_per_min_cents?: number
         }
         Update: {
           active?: boolean
           base_fare_cents?: number
           created_at?: string
+          free_waiting_min?: number
           id?: string
           per_km_cents?: number
-          per_min_cents?: number
           waiting_per_min_cents?: number
         }
         Relationships: []

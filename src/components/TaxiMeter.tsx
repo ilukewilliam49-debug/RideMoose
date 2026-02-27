@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useTaxiMeter, type FareReceipt } from "@/hooks/useTaxiMeter";
-import { Play, Square, Clock, MapPin as RouteIcon, DollarSign } from "lucide-react";
+import { Play, Square, Clock, MapPin as RouteIcon, DollarSign, Pause } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function formatTime(min: number) {
@@ -22,10 +22,20 @@ function ReceiptBreakdown({ receipt }: { receipt: FareReceipt }) {
         <span className="text-right font-mono">{cents(receipt.baseFare)}</span>
         <span className="text-muted-foreground">Distance ({receipt.distanceKm.toFixed(2)} km)</span>
         <span className="text-right font-mono">{cents(receipt.distanceCharge)}</span>
-        <span className="text-muted-foreground">Moving time ({receipt.movingMin.toFixed(1)} min)</span>
-        <span className="text-right font-mono">{cents(receipt.movingCharge)}</span>
-        <span className="text-muted-foreground">Waiting ({receipt.waitingMin.toFixed(1)} min)</span>
-        <span className="text-right font-mono">{cents(receipt.waitingCharge)}</span>
+        <span className="text-muted-foreground">
+          Waiting ({receipt.totalWaitingMin.toFixed(1)} min, {receipt.freeWaitingMin} free)
+        </span>
+        <span className="text-right font-mono">
+          {receipt.billableWaitingMin > 0 ? cents(receipt.waitingCharge) : "—"}
+        </span>
+        {receipt.billableWaitingMin > 0 && (
+          <>
+            <span className="text-muted-foreground text-[10px] pl-2">
+              Billable: {receipt.billableWaitingMin.toFixed(1)} min
+            </span>
+            <span />
+          </>
+        )}
       </div>
       <div className="flex justify-between items-center pt-2 border-t border-border">
         <span className="text-sm font-semibold">Total</span>
@@ -41,7 +51,7 @@ interface TaxiMeterProps {
 }
 
 export default function TaxiMeter({ rideId, meterStatus }: TaxiMeterProps) {
-  const { state, startMeter, endMeter } = useTaxiMeter(rideId, meterStatus);
+  const { state, startMeter, endMeter, toggleWaiting } = useTaxiMeter(rideId, meterStatus);
 
   return (
     <div className="space-y-3">
@@ -55,7 +65,11 @@ export default function TaxiMeter({ rideId, meterStatus }: TaxiMeterProps) {
           {/* Big fare */}
           <div className="text-center mb-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-              {state.status === "running" ? "Meter Running" : "Final Fare"}
+              {state.status === "running"
+                ? state.isWaiting
+                  ? "Meter Running — Waiting"
+                  : "Meter Running"
+                : "Final Fare"}
             </p>
             <motion.p
               key={state.liveFareCents}
@@ -68,7 +82,7 @@ export default function TaxiMeter({ rideId, meterStatus }: TaxiMeterProps) {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-2 gap-3 text-center">
             <div className="space-y-0.5">
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
                 <RouteIcon className="h-3 w-3" />
@@ -79,16 +93,11 @@ export default function TaxiMeter({ rideId, meterStatus }: TaxiMeterProps) {
             <div className="space-y-0.5">
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                <span className="text-[10px] uppercase">Duration</span>
-              </div>
-              <p className="text-sm font-mono font-semibold">{formatTime(state.durationMin)}</p>
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-center gap-1 text-muted-foreground">
-                <DollarSign className="h-3 w-3" />
                 <span className="text-[10px] uppercase">Waiting</span>
               </div>
-              <p className="text-sm font-mono font-semibold">{formatTime(state.waitingMin)}</p>
+              <p className={`text-sm font-mono font-semibold ${state.isWaiting ? "text-yellow-400" : ""}`}>
+                {formatTime(state.waitingMin)}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -102,9 +111,22 @@ export default function TaxiMeter({ rideId, meterStatus }: TaxiMeterProps) {
           </Button>
         )}
         {state.status === "running" && (
-          <Button onClick={endMeter} variant="destructive" className="flex-1 gap-2">
-            <Square className="h-4 w-4" /> End Ride
-          </Button>
+          <>
+            <Button
+              onClick={toggleWaiting}
+              variant={state.isWaiting ? "secondary" : "outline"}
+              className="flex-1 gap-2"
+            >
+              {state.isWaiting ? (
+                <><Play className="h-4 w-4" /> Resume</>
+              ) : (
+                <><Pause className="h-4 w-4" /> Waiting</>
+              )}
+            </Button>
+            <Button onClick={endMeter} variant="destructive" className="flex-1 gap-2">
+              <Square className="h-4 w-4" /> End Ride
+            </Button>
+          </>
         )}
       </div>
 
