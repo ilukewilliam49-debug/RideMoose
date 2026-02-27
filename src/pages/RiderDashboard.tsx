@@ -41,6 +41,21 @@ const RiderDashboard = () => {
     },
   });
 
+  // Fetch taxi meter rates for accurate taxi estimates
+  const { data: taxiRates } = useQuery({
+    queryKey: ["taxi-rates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("taxi_rates")
+        .select("*")
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch private hire zones
   const { data: privateHireZones } = useQuery({
     queryKey: ["private-hire-zones"],
@@ -120,18 +135,24 @@ const RiderDashboard = () => {
     // Private hire: zone-based flat pricing
     if (serviceType === "private_hire") {
       if (!pickup || !dropoff) return null;
-      const fareCents = matchedZone ? matchedZone.flat_fare_cents : 5000; // fallback 5000 cents
+      const fareCents = matchedZone ? matchedZone.flat_fare_cents : 5000;
       return (fareCents / 100).toFixed(2);
     }
-    // Taxi / shuttle: distance-based
+    // Taxi: use taxi_rates (same as the live meter)
+    if (serviceType === "taxi") {
+      if (!distanceKm || !taxiRates) return null;
+      const fareCents = taxiRates.base_fare_cents + distanceKm * taxiRates.per_km_cents;
+      return (fareCents / 100).toFixed(2);
+    }
+    // Shuttle: distance-based from service_pricing
     if (!distanceKm || !currentPricing) return null;
     let price = Number(currentPricing.base_fare) + distanceKm * Number(currentPricing.per_km_rate);
-    if (serviceType === "shuttle" && currentPricing.per_seat_rate) {
+    if (currentPricing.per_seat_rate) {
       price += passengerCount * Number(currentPricing.per_seat_rate);
     }
     price *= Number(currentPricing.surge_multiplier);
     return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
-  }, [distanceKm, currentPricing, serviceType, passengerCount, pickup, dropoff, matchedZone]);
+  }, [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone]);
 
   const mapMarkers: MapMarker[] = [
     ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: "Pickup" }] : []),
