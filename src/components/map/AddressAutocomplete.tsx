@@ -26,12 +26,16 @@ const AddressAutocomplete = ({ value, onChange, placeholder, iconColor = "text-p
     if (q.length < 3) { setSuggestions([]); return; }
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&countrycodes=ca&viewbox=-136.5,60.0,-102.0,72.0&bounded=1`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&countrycodes=ca&viewbox=-128.0,60.0,-102.0,70.0&bounded=1`,
         { headers: { "Accept-Language": "en" } }
       );
       const data: GeoResult[] = await res.json();
-      setSuggestions(data);
-      setOpen(data.length > 0);
+      const ntOnly = data.filter((r) => {
+        const name = r.display_name.toLowerCase();
+        return !name.includes("yukon") && !name.includes("nunavut") && !name.includes("british columbia") && !name.includes("alberta") && !name.includes("saskatchewan");
+      });
+      setSuggestions(ntOnly);
+      setOpen(ntOnly.length > 0);
     } catch {
       setSuggestions([]);
     }
