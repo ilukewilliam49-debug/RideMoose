@@ -25,8 +25,11 @@ const AddressAutocomplete = ({ value, onChange, placeholder, iconColor = "text-p
   const search = useCallback(async (q: string) => {
     if (q.length < 3) { setSuggestions([]); return; }
     try {
+      const searchQuery = q.toLowerCase().includes("nt") || q.toLowerCase().includes("northwest") 
+        ? q 
+        : `${q}, Northwest Territories`;
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&countrycodes=ca&viewbox=-128.0,60.0,-102.0,70.0&bounded=1`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5&countrycodes=ca&viewbox=-128.0,60.0,-102.0,70.0&bounded=0`,
         { headers: { "Accept-Language": "en" } }
       );
       const data: GeoResult[] = await res.json();
