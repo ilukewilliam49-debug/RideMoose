@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const SERVICE_FEE_CENTS = 99;
-const COMMISSION_RATE = 0.049;
+const COMMISSION_RATE = 0;
 const STRIPE_RATE = 0.029;
 const STRIPE_FIXED_CENTS = 30;
 
