@@ -24,13 +24,16 @@ serve(async (req) => {
     }
 
     // Bias results to Northwest Territories (centered on Yellowknife)
+    // Append "Yellowknife" context for short/generic queries to overcome Google's population bias
+    const needsContext = input.trim().split(/\s+/).length <= 2 && !/yellowknife|nt\b/i.test(input);
+    const searchInput = needsContext ? `${input} Yellowknife NT` : input;
+
     const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
-    url.searchParams.set("input", input);
+    url.searchParams.set("input", searchInput);
     url.searchParams.set("key", apiKey);
     url.searchParams.set("components", "country:ca");
     url.searchParams.set("location", "62.454,-114.372");
-    url.searchParams.set("radius", "500000"); // 500km radius around Yellowknife
-    url.searchParams.set("strictbounds", "true");
+    url.searchParams.set("radius", "500000");
 
     const res = await fetch(url.toString());
     const data = await res.json();
@@ -41,10 +44,11 @@ serve(async (req) => {
     }
 
     // Filter to only NT results
+    const ntPattern = /\bnt\b/i;
     const predictions = (data.predictions || [])
       .filter((p: any) => {
-        const desc = p.description.toLowerCase();
-        return desc.includes("northwest territories") || desc.includes("nt,") || desc.includes("yellowknife");
+        const desc = p.description;
+        return ntPattern.test(desc) || /northwest territories/i.test(desc) || /yellowknife/i.test(desc);
       })
       .map((p: any) => ({
         description: p.description,
