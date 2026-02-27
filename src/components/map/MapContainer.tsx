@@ -69,6 +69,7 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "" }: RideM
       center: mapCenter,
       zoom: 13,
       scrollWheelZoom: false,
+      attributionControl: false,
     });
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
