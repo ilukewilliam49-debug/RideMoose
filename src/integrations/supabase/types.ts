@@ -41,6 +41,88 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          issue_date: string
+          organization_id: string
+          pdf_url: string | null
+          period_end: string
+          period_start: string
+          ride_count: number
+          status: string
+          total_cents: number
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          issue_date?: string
+          organization_id: string
+          pdf_url?: string | null
+          period_end: string
+          period_start: string
+          ride_count?: number
+          status?: string
+          total_cents?: number
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          organization_id?: string
+          pdf_url?: string | null
+          period_end?: string
+          period_start?: string
+          ride_count?: number
+          status?: string
+          total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           billing_email: string
@@ -281,6 +363,7 @@ export type Database = {
           final_fare_cents: number | null
           final_price: number | null
           id: string
+          invoice_id: string | null
           invoiced: boolean
           meter_ended_at: string | null
           meter_started_at: string | null
@@ -324,6 +407,7 @@ export type Database = {
           final_fare_cents?: number | null
           final_price?: number | null
           id?: string
+          invoice_id?: string | null
           invoiced?: boolean
           meter_ended_at?: string | null
           meter_started_at?: string | null
@@ -367,6 +451,7 @@ export type Database = {
           final_fare_cents?: number | null
           final_price?: number | null
           id?: string
+          invoice_id?: string | null
           invoiced?: boolean
           meter_ended_at?: string | null
           meter_started_at?: string | null
@@ -399,6 +484,13 @@ export type Database = {
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rides_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {
