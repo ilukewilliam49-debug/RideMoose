@@ -22,6 +22,7 @@ const navByRole: Record<string, { icon: any; title: string; url: string }[]> = {
   rider: [
     { icon: Home, title: "Dashboard", url: "/rider" },
     { icon: Car, title: "My Rides", url: "/rider/rides" },
+    { icon: Building2, title: "Corporate", url: "/rider/corporate-apply" },
   ],
   driver: [
     { icon: Home, title: "Dashboard", url: "/driver" },

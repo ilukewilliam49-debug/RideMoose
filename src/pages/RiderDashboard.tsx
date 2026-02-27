@@ -36,21 +36,30 @@ const RiderDashboard = () => {
   const [poNumber, setPoNumber] = useState("");
   const [costCenter, setCostCenter] = useState("");
 
-  // Fetch rider's approved org membership
+  // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
     queryFn: async () => {
       if (!profile?.user_id) return null;
       const { data: memberships, error } = await supabase
         .from("org_members")
-        .select("organization_id, role, organizations(id, name, status)")
+        .select("organization_id, role, organizations(id, name, status, credit_limit_cents, current_balance_cents)")
         .eq("user_id", profile.user_id);
       if (error) throw error;
-      // Find first approved org
+      // Find first approved org (not suspended)
       const approved = memberships?.find(
         (m: any) => m.organizations?.status === "approved"
       );
-      return approved ? { organization_id: approved.organization_id, org_name: (approved.organizations as any)?.name, role: approved.role } : null;
+      if (!approved) return null;
+      const org = approved.organizations as any;
+      return {
+        organization_id: approved.organization_id,
+        org_name: org?.name,
+        org_status: org?.status,
+        role: approved.role,
+        credit_limit_cents: org?.credit_limit_cents || 0,
+        current_balance_cents: org?.current_balance_cents || 0,
+      };
     },
     enabled: !!profile?.user_id,
   });
@@ -383,6 +392,21 @@ const RiderDashboard = () => {
     try {
       const estCents = Math.round(parseFloat(estimatedPrice || "0") * 100);
       const isOrgBilling = billToOrg && riderOrgMembership;
+
+      // Credit limit + suspension check for org billing
+      if (isOrgBilling && riderOrgMembership) {
+        if (riderOrgMembership.org_status === "suspended") {
+          toast.error("Your organization account is suspended. Please contact your administrator.");
+          setLoading(false);
+          return;
+        }
+        const projectedBalance = riderOrgMembership.current_balance_cents + estCents;
+        if (projectedBalance > riderOrgMembership.credit_limit_cents) {
+          toast.error(`This ride would exceed your organization's credit limit ($${(riderOrgMembership.credit_limit_cents / 100).toFixed(2)}). Current balance: $${(riderOrgMembership.current_balance_cents / 100).toFixed(2)}.`);
+          setLoading(false);
+          return;
+        }
+      }
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
         pickup_address: pickup,
@@ -699,30 +723,45 @@ const RiderDashboard = () => {
           {riderOrgMembership && (
             <div className="space-y-2">
               <Label>Billing</Label>
-              <button
-                type="button"
-                onClick={() => {
-                  const newVal = !billToOrg;
-                  setBillToOrg(newVal);
-                  if (newVal) setPaymentOption("pay_driver"); // org billing skips Stripe
-                }}
-                className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all ${
-                  billToOrg
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-secondary hover:bg-accent"
-                }`}
-              >
-                <Building2 className={`h-5 w-5 ${billToOrg ? "text-primary" : "text-muted-foreground"}`} />
-                <div className="text-left flex-1">
-                  <p className="text-xs font-semibold">Bill to {riderOrgMembership.org_name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {billToOrg ? "Ride will be invoiced to your organization" : "Tap to bill this ride to your organization"}
-                  </p>
+              {riderOrgMembership.org_status === "suspended" ? (
+                <div className="flex items-center gap-3 w-full p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+                  <Building2 className="h-5 w-5 text-destructive" />
+                  <div className="text-left flex-1">
+                    <p className="text-xs font-semibold text-destructive">{riderOrgMembership.org_name} — Suspended</p>
+                    <p className="text-[10px] text-muted-foreground">Organization billing is temporarily unavailable due to overdue invoices.</p>
+                  </div>
                 </div>
-                <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${billToOrg ? "border-primary" : "border-muted-foreground"}`}>
-                  {billToOrg && <div className="h-2 w-2 rounded-full bg-primary" />}
-                </div>
-              </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newVal = !billToOrg;
+                    setBillToOrg(newVal);
+                    if (newVal) setPaymentOption("pay_driver");
+                  }}
+                  className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all ${
+                    billToOrg
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-secondary hover:bg-accent"
+                  }`}
+                >
+                  <Building2 className={`h-5 w-5 ${billToOrg ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="text-left flex-1">
+                    <p className="text-xs font-semibold">Bill to {riderOrgMembership.org_name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {billToOrg
+                        ? "Ride will be invoiced to your organization"
+                        : "Tap to bill this ride to your organization"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      Balance: ${(riderOrgMembership.current_balance_cents / 100).toFixed(2)} / ${(riderOrgMembership.credit_limit_cents / 100).toFixed(2)} limit
+                    </p>
+                  </div>
+                  <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${billToOrg ? "border-primary" : "border-muted-foreground"}`}>
+                    {billToOrg && <div className="h-2 w-2 rounded-full bg-primary" />}
+                  </div>
+                </button>
+              )}
             </div>
           )}
 
