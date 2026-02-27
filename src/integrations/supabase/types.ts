@@ -225,9 +225,14 @@ export type Database = {
           dropoff_address: string
           dropoff_lat: number | null
           dropoff_lng: number | null
+          duration_min: number
           estimated_price: number | null
+          final_fare_cents: number | null
           final_price: number | null
           id: string
+          meter_ended_at: string | null
+          meter_started_at: string | null
+          meter_status: string
           passenger_count: number
           pickup_address: string
           pickup_lat: number | null
@@ -239,6 +244,7 @@ export type Database = {
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
           updated_at: string
+          waiting_min: number
         }
         Insert: {
           completed_at?: string | null
@@ -248,9 +254,14 @@ export type Database = {
           dropoff_address: string
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          duration_min?: number
           estimated_price?: number | null
+          final_fare_cents?: number | null
           final_price?: number | null
           id?: string
+          meter_ended_at?: string | null
+          meter_started_at?: string | null
+          meter_status?: string
           passenger_count?: number
           pickup_address: string
           pickup_lat?: number | null
@@ -262,6 +273,7 @@ export type Database = {
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           updated_at?: string
+          waiting_min?: number
         }
         Update: {
           completed_at?: string | null
@@ -271,9 +283,14 @@ export type Database = {
           dropoff_address?: string
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          duration_min?: number
           estimated_price?: number | null
+          final_fare_cents?: number | null
           final_price?: number | null
           id?: string
+          meter_ended_at?: string | null
+          meter_started_at?: string | null
+          meter_status?: string
           passenger_count?: number
           pickup_address?: string
           pickup_lat?: number | null
@@ -285,6 +302,7 @@ export type Database = {
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           updated_at?: string
+          waiting_min?: number
         }
         Relationships: [
           {
@@ -348,6 +366,36 @@ export type Database = {
           service_type?: Database["public"]["Enums"]["service_type"]
           surge_multiplier?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      taxi_rates: {
+        Row: {
+          active: boolean
+          base_fare_cents: number
+          created_at: string
+          id: string
+          per_km_cents: number
+          per_min_cents: number
+          waiting_per_min_cents: number
+        }
+        Insert: {
+          active?: boolean
+          base_fare_cents?: number
+          created_at?: string
+          id?: string
+          per_km_cents?: number
+          per_min_cents?: number
+          waiting_per_min_cents?: number
+        }
+        Update: {
+          active?: boolean
+          base_fare_cents?: number
+          created_at?: string
+          id?: string
+          per_km_cents?: number
+          per_min_cents?: number
+          waiting_per_min_cents?: number
         }
         Relationships: []
       }
