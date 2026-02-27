@@ -56,9 +56,9 @@ const DriverDispatch = () => {
     enabled: !!profile?.id,
   });
 
-  // Completed rides awaiting cash payment
-  const { data: unpaidRides } = useQuery({
-    queryKey: ["unpaid-rides", profile?.id],
+  // Rides with outstanding balance (partial in-app or pay_driver unpaid)
+  const { data: outstandingRides } = useQuery({
+    queryKey: ["outstanding-rides", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await supabase
@@ -66,10 +66,9 @@ const DriverDispatch = () => {
         .select("*")
         .eq("driver_id", profile.id)
         .eq("status", "completed")
-        .eq("payment_option", "pay_driver")
-        .eq("payment_status", "unpaid")
+        .or("payment_status.eq.partial,and(payment_option.eq.pay_driver,payment_status.eq.unpaid)")
         .order("completed_at", { ascending: false })
-        .limit(5);
+        .limit(10);
       if (error) throw error;
       return data;
     },
@@ -82,7 +81,7 @@ const DriverDispatch = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "rides" }, () => {
         queryClient.invalidateQueries({ queryKey: ["dispatch-rides"] });
         queryClient.invalidateQueries({ queryKey: ["active-ride"] });
-        queryClient.invalidateQueries({ queryKey: ["unpaid-rides"] });
+        queryClient.invalidateQueries({ queryKey: ["outstanding-rides"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -102,15 +101,20 @@ const DriverDispatch = () => {
     }
   };
 
-  const markAsPaid = async (rideId: string) => {
+  const markOutstandingCollected = async (rideId: string, hasCaptured: boolean) => {
     const { error } = await supabase
       .from("rides")
-      .update({ payment_status: "paid", paid_at: new Date().toISOString() })
+      .update({
+        outstanding_amount_cents: 0,
+        driver_collected_outstanding_at: new Date().toISOString(),
+        payment_status: "paid",
+        paid_at: new Date().toISOString(),
+      })
       .eq("id", rideId);
     if (error) toast.error(error.message);
     else {
-      toast.success("Marked as paid!");
-      queryClient.invalidateQueries({ queryKey: ["unpaid-rides"] });
+      toast.success("Marked as collected!");
+      queryClient.invalidateQueries({ queryKey: ["outstanding-rides"] });
     }
   };
   const updateRideStatus = async (rideId: string, status: string) => {
@@ -198,33 +202,42 @@ const DriverDispatch = () => {
         </motion.div>
       )}
 
-      {/* Unpaid cash rides */}
-      {unpaidRides && unpaidRides.length > 0 && (
+      {/* Outstanding balance rides */}
+      {outstandingRides && outstandingRides.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Banknote className="h-5 w-5 text-yellow-500" />
-            Awaiting Cash Payment
+            Collect Remaining Balance
           </h2>
           <div className="space-y-2">
-            {unpaidRides.map((ride) => (
-              <div key={ride.id} className="glass-surface rounded-lg p-4 flex items-center justify-between">
-                <div className="space-y-1">
+            {outstandingRides.map((ride) => {
+              const totalFare = Number(ride.final_fare_cents || ride.final_price || 0);
+              const captured = Number(ride.captured_amount_cents || 0);
+              const outstanding = Number(ride.outstanding_amount_cents || 0);
+              const displayOutstanding = outstanding > 0 ? outstanding : totalFare;
+              return (
+                <div key={ride.id} className="glass-surface rounded-lg p-4 space-y-2">
                   <p className="text-sm font-medium truncate">
                     {ride.pickup_address} → {ride.dropoff_address}
                   </p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    Fare: ${(Number(ride.final_fare_cents || ride.final_price || 0) / 100).toFixed(2)}
-                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
+                    <span>Total: ${(totalFare / 100).toFixed(2)}</span>
+                    {captured > 0 && <span>Paid in app: ${(captured / 100).toFixed(2)}</span>}
+                    <span className="text-yellow-500 font-semibold">Due: ${(displayOutstanding / 100).toFixed(2)}</span>
+                  </div>
+                  {ride.outstanding_reason === "fare_exceeded_authorization" && (
+                    <p className="text-[10px] text-yellow-500">Fare exceeded pre-authorization</p>
+                  )}
+                  <Button
+                    size="sm"
+                    className="w-full gap-1.5"
+                    onClick={() => markOutstandingCollected(ride.id, captured > 0)}
+                  >
+                    <Banknote className="h-3.5 w-3.5" /> Mark Remaining Collected
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => markAsPaid(ride.id)}
-                >
-                  <Banknote className="h-3.5 w-3.5" /> Mark as Paid
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

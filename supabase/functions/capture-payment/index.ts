@@ -58,6 +58,8 @@ serve(async (req) => {
       await serviceClient
         .from("rides")
         .update({
+          captured_amount_cents: finalAmount,
+          outstanding_amount_cents: 0,
           payment_status: "paid",
           paid_at: new Date().toISOString(),
         })
@@ -68,37 +70,27 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     } else {
-      // Final fare exceeds authorization — capture full authorized amount first
+      // Final fare exceeds authorization — capture full authorized amount
       await stripe.paymentIntents.capture(ride.stripe_payment_intent_id);
 
       const overage = finalAmount - authorizedAmount;
 
-      // Create a new PaymentIntent for the difference
-      const piRetrieved = await stripe.paymentIntents.retrieve(ride.stripe_payment_intent_id);
-      const overageIntent = await stripe.paymentIntents.create({
-        amount: overage,
-        currency: "cad",
-        customer: piRetrieved.customer as string,
-        metadata: { ride_id, type: "overage" },
-        // This one needs rider confirmation so don't auto-capture
-      });
-
       await serviceClient
         .from("rides")
         .update({
-          payment_status: "paid",
-          paid_at: new Date().toISOString(),
-          overage_client_secret: overageIntent.client_secret,
-          overage_cents: overage,
+          captured_amount_cents: authorizedAmount,
+          outstanding_amount_cents: overage,
+          outstanding_reason: "fare_exceeded_authorization",
+          payment_status: "partial",
         })
         .eq("id", ride_id);
 
       return new Response(
         JSON.stringify({
-          status: "overage",
+          status: "partial",
           captured_cents: authorizedAmount,
-          overage_cents: overage,
-          overage_client_secret: overageIntent.client_secret,
+          outstanding_cents: overage,
+          outstanding_reason: "fare_exceeded_authorization",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );

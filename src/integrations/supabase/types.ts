@@ -219,9 +219,11 @@ export type Database = {
       rides: {
         Row: {
           authorized_amount_cents: number | null
+          captured_amount_cents: number | null
           completed_at: string | null
           created_at: string
           distance_km: number | null
+          driver_collected_outstanding_at: string | null
           driver_id: string | null
           dropoff_address: string
           dropoff_lat: number | null
@@ -234,6 +236,8 @@ export type Database = {
           meter_ended_at: string | null
           meter_started_at: string | null
           meter_status: string
+          outstanding_amount_cents: number | null
+          outstanding_reason: string | null
           overage_cents: number | null
           overage_client_secret: string | null
           paid_at: string | null
@@ -255,9 +259,11 @@ export type Database = {
         }
         Insert: {
           authorized_amount_cents?: number | null
+          captured_amount_cents?: number | null
           completed_at?: string | null
           created_at?: string
           distance_km?: number | null
+          driver_collected_outstanding_at?: string | null
           driver_id?: string | null
           dropoff_address: string
           dropoff_lat?: number | null
@@ -270,6 +276,8 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          outstanding_amount_cents?: number | null
+          outstanding_reason?: string | null
           overage_cents?: number | null
           overage_client_secret?: string | null
           paid_at?: string | null
@@ -291,9 +299,11 @@ export type Database = {
         }
         Update: {
           authorized_amount_cents?: number | null
+          captured_amount_cents?: number | null
           completed_at?: string | null
           created_at?: string
           distance_km?: number | null
+          driver_collected_outstanding_at?: string | null
           driver_id?: string | null
           dropoff_address?: string
           dropoff_lat?: number | null
@@ -306,6 +316,8 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          outstanding_amount_cents?: number | null
+          outstanding_reason?: string | null
           overage_cents?: number | null
           overage_client_secret?: string | null
           paid_at?: string | null
