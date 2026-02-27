@@ -1,4 +1,4 @@
-import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +34,7 @@ const navByRole: Record<string, { icon: any; title: string; url: string }[]> = {
     { icon: Users, title: "Users", url: "/admin/users" },
     { icon: DollarSign, title: "Pricing", url: "/admin/pricing" },
     { icon: MapPinned, title: "Hire Zones", url: "/admin/zones" },
+    { icon: Building2, title: "Corporate", url: "/admin/corporate" },
   ],
 };
 

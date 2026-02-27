@@ -39,6 +39,39 @@ serve(async (req) => {
       .eq("id", ride_id)
       .single();
     if (rideError || !ride) throw new Error("Ride not found");
+    // Check if ride is billed to organization — skip Stripe
+    if (ride.billed_to === "organization" && ride.organization_id) {
+      const finalAmount = ride.final_fare_cents;
+
+      // Add to org balance
+      const { data: org } = await serviceClient
+        .from("organizations")
+        .select("current_balance_cents")
+        .eq("id", ride.organization_id)
+        .single();
+
+      if (org) {
+        await serviceClient
+          .from("organizations")
+          .update({ current_balance_cents: (org.current_balance_cents || 0) + finalAmount })
+          .eq("id", ride.organization_id);
+      }
+
+      await serviceClient
+        .from("rides")
+        .update({
+          captured_amount_cents: 0,
+          outstanding_amount_cents: 0,
+          payment_status: "invoiced_pending",
+        })
+        .eq("id", ride_id);
+
+      return new Response(
+        JSON.stringify({ status: "invoiced_pending", amount_cents: finalAmount }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
     if (!ride.stripe_payment_intent_id) throw new Error("No payment intent for this ride");
     if (!ride.final_fare_cents) throw new Error("Final fare not set");
 
