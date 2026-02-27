@@ -8,6 +8,7 @@ import { Check, MapPin, Car, Bus, Briefcase } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
+import TaxiMeter from "@/components/TaxiMeter";
 
 const DriverDispatch = () => {
   const { profile } = useAuth();
@@ -141,21 +142,26 @@ const DriverDispatch = () => {
                 <span className="text-sm">{activeRide.dropoff_address}</span>
               </div>
             </div>
-            <div className="flex gap-2">
-              {activeRide.status === "accepted" && (
-                <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                  Start Trip
+            {/* Taxi rides use the meter */}
+            {activeRide.service_type === "taxi" ? (
+              <TaxiMeter rideId={activeRide.id} meterStatus={activeRide.meter_status} />
+            ) : (
+              <div className="flex gap-2">
+                {activeRide.status === "accepted" && (
+                  <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
+                    Start Trip
+                  </Button>
+                )}
+                {activeRide.status === "in_progress" && (
+                  <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "completed")}>
+                    Complete Trip
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
+                  Cancel
                 </Button>
-              )}
-              {activeRide.status === "in_progress" && (
-                <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "completed")}>
-                  Complete Trip
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
-                Cancel
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         </motion.div>
       )}
