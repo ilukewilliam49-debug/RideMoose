@@ -12,6 +12,7 @@ import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import { Input } from "@/components/ui/input";
 import RideRatingDialog from "@/components/RideRatingDialog";
+import { detectGeoZone } from "@/lib/geofence";
 
 type ServiceType = "taxi" | "private_hire" | "shuttle";
 
@@ -53,6 +54,18 @@ const RiderDashboard = () => {
     },
   });
 
+  // Fetch geo zones for polygon-based detection
+  const { data: geoZones } = useQuery({
+    queryKey: ["geo-zones"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("geo_zones")
+        .select("*");
+      if (error) throw error;
+      return data.map((d) => ({ ...d, polygon: d.polygon as unknown as [number, number][] }));
+    },
+  });
+
   const currentPricing = useMemo(
     () => servicePricing?.find((p) => p.service_type === serviceType),
     [servicePricing, serviceType]
@@ -70,23 +83,37 @@ const RiderDashboard = () => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }, [pickupCoords, dropoffCoords]);
 
-  // Zone detection helper
-  const detectZone = (address: string): string => {
+  // Geo-zone detection: use coordinates first, fall back to keyword matching
+  const detectZone = (coords: { lat: number; lng: number } | null, address: string): string => {
+    // Try polygon-based detection first
+    if (coords && geoZones?.length) {
+      const matched = detectGeoZone(coords.lat, coords.lng, geoZones);
+      if (matched) return matched;
+    }
+    // Keyword fallback
     const lower = address.toLowerCase();
     if (lower.includes("airport")) return "airport";
     if (lower.includes("ingraham")) return "ingraham_trail";
     return "city";
   };
 
+  // Detected zone keys for pickup and dropoff
+  const pickupZoneKey = useMemo(
+    () => (serviceType === "private_hire" && (pickupCoords || pickup) ? detectZone(pickupCoords, pickup) : null),
+    [serviceType, pickupCoords, pickup, geoZones]
+  );
+  const dropoffZoneKey = useMemo(
+    () => (serviceType === "private_hire" && (dropoffCoords || dropoff) ? detectZone(dropoffCoords, dropoff) : null),
+    [serviceType, dropoffCoords, dropoff, geoZones]
+  );
+
   // Matched zone for private hire
   const matchedZone = useMemo(() => {
-    if (serviceType !== "private_hire" || !pickup || !dropoff || !privateHireZones) return null;
-    const pickupZone = detectZone(pickup);
-    const dropoffZone = detectZone(dropoff);
+    if (serviceType !== "private_hire" || !pickupZoneKey || !dropoffZoneKey || !privateHireZones) return null;
     return privateHireZones.find(
-      (z) => z.pickup_zone === pickupZone && z.dropoff_zone === dropoffZone
+      (z) => z.pickup_zone === pickupZoneKey && z.dropoff_zone === dropoffZoneKey
     ) || null;
-  }, [serviceType, pickup, dropoff, privateHireZones]);
+  }, [serviceType, pickupZoneKey, dropoffZoneKey, privateHireZones]);
 
   // Dynamic price estimate
   const estimatedPrice = useMemo(() => {
@@ -408,6 +435,14 @@ const RiderDashboard = () => {
                   {matchedZone ? matchedZone.zone_name : "Standard Route (fallback)"}
                 </span>
               </div>
+              {pickupZoneKey && dropoffZoneKey && (
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="px-1.5 py-0.5 rounded bg-secondary">{geoZones?.find(g => g.zone_key === pickupZoneKey)?.zone_name || pickupZoneKey}</span>
+                  <span>→</span>
+                  <span className="px-1.5 py-0.5 rounded bg-secondary">{geoZones?.find(g => g.zone_key === dropoffZoneKey)?.zone_name || dropoffZoneKey}</span>
+                  {!matchedZone && <span className="italic ml-1">(no zone route match)</span>}
+                </div>
+              )}
               <p className="text-2xl font-mono font-bold">${estimatedPrice}</p>
             </div>
           )}
