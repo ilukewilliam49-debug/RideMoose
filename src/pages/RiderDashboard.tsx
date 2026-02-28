@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -17,7 +17,7 @@ import { detectGeoZone } from "@/lib/geofence";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
 
-type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier";
+type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
@@ -43,6 +43,9 @@ const RiderDashboard = () => {
   const [dropoffNotes, setDropoffNotes] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [marketplaceDelivery, setMarketplaceDelivery] = useState(false);
+  const [requiresLoadingHelp, setRequiresLoadingHelp] = useState(false);
+  const [stairsInvolved, setStairsInvolved] = useState(false);
+  const [weightEstimateKg, setWeightEstimateKg] = useState<number | "">("");
 
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
@@ -122,7 +125,7 @@ const RiderDashboard = () => {
         duration_in_traffic_text: string;
       };
     },
-    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier"),
+    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery"),
     staleTime: 60_000,
   });
 
@@ -220,6 +223,15 @@ const RiderDashboard = () => {
       const baseCents = 800;
       const distFeeCents = Math.round(routeKm * 150);
       const totalCents = Math.max(1200, baseCents + distFeeCents);
+      return (totalCents / 100).toFixed(2);
+    }
+    // Large Delivery: base 2500 + distance * 200, min 3000
+    if (serviceType === "large_delivery") {
+      const routeKm = directionsData?.distance_km ?? distanceKm;
+      if (!routeKm) return null;
+      const baseCents = 2500;
+      const distFeeCents = Math.round(routeKm * 200);
+      const totalCents = Math.max(3000, baseCents + distFeeCents);
       return (totalCents / 100).toFixed(2);
     }
     // Taxi: use taxi_rates with route distance from Directions API when available
@@ -436,7 +448,7 @@ const RiderDashboard = () => {
         distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
         service_type: serviceType,
         passenger_count: passengerCount,
-        pricing_model: serviceType === "private_hire" ? "flat_zone" : serviceType === "courier" ? "courier" : "metered",
+        pricing_model: serviceType === "private_hire" ? "flat_zone" : serviceType === "courier" ? "courier" : serviceType === "large_delivery" ? "large_delivery" : "metered",
         status: "requested",
         payment_option: isOrgBilling ? "pay_driver" : paymentOption,
         billed_to: isOrgBilling ? "organization" : "individual",
@@ -451,6 +463,15 @@ const RiderDashboard = () => {
           proof_photo_required: true,
           item_description: itemDescription || null,
           marketplace_delivery: marketplaceDelivery,
+        } : {}),
+        ...(serviceType === "large_delivery" ? {
+          item_description: itemDescription || null,
+          requires_loading_help: requiresLoadingHelp,
+          stairs_involved: stairsInvolved,
+          weight_estimate_kg: weightEstimateKg || null,
+          pickup_notes: pickupNotes || null,
+          dropoff_notes: dropoffNotes || null,
+          proof_photo_required: true,
         } : {}),
       } as any).select("id").single();
       if (error) throw error;
@@ -567,12 +588,13 @@ const RiderDashboard = () => {
           {/* Service Type Toggle */}
           <div className="space-y-2">
             <Label>{t("rider.serviceType")}</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {([
                 { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
                 { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
                 { key: "shuttle" as ServiceType, icon: Bus, label: t("rider.shuttle"), desc: t("rider.perSeatPricing") },
                 { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
+                { key: "large_delivery" as ServiceType, icon: Truck, label: "Large Item", desc: "Heavy/bulky items" },
               ]).map(({ key, icon: Icon, label, desc }) => (
                 <button
                   key={key}
@@ -663,6 +685,68 @@ const RiderDashboard = () => {
                   <p className="text-xs text-yellow-500">Ensure vehicle capacity fits item.</p>
                 </div>
               )}
+              <div className="space-y-2">
+                <Label>{t("rider.pickupNotes")}</Label>
+                <Input
+                  value={pickupNotes}
+                  onChange={(e) => setPickupNotes(e.target.value)}
+                  placeholder={t("rider.pickupNotesPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.dropoffNotes")}</Label>
+                <Input
+                  value={dropoffNotes}
+                  onChange={(e) => setDropoffNotes(e.target.value)}
+                  placeholder={t("rider.dropoffNotesPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Large Delivery fields */}
+          {serviceType === "large_delivery" && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Item Description</Label>
+                <Input
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  placeholder="Describe the item (e.g., sofa, refrigerator)"
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estimated Weight (kg)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={weightEstimateKg}
+                  onChange={(e) => setWeightEstimateKg(e.target.value ? parseInt(e.target.value) : "")}
+                  placeholder="Approximate weight in kg"
+                  className="bg-secondary w-32"
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
+                <div>
+                  <p className="text-sm font-medium">Requires Loading Help</p>
+                  <p className="text-[10px] text-muted-foreground">Driver will assist with loading/unloading</p>
+                </div>
+                <Switch checked={requiresLoadingHelp} onCheckedChange={setRequiresLoadingHelp} />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
+                <div>
+                  <p className="text-sm font-medium">Stairs Involved</p>
+                  <p className="text-[10px] text-muted-foreground">Pickup or dropoff involves stairs</p>
+                </div>
+                <Switch checked={stairsInvolved} onCheckedChange={setStairsInvolved} />
+              </div>
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <Truck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">Only drivers with SUV, truck, or van will be matched.</p>
+              </div>
               <div className="space-y-2">
                 <Label>{t("rider.pickupNotes")}</Label>
                 <Input

@@ -29,9 +29,17 @@ interface ProfileRow {
   role: "rider" | "driver" | "admin";
   is_available: boolean | null;
   can_courier: boolean;
+  vehicle_type: string | null;
 }
 
 const ROLES = ["rider", "driver", "admin"] as const;
+const VEHICLE_TYPES = [
+  { value: "none", label: "None" },
+  { value: "sedan", label: "Sedan" },
+  { value: "SUV", label: "SUV" },
+  { value: "van", label: "Van" },
+  { value: "truck", label: "Truck" },
+] as const;
 
 const AdminUsers = () => {
   const { profile } = useAuth();
@@ -43,7 +51,7 @@ const AdminUsers = () => {
   const fetchProfiles = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, role, is_available, can_courier")
+      .select("id, user_id, full_name, role, is_available, can_courier, vehicle_type")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -72,6 +80,24 @@ const AdminUsers = () => {
         prev.map((p) => (p.id === profileId ? { ...p, can_courier: enabled } : p))
       );
       toast({ title: enabled ? "Courier enabled" : "Courier disabled" });
+    }
+    setSaving(null);
+  };
+
+  const handleVehicleTypeChange = async (profileId: string, vehicleType: string) => {
+    setSaving(profileId);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ vehicle_type: vehicleType === "none" ? null : vehicleType })
+      .eq("id", profileId);
+
+    if (error) {
+      toast({ title: "Failed to update vehicle type", description: error.message, variant: "destructive" });
+    } else {
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === profileId ? { ...p, vehicle_type: vehicleType === "none" ? null : vehicleType } : p))
+      );
+      toast({ title: "Vehicle type updated" });
     }
     setSaving(null);
   };
@@ -118,6 +144,7 @@ const AdminUsers = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>ID</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Vehicle</TableHead>
                 <TableHead>Courier</TableHead>
                 <TableHead>Active</TableHead>
               </TableRow>
@@ -149,6 +176,28 @@ const AdminUsers = () => {
                   </TableCell>
                   <TableCell>
                     {p.role === "driver" ? (
+                      <Select
+                        value={p.vehicle_type || "none"}
+                        onValueChange={(val) => handleVehicleTypeChange(p.id, val)}
+                        disabled={saving === p.id}
+                      >
+                        <SelectTrigger className="w-24">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VEHICLE_TYPES.map((vt) => (
+                            <SelectItem key={vt.value} value={vt.value}>
+                              {vt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {p.role === "driver" ? (
                       <Switch
                         checked={p.can_courier}
                         onCheckedChange={(checked) => handleCourierToggle(p.id, checked)}
@@ -163,7 +212,7 @@ const AdminUsers = () => {
               ))}
               {profiles.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No users found
                   </TableCell>
                 </TableRow>

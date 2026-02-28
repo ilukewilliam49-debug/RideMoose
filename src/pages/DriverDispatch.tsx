@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag } from "lucide-react";
+import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -20,13 +20,15 @@ const DriverDispatch = () => {
 
   // Only fetch rides matching driver's capabilities
   const { data: pendingRides } = useQuery({
-    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier],
+    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier, profile?.vehicle_type],
     queryFn: async () => {
-      const serviceTypes: ("taxi" | "private_hire" | "shuttle" | "courier")[] = [];
+      const serviceTypes: ("taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery")[] = [];
       if (profile?.can_taxi) serviceTypes.push("taxi");
       if (profile?.can_private_hire) serviceTypes.push("private_hire");
       if (profile?.can_shuttle) serviceTypes.push("shuttle");
       if (profile?.can_courier) serviceTypes.push("courier");
+      // large_delivery eligibility is based on vehicle_type
+      if (profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type)) serviceTypes.push("large_delivery");
       if (serviceTypes.length === 0) return [];
 
       const { data, error } = await supabase
@@ -176,7 +178,7 @@ const DriverDispatch = () => {
     }));
 
   const ServiceIcon = ({ type }: { type: string }) =>
-    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
+    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : type === "large_delivery" ? <Truck className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
 
   return (
     <div className="space-y-6 pt-4">
@@ -187,6 +189,7 @@ const DriverDispatch = () => {
           {profile?.can_private_hire && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Briefcase className="h-3 w-3" /> Private</span>}
           {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> Shuttle</span>}
           {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Package className="h-3 w-3" /> Courier</span>}
+          {profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type) && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Truck className="h-3 w-3" /> Large</span>}
         </div>
       </div>
 
@@ -270,19 +273,46 @@ const DriverDispatch = () => {
                     )}
                   </div>
                 )}
+                {/* Large Delivery: show item details */}
+                {activeRide.service_type === "large_delivery" && (
+                  <div className="space-y-2">
+                    {(activeRide as any).item_description && (
+                      <p className="text-xs text-muted-foreground">
+                        📦 Item: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
+                      </p>
+                    )}
+                    {(activeRide as any).weight_estimate_kg && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Weight className="h-3 w-3" /> ~{(activeRide as any).weight_estimate_kg} kg
+                      </p>
+                    )}
+                    {(activeRide as any).requires_loading_help && (
+                      <p className="text-xs text-yellow-500">⚠ Loading help required</p>
+                    )}
+                    {(activeRide as any).stairs_involved && (
+                      <p className="text-xs text-yellow-500">⚠ Stairs involved</p>
+                    )}
+                    {(activeRide as any).pickup_notes && (
+                      <p className="text-xs text-muted-foreground">Pickup notes: {(activeRide as any).pickup_notes}</p>
+                    )}
+                    {(activeRide as any).dropoff_notes && (
+                      <p className="text-xs text-muted-foreground">Dropoff notes: {(activeRide as any).dropoff_notes}</p>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   {activeRide.status === "accepted" && (
                     <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                      {activeRide.service_type === "courier" ? "Start Delivery" : "Start Trip"}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? "Start Delivery" : "Start Trip"}
                     </Button>
                   )}
                   {activeRide.status === "in_progress" && (
                     <Button
                       size="sm"
-                      disabled={activeRide.service_type === "courier" && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url}
+                      disabled={(activeRide.service_type === "courier" || activeRide.service_type === "large_delivery") && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url}
                       onClick={() => updateRideStatus(activeRide.id, "completed")}
                     >
-                      {activeRide.service_type === "courier" ? "Complete Delivery" : "Complete Trip"}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? "Complete Delivery" : "Complete Trip"}
                     </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
@@ -379,6 +409,24 @@ const DriverDispatch = () => {
                   <div className="flex items-center gap-1.5 text-[10px] text-yellow-500">
                     <AlertTriangle className="h-3 w-3" />
                     <span>Ensure vehicle capacity fits item</span>
+                  </div>
+                )}
+                {ride.service_type === "large_delivery" && (ride as any).item_description && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    📦 {(ride as any).item_description}
+                  </p>
+                )}
+                {ride.service_type === "large_delivery" && (
+                  <div className="flex flex-wrap gap-2 text-[10px]">
+                    {(ride as any).weight_estimate_kg && (
+                      <span className="text-muted-foreground">~{(ride as any).weight_estimate_kg} kg</span>
+                    )}
+                    {(ride as any).requires_loading_help && (
+                      <span className="text-yellow-500">Loading help</span>
+                    )}
+                    {(ride as any).stairs_involved && (
+                      <span className="text-yellow-500">Stairs</span>
+                    )}
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground font-mono">
