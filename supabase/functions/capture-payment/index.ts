@@ -52,25 +52,32 @@ serve(async (req) => {
       .single();
     if (rideError || !ride) throw new Error("Ride not found");
 
-    // Fetch driver profile for per-driver commission & promo
-    let effectiveCommissionRate = cfg.commission_rate ? cfg.commission_rate / 100 : 0;
+    // Fetch driver profile for 3-phase commission ramp
+    let effectiveCommissionRate = cfg.commission_rate ? cfg.commission_rate / 100 : 0.049;
     let inPromo = false;
 
     if (ride.driver_id) {
       const { data: driverProfile } = await serviceClient
         .from("profiles")
-        .select("commission_rate, promo_commission_rate, promo_end_date, driver_balance_cents")
+        .select("commission_rate, launch_start_date, driver_balance_cents")
         .eq("id", ride.driver_id)
         .single();
 
-      if (driverProfile) {
+      if (driverProfile && driverProfile.launch_start_date) {
         const now = new Date();
-        if (driverProfile.promo_end_date && now <= new Date(driverProfile.promo_end_date)) {
-          effectiveCommissionRate = Number(driverProfile.promo_commission_rate ?? 0);
+        const launchStart = new Date(driverProfile.launch_start_date);
+        const daysActive = (now.getTime() - launchStart.getTime()) / (1000 * 60 * 60 * 24);
+
+        if (daysActive <= 30) {
+          effectiveCommissionRate = 0;
           inPromo = true;
+        } else if (daysActive <= 60) {
+          effectiveCommissionRate = 0.029;
         } else {
-          effectiveCommissionRate = Number(driverProfile.commission_rate ?? 0.049);
+          effectiveCommissionRate = 0.049;
         }
+      } else if (driverProfile) {
+        effectiveCommissionRate = Number(driverProfile.commission_rate ?? 0.049);
       }
     }
 

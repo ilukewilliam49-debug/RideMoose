@@ -64,12 +64,15 @@ const DriverEarningsSummary = () => {
     enabled: !!profile?.id,
   });
 
-  // Promo status
-  const promoEndDate = profile?.promo_end_date ? new Date(profile.promo_end_date) : null;
+  // 3-phase commission ramp
+  const launchStart = profile?.launch_start_date ? new Date(profile.launch_start_date) : null;
   const now = new Date();
-  const inPromo = promoEndDate ? now <= promoEndDate : false;
-  const daysLeft = promoEndDate && inPromo ? differenceInDays(promoEndDate, now) : 0;
-  const currentRate = inPromo ? (profile?.promo_commission_rate ?? 0) : (profile?.commission_rate ?? 0.049);
+  const daysActive = launchStart ? (now.getTime() - launchStart.getTime()) / (1000 * 60 * 60 * 24) : Infinity;
+  const phase = daysActive <= 30 ? 1 : daysActive <= 60 ? 2 : 3;
+  const currentRate = phase === 1 ? 0 : phase === 2 ? 0.029 : 0.049;
+  const inPromo = phase < 3;
+  const daysLeft = phase === 1 ? Math.ceil(30 - daysActive) : phase === 2 ? Math.ceil(60 - daysActive) : 0;
+  const phaseLabel = phase === 1 ? t("earnings.phase1") : phase === 2 ? t("earnings.phase2") : t("earnings.phase3");
 
   const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -103,8 +106,8 @@ const DriverEarningsSummary = () => {
               <Gift className={cn("h-4 w-4", inPromo ? "text-green-500" : "text-muted-foreground")} />
               <span className="text-sm font-medium">
                 {inPromo
-                  ? t("earnings.promoDesc", { date: promoEndDate ? format(promoEndDate, "MMM d, yyyy") : "" })
-                  : t("earnings.promoExpired")}
+                  ? `${phaseLabel} — ${t("earnings.commissionRate", { rate: (currentRate * 100).toFixed(1) })}`
+                  : t("earnings.phase3")}
               </span>
             </div>
             <div className="flex items-center gap-2">

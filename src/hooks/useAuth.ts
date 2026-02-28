@@ -20,6 +20,7 @@ export interface Profile {
   commission_rate: number;
   promo_commission_rate: number;
   promo_end_date: string | null;
+  launch_start_date: string | null;
   created_at: string;
   updated_at: string;
 }
