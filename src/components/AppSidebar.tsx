@@ -1,6 +1,8 @@
 import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
@@ -54,6 +56,21 @@ export function AppSidebar() {
   const role = profile?.role || "rider";
 
   const navItems = navByRole(t)[role] || navByRole(t).rider;
+
+  const { data: openTicketCount } = useQuery({
+    queryKey: ["open-support-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("support_conversations")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["open", "in_progress"]);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: role === "admin",
+    refetchInterval: 30000,
+  });
+
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
@@ -80,7 +97,21 @@ export function AppSidebar() {
                       activeClassName="bg-accent text-primary font-medium"
                     >
                       <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && (
+                        <span className="flex-1 flex items-center justify-between">
+                          {item.title}
+                          {item.url === "/admin/support" && !!openTicketCount && openTicketCount > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                              {openTicketCount > 99 ? "99+" : openTicketCount}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {collapsed && item.url === "/admin/support" && !!openTicketCount && openTicketCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
+                          {openTicketCount > 99 ? "99+" : openTicketCount}
+                        </span>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
