@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Star, Truck, DollarSign, Clock, Check, Timer, TrendingDown, Users, ArrowUp, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
+import SupportChatDialog from "@/components/SupportChatDialog";
 
 interface DeliveryBidsListProps {
   rideId: string;
@@ -242,16 +243,9 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
             <MessageSquare className="h-4 w-4" /> Maximum price increases reached
           </p>
           <p className="text-xs text-muted-foreground">
-            You've increased the price 3 times with no bids. Please contact support for assistance with your delivery.
+            You've increased the price 3 times with no bids. Chat with our support assistant for help.
           </p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 mt-1"
-            onClick={() => window.open("mailto:support@swiftdrive.com?subject=Large Delivery Help – No Driver Bids&body=I need help with my large delivery (Ride ID: " + encodeURIComponent(rideId) + "). I've increased the price 3 times but no drivers have bid.", "_blank")}
-          >
-            <MessageSquare className="h-3.5 w-3.5" /> Contact Support
-          </Button>
+          <SupportChatDialog rideId={rideId} />
         </div>
       );
     }
