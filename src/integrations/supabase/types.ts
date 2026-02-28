@@ -629,6 +629,7 @@ export type Database = {
           pickup_lng: number | null
           pickup_notes: string | null
           po_number: string | null
+          price_increase_count: number
           pricing_model: string
           proof_photo_required: boolean
           proof_photo_url: string | null
@@ -690,6 +691,7 @@ export type Database = {
           pickup_lng?: number | null
           pickup_notes?: string | null
           po_number?: string | null
+          price_increase_count?: number
           pricing_model?: string
           proof_photo_required?: boolean
           proof_photo_url?: string | null
@@ -751,6 +753,7 @@ export type Database = {
           pickup_lng?: number | null
           pickup_notes?: string | null
           po_number?: string | null
+          price_increase_count?: number
           pricing_model?: string
           proof_photo_required?: boolean
           proof_photo_url?: string | null
