@@ -453,7 +453,7 @@ const DriverDispatch = () => {
                   </div>
                   <div className="text-[10px] font-mono text-muted-foreground border-t border-border pt-2 space-y-1">
                     <div className="flex justify-between">
-                      <span>Bid Amount</span>
+                      <span>{ride.service_type === 'courier' ? 'Fare' : 'Bid Amount'}</span>
                       <span>${(bidAmount / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
