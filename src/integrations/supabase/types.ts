@@ -850,6 +850,47 @@ export type Database = {
         }
         Relationships: []
       }
+      support_conversations: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          messages: Json
+          resolved_at: string | null
+          ride_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          resolved_at?: string | null
+          ride_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          resolved_at?: string | null
+          ride_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_conversations_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       taxi_rates: {
         Row: {
           active: boolean
