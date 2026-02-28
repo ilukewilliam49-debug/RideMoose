@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import NotificationBell from "@/components/NotificationBell";
+import PushNotificationSetup from "@/components/PushNotificationSetup";
 import {
   Sidebar,
   SidebarContent,
@@ -57,8 +59,9 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
-        <div className="flex items-center px-4 py-4">
+        <div className="flex items-center justify-between px-4 py-4">
           <img src={logoImg} alt="OnlyKnifers" className="h-8 shrink-0 rounded" />
+          {!collapsed && <NotificationBell />}
         </div>
 
         <SidebarGroup>
@@ -86,6 +89,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
+        <PushNotificationSetup />
         <LanguageSwitcher collapsed={collapsed} />
         <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
           <Avatar className="h-8 w-8 shrink-0">
