@@ -41,6 +41,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
     { icon: DollarSign, title: t("nav.pricing"), url: "/admin/pricing" },
     { icon: MapPinned, title: t("nav.hireZones"), url: "/admin/zones" },
     { icon: Building2, title: t("nav.corporate"), url: "/admin/corporate" },
+    { icon: MessageSquare, title: "Support", url: "/admin/support" },
   ],
 });
 
