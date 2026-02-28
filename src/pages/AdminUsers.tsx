@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 
 interface ProfileRow {
@@ -27,6 +28,7 @@ interface ProfileRow {
   full_name: string;
   role: "rider" | "driver" | "admin";
   is_available: boolean | null;
+  can_courier: boolean;
 }
 
 const ROLES = ["rider", "driver", "admin"] as const;
@@ -41,7 +43,7 @@ const AdminUsers = () => {
   const fetchProfiles = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, role, is_available")
+      .select("id, user_id, full_name, role, is_available, can_courier")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -55,6 +57,24 @@ const AdminUsers = () => {
   useEffect(() => {
     fetchProfiles();
   }, []);
+
+  const handleCourierToggle = async (profileId: string, enabled: boolean) => {
+    setSaving(profileId);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ can_courier: enabled })
+      .eq("id", profileId);
+
+    if (error) {
+      toast({ title: "Failed to update courier capability", description: error.message, variant: "destructive" });
+    } else {
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === profileId ? { ...p, can_courier: enabled } : p))
+      );
+      toast({ title: enabled ? "Courier enabled" : "Courier disabled" });
+    }
+    setSaving(null);
+  };
 
   const handleRoleChange = async (profileId: string, newRole: string) => {
     setSaving(profileId);
@@ -98,6 +118,7 @@ const AdminUsers = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>ID</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Courier</TableHead>
                 <TableHead>Active</TableHead>
               </TableRow>
             </TableHeader>
@@ -126,12 +147,23 @@ const AdminUsers = () => {
                       </SelectContent>
                     </Select>
                   </TableCell>
+                  <TableCell>
+                    {p.role === "driver" ? (
+                      <Switch
+                        checked={p.can_courier}
+                        onCheckedChange={(checked) => handleCourierToggle(p.id, checked)}
+                        disabled={saving === p.id}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>{p.is_available ? "Yes" : "No"}</TableCell>
                 </TableRow>
               ))}
               {profiles.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No users found
                   </TableCell>
                 </TableRow>
