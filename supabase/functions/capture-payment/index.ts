@@ -8,10 +8,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SERVICE_FEE_CENTS = 99;
-const STRIPE_RATE = 0.029;
-const STRIPE_FIXED_CENTS = 30;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -36,13 +32,19 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Fetch commission rate from platform_config
-    const { data: configRow } = await serviceClient
+    // Fetch all platform config in one query
+    const { data: configRows } = await serviceClient
       .from("platform_config")
-      .select("value")
-      .eq("key", "commission_rate")
-      .single();
-    const COMMISSION_RATE = configRow ? Number(configRow.value) / 100 : 0;
+      .select("key, value");
+    const cfg: Record<string, number> = {};
+    (configRows || []).forEach((r: { key: string; value: number }) => {
+      cfg[r.key] = Number(r.value);
+    });
+
+    const SERVICE_FEE_CENTS = cfg.service_fee_cents ?? 99;
+    const COMMISSION_RATE = (cfg.commission_rate ?? 0) / 100;
+    const STRIPE_RATE = (cfg.stripe_rate_percent ?? 2.9) / 100;
+    const STRIPE_FIXED_CENTS = cfg.stripe_fixed_cents ?? 30;
 
     // Fetch ride
     const { data: ride, error: rideError } = await serviceClient
