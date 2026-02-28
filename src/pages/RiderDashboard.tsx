@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import { detectGeoZone } from "@/lib/geofence";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
+import { useTranslation } from "react-i18next";
 
 type ServiceType = "taxi" | "private_hire" | "shuttle";
 
@@ -21,6 +22,7 @@ const RiderDashboard = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -376,7 +378,7 @@ const RiderDashboard = () => {
         .update({ status: "cancelled" })
         .eq("id", activeRide.id);
       if (error) throw error;
-      toast.success("Ride cancelled");
+      toast.success(t("rider.rideCancelled"));
       queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
       queryClient.invalidateQueries({ queryKey: ["my-rides"] });
     } catch (err: any) {
@@ -396,13 +398,13 @@ const RiderDashboard = () => {
       // Credit limit + suspension check for org billing
       if (isOrgBilling && riderOrgMembership) {
         if (riderOrgMembership.org_status === "suspended") {
-          toast.error("Your organization account is suspended. Please contact your administrator.");
+          toast.error(t("rider.orgSuspendedError"));
           setLoading(false);
           return;
         }
         const projectedBalance = riderOrgMembership.current_balance_cents + estCents;
         if (projectedBalance > riderOrgMembership.credit_limit_cents) {
-          toast.error(`This ride would exceed your organization's credit limit ($${(riderOrgMembership.credit_limit_cents / 100).toFixed(2)}). Current balance: $${(riderOrgMembership.current_balance_cents / 100).toFixed(2)}.`);
+          toast.error(t("rider.creditLimitError", { limit: (riderOrgMembership.credit_limit_cents / 100).toFixed(2), balance: (riderOrgMembership.current_balance_cents / 100).toFixed(2) }));
           setLoading(false);
           return;
         }
@@ -447,7 +449,7 @@ const RiderDashboard = () => {
         return;
       }
 
-      toast.success(billToOrg ? "Ride requested! Will be billed to your organization." : "Ride requested! Looking for a driver...");
+      toast.success(billToOrg ? t("rider.rideRequestedOrg") : t("rider.rideRequested"));
       setPickup("");
       setDropoff("");
       setPickupCoords(null);
@@ -468,7 +470,7 @@ const RiderDashboard = () => {
     setPaymentClientSecret(null);
     setPendingRideId(null);
     setAuthorizedAmountCents(0);
-    toast.success("Payment authorized! Looking for a driver...");
+    toast.success(t("rider.paymentAuthorized"));
     setPickup("");
     setDropoff("");
     setPickupCoords(null);
@@ -496,7 +498,7 @@ const RiderDashboard = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-bold">
-          {activeRide ? "Ride in Progress" : "Request a Ride"}
+          {activeRide ? t("rider.rideInProgress") : t("rider.requestARide")}
         </h1>
       </div>
 
@@ -507,7 +509,7 @@ const RiderDashboard = () => {
           <div className="glass-surface rounded-lg p-4 mt-3 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
-                {activeRide.service_type === "private_hire" ? "Private Hire – Flat Rate" : activeRide.service_type}
+                {activeRide.service_type === "private_hire" ? t("rider.privateHireFlatRate") : activeRide.service_type}
               </span>
               <p className="text-sm font-medium">{activeRide.pickup_address} → {activeRide.dropoff_address}</p>
             </div>
@@ -515,7 +517,7 @@ const RiderDashboard = () => {
               {activeRide.status.replace("_", " ")}
             </p>
             {driverProfile && (
-              <p className="text-xs text-muted-foreground">Driver: {driverProfile.full_name}</p>
+              <p className="text-xs text-muted-foreground">{t("rider.driver")}: {driverProfile.full_name}</p>
             )}
             {(activeRide.status === "requested" || activeRide.status === "accepted") && (
               <Button
@@ -525,7 +527,7 @@ const RiderDashboard = () => {
                 disabled={cancellingRide}
                 onClick={cancelRide}
               >
-                {cancellingRide ? "Cancelling..." : "Cancel Ride"}
+                {cancellingRide ? t("rider.cancelling") : t("rider.cancelRide")}
               </Button>
             )}
           </div>
@@ -541,12 +543,12 @@ const RiderDashboard = () => {
         >
           {/* Service Type Toggle */}
           <div className="space-y-2">
-            <Label>Service Type</Label>
+            <Label>{t("rider.serviceType")}</Label>
             <div className="grid grid-cols-3 gap-2">
               {([
-                { key: "taxi" as ServiceType, icon: Car, label: "Taxi", desc: "Metered ride" },
-                { key: "private_hire" as ServiceType, icon: Briefcase, label: "Private Hire", desc: "Flat fare" },
-                { key: "shuttle" as ServiceType, icon: Bus, label: "Shuttle", desc: "Per-seat pricing" },
+                { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
+                { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
+                { key: "shuttle" as ServiceType, icon: Bus, label: t("rider.shuttle"), desc: t("rider.perSeatPricing") },
               ]).map(({ key, icon: Icon, label, desc }) => (
                 <button
                   key={key}
@@ -571,7 +573,7 @@ const RiderDashboard = () => {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                Passengers
+                {t("rider.passengers")}
               </Label>
               <Input
                 type="number"
@@ -585,26 +587,26 @@ const RiderDashboard = () => {
           )}
 
           <div className="space-y-2">
-            <Label>Pickup Location</Label>
+            <Label>{t("rider.pickupLocation")}</Label>
             <AddressAutocomplete
               value={pickup}
               onChange={(val, lat, lng) => {
                 setPickup(val);
                 if (lat && lng) setPickupCoords({ lat, lng });
               }}
-              placeholder="Search pickup address..."
+              placeholder={t("rider.searchPickup")}
               iconColor="text-green-400"
             />
           </div>
           <div className="space-y-2">
-            <Label>Dropoff Location</Label>
+            <Label>{t("rider.dropoffLocation")}</Label>
             <AddressAutocomplete
               value={dropoff}
               onChange={(val, lat, lng) => {
                 setDropoff(val);
                 if (lat && lng) setDropoffCoords({ lat, lng });
               }}
-              placeholder="Search dropoff address..."
+              placeholder={t("rider.searchDropoff")}
               iconColor="text-primary"
             />
           </div>
@@ -615,12 +617,12 @@ const RiderDashboard = () => {
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">Private Hire – Flat Rate</span>
+                <span className="text-sm font-semibold">{t("rider.privateHireFlatRate")}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPinned className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  {matchedZone ? matchedZone.zone_name : "Standard Route (fallback)"}
+                  {matchedZone ? matchedZone.zone_name : t("rider.standardRoute")}
                 </span>
               </div>
               {pickupZoneKey && dropoffZoneKey && (
@@ -628,7 +630,7 @@ const RiderDashboard = () => {
                   <span className="px-1.5 py-0.5 rounded bg-secondary">{geoZones?.find(g => g.zone_key === pickupZoneKey)?.zone_name || pickupZoneKey}</span>
                   <span>→</span>
                   <span className="px-1.5 py-0.5 rounded bg-secondary">{geoZones?.find(g => g.zone_key === dropoffZoneKey)?.zone_name || dropoffZoneKey}</span>
-                  {!matchedZone && <span className="italic ml-1">(no zone route match)</span>}
+                  {!matchedZone && <span className="italic ml-1">{t("rider.noZoneMatch")}</span>}
                 </div>
               )}
               <p className="text-2xl font-mono font-bold">${estimatedPrice}</p>
@@ -640,7 +642,7 @@ const RiderDashboard = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold">Taxi Meter Estimate</span>
+                   <span className="text-sm font-semibold">{t("rider.taxiMeterEstimate")}</span>
                 </div>
                 <span className="text-2xl font-mono font-bold">${estimatedPrice}</span>
               </div>
@@ -648,34 +650,34 @@ const RiderDashboard = () => {
                 <div className="space-y-1 pt-1 border-t border-border/50">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Car className="h-3.5 w-3.5" />
-                    <span>Route: {directionsData.distance_km.toFixed(1)} km</span>
+                    <span>{t("rider.route")}: {directionsData.distance_km.toFixed(1)} km</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-3.5 w-3.5" />
-                    <span>ETA: {directionsData.duration_in_traffic_text}</span>
+                    <span>{t("rider.eta")}: {directionsData.duration_in_traffic_text}</span>
                   </div>
                   {trafficDelayMin >= 1 && (
                     <div className="flex items-center gap-2 text-sm text-yellow-500">
                       <AlertTriangle className="h-3.5 w-3.5" />
-                      <span>Traffic delay: {Math.round(trafficDelayMin)} min</span>
+                      <span>{t("rider.trafficDelay", { min: Math.round(trafficDelayMin) })}</span>
                     </div>
                   )}
                 </div>
               )}
               {directionsFetching && !directionsData && (
-                <p className="text-xs text-muted-foreground animate-pulse">Checking traffic...</p>
+                <p className="text-xs text-muted-foreground animate-pulse">{t("rider.checkingTraffic")}</p>
               )}
-              <p className="text-[10px] text-muted-foreground">Final fare based on metered distance + waiting only</p>
+              <p className="text-[10px] text-muted-foreground">{t("rider.finalFareNote")}</p>
             </div>
           )}
 
           {estimatedPrice && serviceType === "shuttle" && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-secondary">
               <DollarSign className="h-4 w-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Estimated price:</span>
+              <span className="text-sm text-muted-foreground">{t("rider.estimatedPrice")}</span>
               <span className="font-mono font-bold">${estimatedPrice}</span>
               <span className="text-xs text-muted-foreground ml-1">
-                ({passengerCount} seat{passengerCount > 1 ? "s" : ""})
+                ({passengerCount} {passengerCount > 1 ? t("rider.seats") : t("rider.seat")})
               </span>
             </div>
           )}
@@ -683,7 +685,7 @@ const RiderDashboard = () => {
           {/* Payment option selector for taxi */}
           {serviceType === "taxi" && (
             <div className="space-y-2">
-              <Label>Payment Method</Label>
+              <Label>{t("rider.paymentMethod")}</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -696,8 +698,8 @@ const RiderDashboard = () => {
                 >
                   <CreditCard className={`h-4 w-4 ${paymentOption === "in_app" ? "text-primary" : "text-muted-foreground"}`} />
                   <div className="text-left">
-                    <p className="text-xs font-semibold">Pay in App</p>
-                    <p className="text-[10px] text-muted-foreground">Card on file</p>
+                    <p className="text-xs font-semibold">{t("rider.payInApp")}</p>
+                    <p className="text-[10px] text-muted-foreground">{t("rider.cardOnFile")}</p>
                   </div>
                 </button>
                 <button
@@ -711,8 +713,8 @@ const RiderDashboard = () => {
                 >
                   <Banknote className={`h-4 w-4 ${paymentOption === "pay_driver" ? "text-primary" : "text-muted-foreground"}`} />
                   <div className="text-left">
-                    <p className="text-xs font-semibold">Pay Driver</p>
-                    <p className="text-[10px] text-muted-foreground">Cash/tap</p>
+                    <p className="text-xs font-semibold">{t("rider.payDriver")}</p>
+                    <p className="text-[10px] text-muted-foreground">{t("rider.cashTap")}</p>
                   </div>
                 </button>
               </div>
@@ -722,13 +724,13 @@ const RiderDashboard = () => {
           {/* Bill to Organization option */}
           {riderOrgMembership && (
             <div className="space-y-2">
-              <Label>Billing</Label>
+              <Label>{t("rider.billing")}</Label>
               {riderOrgMembership.org_status === "suspended" ? (
                 <div className="flex items-center gap-3 w-full p-3 rounded-lg border border-destructive/30 bg-destructive/5">
                   <Building2 className="h-5 w-5 text-destructive" />
                   <div className="text-left flex-1">
-                    <p className="text-xs font-semibold text-destructive">{riderOrgMembership.org_name} — Suspended</p>
-                    <p className="text-[10px] text-muted-foreground">Organization billing is temporarily unavailable due to overdue invoices.</p>
+                    <p className="text-xs font-semibold text-destructive">{riderOrgMembership.org_name} — {t("rider.suspended")}</p>
+                    <p className="text-[10px] text-muted-foreground">{t("rider.orgSuspendedMsg")}</p>
                   </div>
                 </div>
               ) : (
@@ -747,14 +749,14 @@ const RiderDashboard = () => {
                 >
                   <Building2 className={`h-5 w-5 ${billToOrg ? "text-primary" : "text-muted-foreground"}`} />
                   <div className="text-left flex-1">
-                    <p className="text-xs font-semibold">Bill to {riderOrgMembership.org_name}</p>
+                    <p className="text-xs font-semibold">{t("rider.billTo", { name: riderOrgMembership.org_name })}</p>
                     <p className="text-[10px] text-muted-foreground">
                       {billToOrg
-                        ? "Ride will be invoiced to your organization"
-                        : "Tap to bill this ride to your organization"}
+                        ? t("rider.willBeInvoiced")
+                        : t("rider.tapToBill")}
                     </p>
                     <p className="text-[10px] text-muted-foreground font-mono">
-                      Balance: ${(riderOrgMembership.current_balance_cents / 100).toFixed(2)} / ${(riderOrgMembership.credit_limit_cents / 100).toFixed(2)} limit
+                      {t("rider.balance")}: ${(riderOrgMembership.current_balance_cents / 100).toFixed(2)} / ${(riderOrgMembership.credit_limit_cents / 100).toFixed(2)} {t("rider.limit")}
                     </p>
                   </div>
                   <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${billToOrg ? "border-primary" : "border-muted-foreground"}`}>
@@ -769,20 +771,20 @@ const RiderDashboard = () => {
           {billToOrg && riderOrgMembership && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">PO Number</Label>
+                <Label className="text-xs">{t("rider.poNumber")}</Label>
                 <Input
                   value={poNumber}
                   onChange={(e) => setPoNumber(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("rider.optional")}
                   className="bg-secondary text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Cost Center</Label>
+                <Label className="text-xs">{t("rider.costCenter")}</Label>
                 <Input
                   value={costCenter}
                   onChange={(e) => setCostCenter(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("rider.optional")}
                   className="bg-secondary text-sm"
                 />
               </div>
@@ -802,10 +804,10 @@ const RiderDashboard = () => {
                 setPaymentClientSecret(null);
                 setPendingRideId(null);
                 setAuthorizedAmountCents(0);
-                toast.error("Payment failed. Ride cancelled.");
+                toast.error(t("rider.paymentFailed"));
                 refetch();
               }}
-              label="Authorize Ride Payment"
+              label={t("rider.authorizeRidePayment")}
             />
           )}
 
@@ -813,24 +815,24 @@ const RiderDashboard = () => {
           {outstandingRide && (
             <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 space-y-2">
               <p className="text-sm text-yellow-500 font-semibold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" /> Remaining Balance Due to Driver
+                <AlertTriangle className="h-4 w-4" /> {t("rider.remainingBalance")}
               </p>
               <div className="text-xs font-mono space-y-1 text-muted-foreground">
-                <p>Total fare: ${((outstandingRide.final_fare_cents || 0) / 100).toFixed(2)}</p>
-                <p>Paid in app: ${((outstandingRide.captured_amount_cents || 0) / 100).toFixed(2)}</p>
+                <p>{t("rider.totalFare")}: ${((outstandingRide.final_fare_cents || 0) / 100).toFixed(2)}</p>
+                <p>{t("rider.paidInApp")}: ${((outstandingRide.captured_amount_cents || 0) / 100).toFixed(2)}</p>
                 <p className="text-yellow-500 font-bold text-sm">
-                  Amount due to driver: ${((outstandingRide.outstanding_amount_cents || 0) / 100).toFixed(2)}
+                  {t("rider.amountDueDriver")}: ${((outstandingRide.outstanding_amount_cents || 0) / 100).toFixed(2)}
                 </p>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Please pay the remaining balance directly to your driver.
+                {t("rider.payRemainingNote")}
               </p>
             </div>
           )}
 
           {!paymentClientSecret && (
             <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
-              {loading ? "Requesting..." : `Request ${serviceType === "taxi" ? "Taxi" : serviceType === "private_hire" ? "Private Hire" : "Shuttle"}`}
+              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : t("rider.requestShuttle")}
             </Button>
           )}
         </motion.div>
@@ -838,10 +840,10 @@ const RiderDashboard = () => {
 
       {/* Ride history */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">Recent Rides</h2>
+        <h2 className="text-lg font-semibold mb-3">{t("rider.recentRides")}</h2>
         <div className="space-y-2">
           {rides?.length === 0 && (
-            <p className="text-sm text-muted-foreground">No rides yet.</p>
+            <p className="text-sm text-muted-foreground">{t("rider.noRidesYet")}</p>
           )}
           {rides?.map((ride) => {
             const totalFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
@@ -852,7 +854,7 @@ const RiderDashboard = () => {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                    {ride.service_type === "private_hire" ? "Private Hire – Flat Rate" : ride.service_type}
+                    {ride.service_type === "private_hire" ? t("rider.privateHireFlatRate") : ride.service_type}
                   </span>
                   <p className="text-sm font-medium">{ride.pickup_address} → {ride.dropoff_address}</p>
                 </div>
@@ -862,9 +864,9 @@ const RiderDashboard = () => {
                 {/* Fare breakdown for completed rides */}
                 {ride.status === "completed" && totalFare > 0 && (
                   <div className="text-[10px] font-mono text-muted-foreground space-x-2">
-                    <span>Total: ${(totalFare / 100).toFixed(2)}</span>
-                    {captured > 0 && <span>• In-app: ${(captured / 100).toFixed(2)}</span>}
-                    {outstanding > 0 && <span className="text-yellow-500">• Due: ${(outstanding / 100).toFixed(2)}</span>}
+                    <span>{t("rider.total")}: ${(totalFare / 100).toFixed(2)}</span>
+                    {captured > 0 && <span>• {t("rider.inApp")}: ${(captured / 100).toFixed(2)}</span>}
+                    {outstanding > 0 && <span className="text-yellow-500">• {t("rider.due")}: ${(outstanding / 100).toFixed(2)}</span>}
                   </div>
                 )}
               </div>
@@ -880,7 +882,7 @@ const RiderDashboard = () => {
                       setRatingDialogOpen(true);
                     }}
                   >
-                    <Star className="h-3.5 w-3.5" /> Rate
+                    <Star className="h-3.5 w-3.5" /> {t("rider.rate")}
                   </Button>
                 )}
                 <div>
@@ -888,7 +890,7 @@ const RiderDashboard = () => {
                     {ride.status.replace("_", " ")}
                   </p>
                   {ride.payment_status === "partial" && (
-                    <p className="text-[10px] font-mono text-yellow-500">partial payment</p>
+                    <p className="text-[10px] font-mono text-yellow-500">{t("rider.partialPayment")}</p>
                   )}
                 </div>
               </div>
