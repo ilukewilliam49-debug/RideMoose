@@ -62,6 +62,26 @@ const DriverDispatch = () => {
     enabled: !!profile?.id,
   });
 
+  // Fetch driver's existing bids on pending large_delivery rides
+  const { data: myBids } = useQuery({
+    queryKey: ["my-delivery-bids", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("delivery_bids")
+        .select("*")
+        .eq("driver_id", profile.id)
+        .in("status", ["pending", "accepted", "rejected"]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.id,
+    refetchInterval: 5000,
+  });
+
+  const bidsByRide = new Map<string, any>();
+  myBids?.forEach((b: any) => { bidsByRide.set(b.ride_id, b); });
+
   // Rides with outstanding balance (partial in-app or pay_driver unpaid)
   const { data: outstandingRides } = useQuery({
     queryKey: ["outstanding-rides", profile?.id],
@@ -88,6 +108,9 @@ const DriverDispatch = () => {
         queryClient.invalidateQueries({ queryKey: ["dispatch-rides"] });
         queryClient.invalidateQueries({ queryKey: ["active-ride"] });
         queryClient.invalidateQueries({ queryKey: ["outstanding-rides"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_bids" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["my-delivery-bids"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -440,6 +463,8 @@ const DriverDispatch = () => {
                     rideId={ride.id}
                     driverId={profile?.id || ""}
                     estimatedPrice={Number(ride.estimated_price || 0)}
+                    existingBid={bidsByRide.get(ride.id) || null}
+                    onBidChanged={() => queryClient.invalidateQueries({ queryKey: ["my-delivery-bids"] })}
                   />
                 ) : (
                   <Button size="icon" variant="ghost" onClick={() => acceptRide(ride.id)}>
