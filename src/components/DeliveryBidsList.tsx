@@ -244,6 +244,14 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
           <p className="text-xs text-muted-foreground">
             You've increased the price 3 times with no bids. Please contact support for assistance with your delivery.
           </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 mt-1"
+            onClick={() => window.open("mailto:support@swiftdrive.com?subject=Large Delivery Help – No Driver Bids&body=I need help with my large delivery (Ride ID: " + encodeURIComponent(rideId) + "). I've increased the price 3 times but no drivers have bid.", "_blank")}
+          >
+            <MessageSquare className="h-3.5 w-3.5" /> Contact Support
+          </Button>
         </div>
       );
     }
