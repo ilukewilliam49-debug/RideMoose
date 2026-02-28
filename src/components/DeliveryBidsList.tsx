@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Star, Truck, DollarSign, Clock, Check, Timer, TrendingDown, Users, ArrowUp, MessageSquare, Loader2, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 import SupportChatDialog from "@/components/SupportChatDialog";
-import { loadStripe } from "@stripe/stripe-js";
+import PaymentConfirmation from "@/components/PaymentConfirmation";
 
 interface DeliveryBidsListProps {
   rideId: string;
@@ -31,6 +31,12 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
   const [customIncrease, setCustomIncrease] = useState("");
   const [increasing, setIncreasing] = useState(false);
   const [acceptingBidId, setAcceptingBidId] = useState<string | null>(null);
+  const [paymentState, setPaymentState] = useState<{
+    clientSecret: string;
+    paymentIntentId: string;
+    bidId: string;
+    amountCents: number;
+  } | null>(null);
 
   // Fetch ride data including bidding_ends_at and price_increase_count
   const { data: rideData, refetch: refetchRide } = useQuery({
@@ -124,10 +130,10 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
     return () => { supabase.removeChannel(channel); };
   }, [rideId, queryClient]);
 
-  const acceptBid = async (bidId: string, driverId: string, offerCents: number) => {
+  // Step 1: Create PaymentIntent and show Stripe Elements
+  const startBidAcceptance = async (bidId: string) => {
     setAcceptingBidId(bidId);
     try {
-      // Step 1: Create PaymentIntent with manual capture via edge function
       const { data: authData, error: authError } = await supabase.functions.invoke("authorize-bid", {
         body: { bid_id: bidId, ride_id: rideId },
       });
@@ -135,37 +141,40 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
         throw new Error(authData?.error || authError?.message || "Failed to create payment authorization");
       }
 
-      const { clientSecret, paymentIntentId } = authData;
-
-      // Step 2: Load Stripe and confirm the payment (authorize only)
-      const { data: keyData } = await supabase.functions.invoke("get-stripe-key");
-      const stripeInstance = await loadStripe(keyData?.publishableKey);
-      if (!stripeInstance) throw new Error("Failed to load payment processor");
-
-      const { error: confirmError } = await stripeInstance.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: { token: "tok_visa" } as any, // In production, use Elements
-        },
+      setPaymentState({
+        clientSecret: authData.clientSecret,
+        paymentIntentId: authData.paymentIntentId,
+        bidId,
+        amountCents: authData.amount_cents,
       });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAcceptingBidId(null);
+    }
+  };
 
-      // For real implementation, you'd use Stripe Elements.
-      // Since this is authorize-only with automatic_payment_methods, 
-      // let's use the redirect flow instead
-      // For now, we check if the PI reached requires_capture
+  // Step 2: After Stripe Elements confirms authorization, finalize the bid
+  const finalizeBidAcceptance = async () => {
+    if (!paymentState) return;
+    try {
       const { data: confirmData, error: confirmErr } = await supabase.functions.invoke("confirm-bid-authorization", {
-        body: { ride_id: rideId, bid_id: bidId, payment_intent_id: paymentIntentId },
+        body: {
+          ride_id: rideId,
+          bid_id: paymentState.bidId,
+          payment_intent_id: paymentState.paymentIntentId,
+        },
       });
       if (confirmErr || confirmData?.error) {
         throw new Error(confirmData?.error || confirmErr?.message || "Authorization failed");
       }
 
       toast.success("Payment authorized! Driver assigned.");
+      setPaymentState(null);
       queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
       queryClient.invalidateQueries({ queryKey: ["delivery-bids", rideId] });
     } catch (err: any) {
       toast.error(err.message);
-    } finally {
-      setAcceptingBidId(null);
     }
   };
 
@@ -379,23 +388,45 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
                   ${(bid.offer_amount_cents / 100).toFixed(2)}
                 </p>
               </div>
-              {biddingClosed && (
+              {biddingClosed && !paymentState && (
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     className="flex-1 gap-1"
-                    disabled={!!acceptingBidId}
-                    onClick={() => acceptBid(bid.id, bid.driver_id, bid.offer_amount_cents)}
+                    disabled={!!acceptingBidId || !!paymentState}
+                    onClick={() => startBidAcceptance(bid.id)}
                   >
                     {acceptingBidId === bid.id ? (
                       <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Authorizing...
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Preparing...
                       </>
                     ) : (
                       <>
-                        <CreditCard className="h-3.5 w-3.5" /> Authorize & Select
+                        <CreditCard className="h-3.5 w-3.5" /> Select & Pay
                       </>
                     )}
+                  </Button>
+                </div>
+              )}
+              {paymentState?.bidId === bid.id && (
+                <div className="mt-2">
+                  <PaymentConfirmation
+                    clientSecret={paymentState.clientSecret}
+                    amountCents={paymentState.amountCents}
+                    onSuccess={finalizeBidAcceptance}
+                    onFailure={() => {
+                      setPaymentState(null);
+                      toast.error("Payment authorization failed. Please try again.");
+                    }}
+                    label="Authorize Payment"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-1 text-xs"
+                    onClick={() => setPaymentState(null)}
+                  >
+                    Cancel
                   </Button>
                 </div>
               )}
