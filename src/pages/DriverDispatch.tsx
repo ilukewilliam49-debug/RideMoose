@@ -110,7 +110,7 @@ const DriverDispatch = () => {
         .select("*")
         .eq("driver_id", profile.id)
         .eq("status", "completed")
-        .eq("service_type", "large_delivery")
+        .in("service_type", ["large_delivery", "courier"])
         .order("completed_at", { ascending: false })
         .limit(10);
       if (error) throw error;
