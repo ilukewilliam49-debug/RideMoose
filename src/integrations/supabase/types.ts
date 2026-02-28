@@ -587,6 +587,7 @@ export type Database = {
       rides: {
         Row: {
           authorized_amount_cents: number | null
+          bidding_ends_at: string | null
           billed_to: string
           captured_amount_cents: number | null
           commission_cents: number
@@ -647,6 +648,7 @@ export type Database = {
         }
         Insert: {
           authorized_amount_cents?: number | null
+          bidding_ends_at?: string | null
           billed_to?: string
           captured_amount_cents?: number | null
           commission_cents?: number
@@ -707,6 +709,7 @@ export type Database = {
         }
         Update: {
           authorized_amount_cents?: number | null
+          bidding_ends_at?: string | null
           billed_to?: string
           captured_amount_cents?: number | null
           commission_cents?: number

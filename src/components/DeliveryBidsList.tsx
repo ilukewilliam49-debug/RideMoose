@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Star, Truck, DollarSign, Clock, Check, X } from "lucide-react";
+import { Star, Truck, DollarSign, Clock, Check, X, Timer, TrendingDown, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface DeliveryBidsListProps {
@@ -24,11 +24,39 @@ interface BidWithDriver {
 
 const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
   const queryClient = useQueryClient();
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  // Fetch bidding_ends_at
+  const { data: biddingEndsAt } = useQuery({
+    queryKey: ["bidding-ends-at", rideId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rides")
+        .select("bidding_ends_at")
+        .eq("id", rideId)
+        .single();
+      return (data as any)?.bidding_ends_at as string | null;
+    },
+  });
+
+  // Countdown timer
+  useEffect(() => {
+    if (!biddingEndsAt) { setTimeLeft(null); return; }
+    const update = () => {
+      const remaining = Math.max(0, Math.floor((new Date(biddingEndsAt).getTime() - Date.now()) / 1000));
+      setTimeLeft(remaining);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [biddingEndsAt]);
+
+  const biddingClosed = timeLeft !== null && timeLeft <= 0;
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const { data: bids, isLoading } = useQuery({
     queryKey: ["delivery-bids", rideId],
     queryFn: async () => {
-      // Fetch bids
       const { data: bidsData, error } = await supabase
         .from("delivery_bids")
         .select("*")
@@ -37,14 +65,12 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
       if (error) throw error;
       if (!bidsData?.length) return [];
 
-      // Fetch driver profiles
       const driverIds = bidsData.map((b: any) => b.driver_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, vehicle_type")
         .in("id", driverIds);
 
-      // Fetch avg ratings
       const { data: ratings } = await supabase
         .from("ride_ratings")
         .select("rated_user, rating")
@@ -109,6 +135,7 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
           driver_id: driverId,
           status: "accepted",
           estimated_price: offerCents / 100,
+          final_fare_cents: offerCents,
           commission_cents: commissionCents,
           driver_earnings_cents: offerCents - commissionCents,
         })
@@ -141,59 +168,83 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
     );
   }
 
-  if (pendingBids.length === 0) {
-    return (
-      <div className="p-3 rounded-lg border border-dashed border-muted-foreground/30">
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Clock className="h-3.5 w-3.5" /> Waiting for driver bids...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase">
-        {pendingBids.length} Bid{pendingBids.length !== 1 ? "s" : ""} Received
-      </p>
-      {pendingBids.map((bid) => (
-        <motion.div
-          key={bid.id}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-surface rounded-lg p-3 space-y-2"
-        >
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p className="text-sm font-medium">{bid.driver_name}</p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {bid.vehicle_type && (
-                  <span className="flex items-center gap-1">
-                    <Truck className="h-3 w-3" /> {bid.vehicle_type}
-                  </span>
-                )}
-                {bid.avg_rating !== null && (
-                  <span className="flex items-center gap-0.5">
-                    <Star className="h-3 w-3 text-yellow-500" /> {bid.avg_rating}
-                  </span>
-                )}
-              </div>
-            </div>
-            <p className="text-lg font-bold font-mono text-primary">
-              ${(bid.offer_amount_cents / 100).toFixed(2)}
+    <div className="space-y-3">
+      {/* Stats bar */}
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Users className="h-3.5 w-3.5" />
+          {pendingBids.length} bid{pendingBids.length !== 1 ? "s" : ""}
+        </span>
+        {pendingBids.length > 0 && (
+          <span className="flex items-center gap-1">
+            <TrendingDown className="h-3.5 w-3.5" />
+            Lowest: ${(pendingBids[0].offer_amount_cents / 100).toFixed(2)}
+          </span>
+        )}
+        {timeLeft !== null && (
+          <span className={`flex items-center gap-1 font-mono ${biddingClosed ? "text-primary font-medium" : timeLeft < 60 ? "text-yellow-500" : ""}`}>
+            <Timer className="h-3.5 w-3.5" />
+            {biddingClosed ? "Select a bid" : formatTime(timeLeft)}
+          </span>
+        )}
+      </div>
+
+      {pendingBids.length === 0 ? (
+        <div className="p-3 rounded-lg border border-dashed border-muted-foreground/30">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" /> Waiting for driver bids...
+          </p>
+        </div>
+      ) : (
+        <>
+          {!biddingClosed && (
+            <p className="text-[10px] text-muted-foreground">
+              You can select a winning bid after the 5-minute bidding window closes.
             </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              className="flex-1 gap-1"
-              onClick={() => acceptBid(bid.id, bid.driver_id, bid.offer_amount_cents)}
+          )}
+          {pendingBids.map((bid) => (
+            <motion.div
+              key={bid.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-surface rounded-lg p-3 space-y-2"
             >
-              <Check className="h-3.5 w-3.5" /> Accept
-            </Button>
-          </div>
-        </motion.div>
-      ))}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">{bid.driver_name}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {bid.vehicle_type && (
+                      <span className="flex items-center gap-1">
+                        <Truck className="h-3 w-3" /> {bid.vehicle_type}
+                      </span>
+                    )}
+                    {bid.avg_rating !== null && (
+                      <span className="flex items-center gap-0.5">
+                        <Star className="h-3 w-3 text-yellow-500" /> {bid.avg_rating}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-lg font-bold font-mono text-primary">
+                  ${(bid.offer_amount_cents / 100).toFixed(2)}
+                </p>
+              </div>
+              {biddingClosed && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1 gap-1"
+                    onClick={() => acceptBid(bid.id, bid.driver_id, bid.offer_amount_cents)}
+                  >
+                    <Check className="h-3.5 w-3.5" /> Select Winner
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </>
+      )}
     </div>
   );
 };
