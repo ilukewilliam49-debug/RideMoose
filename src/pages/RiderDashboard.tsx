@@ -1093,10 +1093,6 @@ const RiderDashboard = () => {
                       <span>Processing Fee:</span>
                       <span>-${((ride.stripe_fee_cents || Math.round(totalFare * 0.029 + 30)) / 100).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between gap-4 font-medium text-foreground">
-                      <span>Driver Earnings:</span>
-                      <span>${((ride.driver_earnings_cents || 0) / 100).toFixed(2)}</span>
-                    </div>
                   </div>
                 )}
               </div>
