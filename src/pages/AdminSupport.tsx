@@ -18,7 +18,9 @@ import {
   User,
   Send,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
 
 interface ConversationRow {
@@ -44,6 +46,8 @@ const AdminSupport = () => {
   const [adminNotes, setAdminNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
 
   const { data: conversations, isLoading } = useQuery({
     queryKey: ["admin-support-conversations"],
@@ -113,6 +117,45 @@ const AdminSupport = () => {
     }
   };
 
+  const sendReply = async () => {
+    if (!replyText.trim() || !selected) return;
+    setReplying(true);
+    try {
+      const newMsg = { role: "admin", content: replyText.trim() };
+      const updatedMessages = [...selected.messages, newMsg];
+
+      // Update conversation messages and set status to in_progress if open
+      const updateData: any = { messages: updatedMessages };
+      if (selected.status === "open") updateData.status = "in_progress";
+
+      const { error: updateErr } = await supabase
+        .from("support_conversations")
+        .update(updateData)
+        .eq("id", selected.id);
+      if (updateErr) throw updateErr;
+
+      // Notify the customer
+      const { error: notifErr } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: selected.user_id,
+          title: "Support Reply",
+          body: replyText.trim().length > 120 ? replyText.trim().slice(0, 117) + "…" : replyText.trim(),
+          type: "support_reply",
+          ride_id: selected.ride_id || null,
+        });
+      if (notifErr) console.error("Notification error:", notifErr);
+
+      toast.success("Reply sent and customer notified");
+      setReplyText("");
+      queryClient.invalidateQueries({ queryKey: ["admin-support-conversations"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setReplying(false);
+    }
+  };
+
   if (selected) {
     return (
       <div className="space-y-4">
@@ -145,24 +188,35 @@ const AdminSupport = () => {
                   {selected.messages.map((msg, i) => (
                     <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                       {msg.role !== "user" && (
-                        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Bot className="h-3.5 w-3.5 text-primary" />
+                        <div className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center ${msg.role === "admin" ? "bg-accent" : "bg-primary/10"}`}>
+                          {msg.role === "admin" ? (
+                            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                          ) : (
+                            <Bot className="h-3.5 w-3.5 text-primary" />
+                          )}
                         </div>
                       )}
-                      <div
-                        className={`rounded-lg px-3 py-2 text-sm max-w-[80%] ${
-                          msg.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
-                        }`}
-                      >
-                        {msg.role !== "user" ? (
-                          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:m-0">
-                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          msg.content
+                      <div>
+                        {msg.role === "admin" && (
+                          <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">Admin</p>
                         )}
+                        <div
+                          className={`rounded-lg px-3 py-2 text-sm max-w-[80%] ${
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : msg.role === "admin"
+                              ? "bg-accent text-accent-foreground border border-border"
+                              : "bg-muted text-foreground"
+                          }`}
+                        >
+                          {msg.role !== "user" ? (
+                            <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:m-0">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            msg.content
+                          )}
+                        </div>
                       </div>
                       {msg.role === "user" && (
                         <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
@@ -173,6 +227,23 @@ const AdminSupport = () => {
                   ))}
                 </div>
               </ScrollArea>
+              {selected.status !== "resolved" && (
+                <form
+                  onSubmit={(e) => { e.preventDefault(); sendReply(); }}
+                  className="flex gap-2 mt-3 pt-3 border-t border-border"
+                >
+                  <Input
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Reply to customer..."
+                    className="flex-1 h-9 text-sm"
+                    disabled={replying}
+                  />
+                  <Button type="submit" size="sm" disabled={replying || !replyText.trim()}>
+                    {replying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
 
