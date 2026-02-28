@@ -38,3 +38,12 @@ verify_jwt = false
 
 [functions.escalate-support]
 verify_jwt = false
+
+[functions.authorize-bid]
+verify_jwt = false
+
+[functions.confirm-bid-authorization]
+verify_jwt = false
+
+[functions.cancel-bid-payment]
+verify_jwt = false

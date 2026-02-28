@@ -401,6 +401,14 @@ const RiderDashboard = () => {
     if (!activeRide) return;
     setCancellingRide(true);
     try {
+      // If large_delivery with authorized payment, release the hold first
+      if (activeRide.service_type === "large_delivery" && activeRide.payment_status === "authorized") {
+        const { error: cancelPayErr } = await supabase.functions.invoke("cancel-bid-payment", {
+          body: { ride_id: activeRide.id },
+        });
+        if (cancelPayErr) console.error("Failed to release payment hold:", cancelPayErr);
+      }
+
       const { error } = await supabase
         .from("rides")
         .update({ status: "cancelled" })
