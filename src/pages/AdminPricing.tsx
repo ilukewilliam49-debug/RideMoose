@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Save, Car, Briefcase, Bus, Gauge } from "lucide-react";
+import { Save, Car, Briefcase, Bus, Gauge, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -33,6 +34,38 @@ const AdminPricing = () => {
   const queryClient = useQueryClient();
   const [editState, setEditState] = useState<Record<string, Partial<ServicePricing>>>({});
   const [taxiEdit, setTaxiEdit] = useState<Partial<TaxiRate>>({});
+  const [commissionRate, setCommissionRate] = useState<number | null>(null);
+  const [commissionDirty, setCommissionDirty] = useState(false);
+
+  const { data: platformConfig } = useQuery({
+    queryKey: ["platform-config-commission"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("platform_config")
+        .select("*")
+        .eq("key", "commission_rate")
+        .single();
+      if (error) throw error;
+      if (commissionRate === null) setCommissionRate(Number(data.value));
+      return data;
+    },
+  });
+
+  const commissionMutation = useMutation({
+    mutationFn: async (rate: number) => {
+      const { error } = await supabase
+        .from("platform_config")
+        .update({ value: rate, updated_at: new Date().toISOString() })
+        .eq("key", "commission_rate");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-config-commission"] });
+      setCommissionDirty(false);
+      toast.success("Commission rate updated!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   const { data: pricingRows, isLoading } = useQuery({
     queryKey: ["admin-service-pricing"],
@@ -127,6 +160,49 @@ const AdminPricing = () => {
   return (
     <div className="space-y-8 pt-4">
       <h1 className="text-2xl font-bold">Service Pricing</h1>
+
+      {/* Platform Commission */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Percent className="h-5 w-5 text-primary" /> Platform Commission
+        </h2>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Commission Rate</Label>
+                  <span className="text-2xl font-bold font-mono">{commissionRate ?? 0}%</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={30}
+                  step={0.5}
+                  value={[commissionRate ?? 0]}
+                  onValueChange={([v]) => {
+                    setCommissionRate(v);
+                    setCommissionDirty(true);
+                  }}
+                />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>0%</span>
+                  <span>30%</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Commission deducted from driver gross fares. Currently {commissionRate === 0 ? "disabled (launch phase)" : `${commissionRate}%`}.
+                </p>
+                <Button
+                  size="sm"
+                  disabled={!commissionDirty || commissionMutation.isPending}
+                  onClick={() => commissionMutation.mutate(commissionRate ?? 0)}
+                >
+                  <Save className="h-4 w-4 mr-2" /> Save Commission Rate
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
       {/* Taxi Meter Rates */}
       <div>

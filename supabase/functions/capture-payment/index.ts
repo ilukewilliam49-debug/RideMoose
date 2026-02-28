@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 const SERVICE_FEE_CENTS = 99;
-const COMMISSION_RATE = 0;
 const STRIPE_RATE = 0.029;
 const STRIPE_FIXED_CENTS = 30;
 
@@ -36,6 +35,14 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    // Fetch commission rate from platform_config
+    const { data: configRow } = await serviceClient
+      .from("platform_config")
+      .select("value")
+      .eq("key", "commission_rate")
+      .single();
+    const COMMISSION_RATE = configRow ? Number(configRow.value) / 100 : 0;
 
     // Fetch ride
     const { data: ride, error: rideError } = await serviceClient

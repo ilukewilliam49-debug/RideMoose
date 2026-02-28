@@ -222,6 +222,30 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_config: {
+        Row: {
+          id: string
+          key: string
+          label: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          id?: string
+          key: string
+          label?: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          id?: string
+          key?: string
+          label?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       pricing_config: {
         Row: {
           base_fare: number
