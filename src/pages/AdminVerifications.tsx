@@ -37,13 +37,10 @@ const AdminVerifications = () => {
     if (status === "approved") {
       const verification = verifications?.find((v: any) => v.id === id);
       if (verification?.driver_id) {
-        const promoEnd = new Date();
-        promoEnd.setDate(promoEnd.getDate() + 30);
         await supabase
           .from("profiles")
           .update({
-            promo_commission_rate: 0,
-            promo_end_date: promoEnd.toISOString(),
+            launch_start_date: new Date().toISOString(),
             commission_rate: 0.049,
           } as any)
           .eq("id", verification.driver_id);

@@ -328,6 +328,7 @@ export type Database = {
           id: string
           is_available: boolean | null
           latitude: number | null
+          launch_start_date: string | null
           longitude: number | null
           organization_id: string | null
           phone: string | null
@@ -351,6 +352,7 @@ export type Database = {
           id?: string
           is_available?: boolean | null
           latitude?: number | null
+          launch_start_date?: string | null
           longitude?: number | null
           organization_id?: string | null
           phone?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           id?: string
           is_available?: boolean | null
           latitude?: number | null
+          launch_start_date?: string | null
           longitude?: number | null
           organization_id?: string | null
           phone?: string | null

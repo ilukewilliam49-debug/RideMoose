@@ -78,6 +78,9 @@
     "promoDesc": "0% commission until {{date}}",
     "promoDaysLeft": "{{days}} days left",
     "promoExpired": "Standard Rate",
+    "phase1": "Phase 1 — Free",
+    "phase2": "Phase 2 — Reduced",
+    "phase3": "Standard Rate (4.9%)",
     "commission": "Commission",
     "commissionRate": "{{rate}}%"
   },
