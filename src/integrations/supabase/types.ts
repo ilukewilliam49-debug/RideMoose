@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      delivery_bids: {
+        Row: {
+          created_at: string
+          driver_id: string
+          id: string
+          offer_amount_cents: number
+          ride_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          id?: string
+          offer_amount_cents: number
+          ride_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          id?: string
+          offer_amount_cents?: number
+          ride_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_bids_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_bids_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_zones: {
         Row: {
           color: string

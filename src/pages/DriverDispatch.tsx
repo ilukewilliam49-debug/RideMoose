@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
 import TaxiMeter from "@/components/TaxiMeter";
+import DriverBidForm from "@/components/DriverBidForm";
 
 const DriverDispatch = () => {
   const { profile } = useAuth();
@@ -433,10 +434,18 @@ const DriverDispatch = () => {
                   ${Number(ride.estimated_price || 0).toFixed(2)}
                 </p>
               </div>
-              <div className="flex gap-2 ml-3">
-                <Button size="icon" variant="ghost" onClick={() => acceptRide(ride.id)}>
-                  <Check className="h-4 w-4 text-green-400" />
-                </Button>
+              <div className="flex gap-2 ml-3 shrink-0">
+                {ride.service_type === "large_delivery" ? (
+                  <DriverBidForm
+                    rideId={ride.id}
+                    driverId={profile?.id || ""}
+                    estimatedPrice={Number(ride.estimated_price || 0)}
+                  />
+                ) : (
+                  <Button size="icon" variant="ghost" onClick={() => acceptRide(ride.id)}>
+                    <Check className="h-4 w-4 text-green-400" />
+                  </Button>
+                )}
               </div>
             </motion.div>
           ))}
