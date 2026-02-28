@@ -17,6 +17,9 @@ export interface Profile {
   can_shuttle: boolean;
   seat_capacity: number | null;
   driver_balance_cents: number;
+  commission_rate: number;
+  promo_commission_rate: number;
+  promo_end_date: string | null;
   created_at: string;
   updated_at: string;
 }

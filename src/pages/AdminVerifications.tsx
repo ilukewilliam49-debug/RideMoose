@@ -28,11 +28,30 @@ const AdminVerifications = () => {
       .from("verifications")
       .update({ status, reviewer_notes: notes[id] || null })
       .eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success(`Verification ${status}`);
-      queryClient.invalidateQueries({ queryKey: ["admin-verifications"] });
+    if (error) {
+      toast.error(error.message);
+      return;
     }
+
+    // When approving a driver, set 30-day 0% commission promo
+    if (status === "approved") {
+      const verification = verifications?.find((v: any) => v.id === id);
+      if (verification?.driver_id) {
+        const promoEnd = new Date();
+        promoEnd.setDate(promoEnd.getDate() + 30);
+        await supabase
+          .from("profiles")
+          .update({
+            promo_commission_rate: 0,
+            promo_end_date: promoEnd.toISOString(),
+            commission_rate: 0.049,
+          } as any)
+          .eq("id", verification.driver_id);
+      }
+    }
+
+    toast.success(`Verification ${status}`);
+    queryClient.invalidateQueries({ queryKey: ["admin-verifications"] });
   };
 
   const statusBadge: Record<string, string> = {

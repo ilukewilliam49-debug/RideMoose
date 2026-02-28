@@ -32,7 +32,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Fetch all platform config in one query
+    // Fetch platform config
     const { data: configRows } = await serviceClient
       .from("platform_config")
       .select("key, value");
@@ -41,8 +41,6 @@ serve(async (req) => {
       cfg[r.key] = Number(r.value);
     });
 
-    const SERVICE_FEE_CENTS = cfg.service_fee_cents ?? 99;
-    const COMMISSION_RATE = (cfg.commission_rate ?? 0) / 100;
     const STRIPE_RATE = (cfg.stripe_rate_percent ?? 2.9) / 100;
     const STRIPE_FIXED_CENTS = cfg.stripe_fixed_cents ?? 30;
 
@@ -54,15 +52,38 @@ serve(async (req) => {
       .single();
     if (rideError || !ride) throw new Error("Ride not found");
 
+    // Fetch driver profile for per-driver commission & promo
+    let effectiveCommissionRate = cfg.commission_rate ? cfg.commission_rate / 100 : 0;
+    let inPromo = false;
+
+    if (ride.driver_id) {
+      const { data: driverProfile } = await serviceClient
+        .from("profiles")
+        .select("commission_rate, promo_commission_rate, promo_end_date, driver_balance_cents")
+        .eq("id", ride.driver_id)
+        .single();
+
+      if (driverProfile) {
+        const now = new Date();
+        if (driverProfile.promo_end_date && now <= new Date(driverProfile.promo_end_date)) {
+          effectiveCommissionRate = Number(driverProfile.promo_commission_rate ?? 0);
+          inPromo = true;
+        } else {
+          effectiveCommissionRate = Number(driverProfile.commission_rate ?? 0.049);
+        }
+      }
+    }
+
     const grossFareCents = ride.final_fare_cents || 0;
-    const commissionCents = Math.round(grossFareCents * COMMISSION_RATE);
+    const commissionCents = Math.round(grossFareCents * effectiveCommissionRate);
+    // During promo: no service fee. After promo: use config value.
+    const SERVICE_FEE_CENTS = inPromo ? 0 : (cfg.service_fee_cents ?? 99);
     const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS;
 
-    // Check if ride is billed to organization — skip Stripe
+    // Organization billing — skip Stripe
     if (ride.billed_to === "organization" && ride.organization_id) {
       const driverEarnings = grossFareCents - commissionCents;
 
-      // Add to org balance
       const { data: org } = await serviceClient
         .from("organizations")
         .select("current_balance_cents")
@@ -99,7 +120,6 @@ serve(async (req) => {
     if (ride.payment_option === "pay_driver") {
       const driverEarnings = grossFareCents - commissionCents;
 
-      // Increase driver_balance_cents (commission owed to platform)
       if (ride.driver_id) {
         const { data: driverProfile } = await serviceClient
           .from("profiles")
@@ -156,7 +176,6 @@ serve(async (req) => {
     };
 
     if (riderTotalCents <= authorizedAmount) {
-      // Partial capture for the rider total (gross fare + service fee)
       await stripe.paymentIntents.capture(ride.stripe_payment_intent_id, {
         amount_to_capture: riderTotalCents,
       });
@@ -177,7 +196,6 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     } else {
-      // Final total exceeds authorization — capture full authorized amount
       await stripe.paymentIntents.capture(ride.stripe_payment_intent_id);
 
       const overage = riderTotalCents - authorizedAmount;

@@ -321,6 +321,7 @@ export type Database = {
           can_private_hire: boolean
           can_shuttle: boolean
           can_taxi: boolean
+          commission_rate: number
           created_at: string
           driver_balance_cents: number
           full_name: string
@@ -330,6 +331,8 @@ export type Database = {
           longitude: number | null
           organization_id: string | null
           phone: string | null
+          promo_commission_rate: number
+          promo_end_date: string | null
           role: Database["public"]["Enums"]["user_role"]
           role_in_org: string | null
           seat_capacity: number | null
@@ -341,6 +344,7 @@ export type Database = {
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
+          commission_rate?: number
           created_at?: string
           driver_balance_cents?: number
           full_name?: string
@@ -350,6 +354,8 @@ export type Database = {
           longitude?: number | null
           organization_id?: string | null
           phone?: string | null
+          promo_commission_rate?: number
+          promo_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null
@@ -361,6 +367,7 @@ export type Database = {
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
+          commission_rate?: number
           created_at?: string
           driver_balance_cents?: number
           full_name?: string
@@ -370,6 +377,8 @@ export type Database = {
           longitude?: number | null
           organization_id?: string | null
           phone?: string | null
+          promo_commission_rate?: number
+          promo_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null
