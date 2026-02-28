@@ -83,8 +83,7 @@ serve(async (req) => {
 
     const grossFareCents = ride.final_fare_cents || 0;
     const commissionCents = Math.round(grossFareCents * effectiveCommissionRate);
-    // During promo: no service fee. After promo: use config value.
-    const SERVICE_FEE_CENTS = inPromo ? 0 : (cfg.service_fee_cents ?? 99);
+    const SERVICE_FEE_CENTS = cfg.service_fee_cents ?? 99;
     const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS;
 
     // Organization billing — skip Stripe
@@ -171,7 +170,7 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const stripeFeeCents = Math.round(riderTotalCents * STRIPE_RATE + STRIPE_FIXED_CENTS);
+    const stripeFeeCents = Math.round(grossFareCents * STRIPE_RATE + STRIPE_FIXED_CENTS);
     const driverEarnings = grossFareCents - commissionCents - stripeFeeCents;
     const authorizedAmount = ride.authorized_amount_cents || 0;
 

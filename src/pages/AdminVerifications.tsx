@@ -41,7 +41,7 @@ const AdminVerifications = () => {
           .from("profiles")
           .update({
             launch_start_date: new Date().toISOString(),
-            commission_rate: 0.049,
+            standard_commission_rate: 0.049,
           } as any)
           .eq("id", verification.driver_id);
       }
