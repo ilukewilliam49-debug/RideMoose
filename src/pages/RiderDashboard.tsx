@@ -253,8 +253,8 @@ const RiderDashboard = () => {
   }, [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone, directionsData]);
 
   const mapMarkers: MapMarker[] = [
-    ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: "Pickup" }] : []),
-    ...(dropoffCoords ? [{ lat: dropoffCoords.lat, lng: dropoffCoords.lng, type: "dropoff" as const, label: "Dropoff" }] : []),
+    ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: t("rider.pickup") }] : []),
+    ...(dropoffCoords ? [{ lat: dropoffCoords.lat, lng: dropoffCoords.lng, type: "dropoff" as const, label: t("rider.dropoff") }] : []),
   ];
 
   // Active ride
@@ -307,9 +307,9 @@ const RiderDashboard = () => {
 
   const activeMarkers: MapMarker[] = activeRide
     ? [
-        ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: "Pickup" }] : []),
-        ...(activeRide.dropoff_lat && activeRide.dropoff_lng ? [{ lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, type: "dropoff" as const, label: "Dropoff" }] : []),
-        ...(driverProfile?.latitude && driverProfile?.longitude ? [{ lat: driverProfile.latitude, lng: driverProfile.longitude, type: "driver" as const, label: driverProfile.full_name || "Driver" }] : []),
+        ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: t("rider.pickup") }] : []),
+        ...(activeRide.dropoff_lat && activeRide.dropoff_lng ? [{ lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, type: "dropoff" as const, label: t("rider.dropoff") }] : []),
+        ...(driverProfile?.latitude && driverProfile?.longitude ? [{ lat: driverProfile.latitude, lng: driverProfile.longitude, type: "driver" as const, label: driverProfile.full_name || t("rider.driver") }] : []),
       ]
     : [];
 
@@ -567,7 +567,7 @@ const RiderDashboard = () => {
               <p className="text-sm font-medium">{activeRide.pickup_address} → {activeRide.dropoff_address}</p>
             </div>
             <p className={`text-xs font-mono uppercase ${statusColor[activeRide.status]}`}>
-              {activeRide.status.replace("_", " ")}
+              {t(`rider.status_${activeRide.status}`)}
             </p>
             {driverProfile && (
               <p className="text-xs text-muted-foreground">{t("rider.driver")}: {driverProfile.full_name}</p>
@@ -577,9 +577,9 @@ const RiderDashboard = () => {
               <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
                 <CreditCard className="h-4 w-4 text-primary shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-primary">Payment Authorized</p>
+                  <p className="text-xs font-medium text-primary">{t("rider.paymentAuthorizedLabel")}</p>
                   <p className="text-[10px] text-muted-foreground font-mono">
-                    ${(activeRide.authorized_amount_cents / 100).toFixed(2)} held — captured on delivery completion
+                    {t("rider.heldCaptured", { amount: (activeRide.authorized_amount_cents / 100).toFixed(2) })}
                   </p>
                 </div>
               </div>
@@ -621,7 +621,7 @@ const RiderDashboard = () => {
                 { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
                 { key: "shuttle" as ServiceType, icon: Bus, label: t("rider.shuttle"), desc: t("rider.perSeatPricing") },
                 { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
-                { key: "large_delivery" as ServiceType, icon: Truck, label: "Large Item", desc: "Heavy/bulky items" },
+                { key: "large_delivery" as ServiceType, icon: Truck, label: t("rider.largeItem"), desc: t("rider.heavyBulkyItems") },
               ]).map(({ key, icon: Icon, label, desc }) => (
                 <button
                   key={key}
@@ -685,11 +685,11 @@ const RiderDashboard = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Item Description</Label>
+                <Label>{t("rider.itemDescription")}</Label>
                 <Input
                   value={itemDescription}
                   onChange={(e) => setItemDescription(e.target.value)}
-                  placeholder="Describe the item being delivered"
+                  placeholder={t("rider.describeItem")}
                   className="bg-secondary"
                 />
               </div>
@@ -697,8 +697,8 @@ const RiderDashboard = () => {
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">Marketplace Delivery</p>
-                    <p className="text-[10px] text-muted-foreground">Item purchased from a store/marketplace</p>
+                    <p className="text-sm font-medium">{t("rider.marketplaceDelivery")}</p>
+                    <p className="text-[10px] text-muted-foreground">{t("rider.marketplaceDeliveryDesc")}</p>
                   </div>
                 </div>
                 <Switch
@@ -709,7 +709,7 @@ const RiderDashboard = () => {
               {marketplaceDelivery && (
                 <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
                   <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-                  <p className="text-xs text-yellow-500">Ensure vehicle capacity fits item.</p>
+                  <p className="text-xs text-yellow-500">{t("rider.ensureCapacity")}</p>
                 </div>
               )}
               <div className="space-y-2">
@@ -737,42 +737,42 @@ const RiderDashboard = () => {
           {serviceType === "large_delivery" && (
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label>Item Description</Label>
+                <Label>{t("rider.itemDescription")}</Label>
                 <Input
                   value={itemDescription}
                   onChange={(e) => setItemDescription(e.target.value)}
-                  placeholder="Describe the item (e.g., sofa, refrigerator)"
+                  placeholder={t("rider.describeItemLarge")}
                   className="bg-secondary"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Estimated Weight (kg)</Label>
+                <Label>{t("rider.estimatedWeight")}</Label>
                 <Input
                   type="number"
                   min={1}
                   value={weightEstimateKg}
                   onChange={(e) => setWeightEstimateKg(e.target.value ? parseInt(e.target.value) : "")}
-                  placeholder="Approximate weight in kg"
+                  placeholder={t("rider.approxWeight")}
                   className="bg-secondary w-32"
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
                 <div>
-                  <p className="text-sm font-medium">Requires Loading Help</p>
-                  <p className="text-[10px] text-muted-foreground">Driver will assist with loading/unloading</p>
+                  <p className="text-sm font-medium">{t("rider.requiresLoadingHelp")}</p>
+                  <p className="text-[10px] text-muted-foreground">{t("rider.loadingHelpDesc")}</p>
                 </div>
                 <Switch checked={requiresLoadingHelp} onCheckedChange={setRequiresLoadingHelp} />
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
                 <div>
-                  <p className="text-sm font-medium">Stairs Involved</p>
-                  <p className="text-[10px] text-muted-foreground">Pickup or dropoff involves stairs</p>
+                  <p className="text-sm font-medium">{t("rider.stairsInvolved")}</p>
+                  <p className="text-[10px] text-muted-foreground">{t("rider.stairsDesc")}</p>
                 </div>
                 <Switch checked={stairsInvolved} onCheckedChange={setStairsInvolved} />
               </div>
               <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
                 <Truck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">Only drivers with SUV, truck, or van will be matched.</p>
+                <p className="text-xs text-muted-foreground">{t("rider.largeVehicleNote")}</p>
               </div>
               <div className="space-y-2">
                 <Label>{t("rider.pickupNotes")}</Label>
@@ -1041,7 +1041,7 @@ const RiderDashboard = () => {
 
           {!paymentClientSecret && (
             <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
-              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : t("rider.requestShuttle")}
+              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : t("rider.requestShuttle")}
             </Button>
           )}
         </motion.div>
@@ -1082,15 +1082,15 @@ const RiderDashboard = () => {
                 {ride.status === "completed" && ride.service_type === "large_delivery" && totalFare > 0 && (
                   <div className="mt-1 text-[10px] font-mono text-muted-foreground border-t border-border pt-1 space-y-0.5">
                     <div className="flex justify-between gap-4">
-                      <span>Bid Amount:</span>
+                      <span>{t("rider.bidAmountLabel")}</span>
                       <span>${(totalFare / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>Platform Fee (8%):</span>
+                      <span>{t("rider.platformFee")}</span>
                       <span>-${((ride.commission_cents || Math.round(totalFare * 0.08)) / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>Processing Fee:</span>
+                      <span>{t("rider.processingFeeLabel")}</span>
                       <span>-${((ride.stripe_fee_cents || Math.round(totalFare * 0.029 + 30)) / 100).toFixed(2)}</span>
                     </div>
                   </div>
@@ -1112,8 +1112,8 @@ const RiderDashboard = () => {
                   </Button>
                 )}
                 <div>
-                  <p className={`text-xs font-mono uppercase ${statusColor[ride.status] || ""}`}>
-                    {ride.status.replace("_", " ")}
+                <p className={`text-xs font-mono uppercase ${statusColor[ride.status] || ""}`}>
+                    {t(`rider.status_${ride.status}`)}
                   </p>
                   {ride.payment_status === "partial" && (
                     <p className="text-[10px] font-mono text-yellow-500">{t("rider.partialPayment")}</p>
