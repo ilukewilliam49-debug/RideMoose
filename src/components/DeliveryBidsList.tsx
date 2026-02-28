@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Star, Truck, DollarSign, Clock, Check, X, Timer, TrendingDown, Users } from "lucide-react";
+import { Star, Truck, DollarSign, Clock, Check, Timer, TrendingDown, Users, ArrowUp, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface DeliveryBidsListProps {
@@ -25,19 +26,26 @@ interface BidWithDriver {
 const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
   const queryClient = useQueryClient();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [customIncrease, setCustomIncrease] = useState("");
+  const [increasing, setIncreasing] = useState(false);
 
-  // Fetch bidding_ends_at
-  const { data: biddingEndsAt } = useQuery({
-    queryKey: ["bidding-ends-at", rideId],
+  // Fetch ride data including bidding_ends_at and price_increase_count
+  const { data: rideData, refetch: refetchRide } = useQuery({
+    queryKey: ["bidding-ride-data", rideId],
     queryFn: async () => {
       const { data } = await supabase
         .from("rides")
-        .select("bidding_ends_at")
+        .select("bidding_ends_at, estimated_price, price_increase_count")
         .eq("id", rideId)
         .single();
-      return (data as any)?.bidding_ends_at as string | null;
+      return data as { bidding_ends_at: string | null; estimated_price: number | null; price_increase_count: number } | null;
     },
+    refetchInterval: 5000,
   });
+
+  const biddingEndsAt = rideData?.bidding_ends_at ?? null;
+  const priceIncreaseCount = (rideData as any)?.price_increase_count ?? 0;
+  const currentEstimatedPrice = rideData?.estimated_price ?? 0;
 
   // Countdown timer
   useEffect(() => {
@@ -106,20 +114,21 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "delivery_bids", filter: `ride_id=eq.${rideId}` }, () => {
         queryClient.invalidateQueries({ queryKey: ["delivery-bids", rideId] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "rides", filter: `id=eq.${rideId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["bidding-ride-data", rideId] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [rideId, queryClient]);
 
   const acceptBid = async (bidId: string, driverId: string, offerCents: number) => {
     try {
-      // Accept this bid
       const { error: acceptErr } = await supabase
         .from("delivery_bids")
         .update({ status: "accepted" })
         .eq("id", bidId);
       if (acceptErr) throw acceptErr;
 
-      // Reject other pending bids
       await supabase
         .from("delivery_bids")
         .update({ status: "rejected" })
@@ -127,7 +136,6 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
         .neq("id", bidId)
         .eq("status", "pending");
 
-      // Assign driver to ride with commission
       const commissionCents = Math.round(offerCents * 0.08);
       const { error: rideErr } = await supabase
         .from("rides")
@@ -150,6 +158,63 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
     }
   };
 
+  const increasePrice = async (increaseCents: number) => {
+    if (increaseCents < 100) {
+      toast.error("Minimum increase is $1.00");
+      return;
+    }
+    setIncreasing(true);
+    try {
+      const newPriceCents = Math.round(currentEstimatedPrice * 100) + increaseCents;
+      const newBiddingEnd = new Date(Date.now() + 3 * 60 * 1000).toISOString();
+
+      const { error } = await supabase
+        .from("rides")
+        .update({
+          estimated_price: newPriceCents / 100,
+          bidding_ends_at: newBiddingEnd,
+          price_increase_count: priceIncreaseCount + 1,
+        } as any)
+        .eq("id", rideId);
+      if (error) throw error;
+
+      // Notify eligible drivers via the notifications table (trigger handles the rest)
+      const { data: ride } = await supabase
+        .from("rides")
+        .select("pickup_address")
+        .eq("id", rideId)
+        .single();
+
+      // Insert notifications for eligible drivers
+      const { data: drivers } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "driver")
+        .eq("is_available", true)
+        .in("vehicle_type", ["SUV", "truck", "van"]);
+
+      if (drivers?.length) {
+        const notifications = drivers.map((d: any) => ({
+          user_id: d.id,
+          title: "Price Increased for Large Delivery",
+          body: `The offer for delivery from ${ride?.pickup_address || "pickup"} increased to $${(newPriceCents / 100).toFixed(2)}. 3-minute bidding window open!`,
+          type: "large_delivery_bid",
+          ride_id: rideId,
+        }));
+        await supabase.from("notifications").insert(notifications as any);
+      }
+
+      toast.success(`Price increased to $${(newPriceCents / 100).toFixed(2)}. Bidding reopened for 3 minutes.`);
+      setCustomIncrease("");
+      refetchRide();
+      queryClient.invalidateQueries({ queryKey: ["bidding-ride-data", rideId] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIncreasing(false);
+    }
+  };
+
   if (isLoading) return <p className="text-xs text-muted-foreground">Loading bids...</p>;
 
   const pendingBids = bids?.filter((b) => b.status === "pending") || [];
@@ -164,6 +229,78 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
         <p className="text-xs text-muted-foreground font-mono mt-1">
           ${(acceptedBid.offer_amount_cents / 100).toFixed(2)}
         </p>
+      </div>
+    );
+  }
+
+  // No bids and bidding closed — show price increase options
+  if (biddingClosed && pendingBids.length === 0) {
+    if (priceIncreaseCount >= 3) {
+      return (
+        <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-2">
+          <p className="text-sm font-medium text-destructive flex items-center gap-1.5">
+            <MessageSquare className="h-4 w-4" /> Maximum price increases reached
+          </p>
+          <p className="text-xs text-muted-foreground">
+            You've increased the price 3 times with no bids. Please contact support for assistance with your delivery.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5 space-y-3">
+        <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+          No drivers accepted your current offer.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Increase your price to attract drivers. Current offer: <span className="font-mono font-medium">${currentEstimatedPrice.toFixed(2)}</span>
+          {priceIncreaseCount > 0 && (
+            <span className="ml-2 text-[10px]">({priceIncreaseCount}/3 increases used)</span>
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            disabled={increasing}
+            onClick={() => increasePrice(500)}
+          >
+            <ArrowUp className="h-3 w-3" /> +$5.00
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1"
+            disabled={increasing}
+            onClick={() => increasePrice(1000)}
+          >
+            <ArrowUp className="h-3 w-3" /> +$10.00
+          </Button>
+        </div>
+        <div className="flex gap-2 items-center">
+          <div className="relative flex-1">
+            <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              type="number"
+              min="1"
+              step="1"
+              value={customIncrease}
+              onChange={(e) => setCustomIncrease(e.target.value)}
+              className="pl-8 font-mono h-9"
+              placeholder="Custom increase"
+            />
+          </div>
+          <Button
+            size="sm"
+            disabled={increasing || !customIncrease}
+            onClick={() => increasePrice(Math.round(parseFloat(customIncrease) * 100))}
+            className="gap-1"
+          >
+            <ArrowUp className="h-3 w-3" /> Increase
+          </Button>
+        </div>
       </div>
     );
   }
@@ -200,7 +337,7 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
         <>
           {!biddingClosed && (
             <p className="text-[10px] text-muted-foreground">
-              You can select a winning bid after the 5-minute bidding window closes.
+              You can select a winning bid after the bidding window closes.
             </p>
           )}
           {pendingBids.map((bid) => (
