@@ -457,7 +457,7 @@ const DriverDispatch = () => {
                       <span>${(bidAmount / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Platform Commission (8%)</span>
+                      <span>Platform Commission ({ride.service_type === 'courier' ? '6' : '8'}%)</span>
                       <span className="text-destructive">-${(commission / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
