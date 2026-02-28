@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.check-overdue-invoices]
 verify_jwt = false
+
+[functions.push-vapid-key]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
