@@ -438,10 +438,15 @@ const DriverDispatch = () => {
               const earnings = ride.driver_earnings_cents || 0;
               return (
                 <div key={ride.id} className="glass-surface rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium truncate flex-1 min-w-0">
-                      {ride.pickup_address} → {ride.dropoff_address}
-                    </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${ride.service_type === 'courier' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'}`}>
+                        {ride.service_type === 'courier' ? 'Courier' : 'Large Delivery'}
+                      </span>
+                      <p className="text-sm font-medium truncate min-w-0">
+                        {ride.pickup_address} → {ride.dropoff_address}
+                      </p>
+                    </div>
                     <span className="text-xs text-muted-foreground ml-2 shrink-0">
                       {ride.completed_at ? new Date(ride.completed_at).toLocaleDateString() : ""}
                     </span>
