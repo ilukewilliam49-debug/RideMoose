@@ -3,6 +3,8 @@ import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   Sidebar,
   SidebarContent,
@@ -18,35 +20,36 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const navByRole: Record<string, { icon: any; title: string; url: string }[]> = {
+const navByRole = (t: (key: string) => string): Record<string, { icon: any; title: string; url: string }[]> => ({
   rider: [
-    { icon: Home, title: "Dashboard", url: "/rider" },
-    { icon: Car, title: "My Rides", url: "/rider/rides" },
-    { icon: Building2, title: "Corporate", url: "/rider/corporate-apply" },
+    { icon: Home, title: t("nav.dashboard"), url: "/rider" },
+    { icon: Car, title: t("nav.myRides"), url: "/rider/rides" },
+    { icon: Building2, title: t("nav.corporate"), url: "/rider/corporate-apply" },
   ],
   driver: [
-    { icon: Home, title: "Dashboard", url: "/driver" },
-    { icon: Car, title: "Dispatch", url: "/driver/dispatch" },
+    { icon: Home, title: t("nav.dashboard"), url: "/driver" },
+    { icon: Car, title: t("nav.dispatch"), url: "/driver/dispatch" },
   ],
   admin: [
-    { icon: Home, title: "Dashboard", url: "/admin" },
-    { icon: Shield, title: "Verifications", url: "/admin/verifications" },
-    { icon: BarChart3, title: "Reports", url: "/admin/reports" },
-    { icon: Users, title: "Users", url: "/admin/users" },
-    { icon: DollarSign, title: "Pricing", url: "/admin/pricing" },
-    { icon: MapPinned, title: "Hire Zones", url: "/admin/zones" },
-    { icon: Building2, title: "Corporate", url: "/admin/corporate" },
+    { icon: Home, title: t("nav.dashboard"), url: "/admin" },
+    { icon: Shield, title: t("nav.verifications"), url: "/admin/verifications" },
+    { icon: BarChart3, title: t("nav.reports"), url: "/admin/reports" },
+    { icon: Users, title: t("nav.users"), url: "/admin/users" },
+    { icon: DollarSign, title: t("nav.pricing"), url: "/admin/pricing" },
+    { icon: MapPinned, title: t("nav.hireZones"), url: "/admin/zones" },
+    { icon: Building2, title: t("nav.corporate"), url: "/admin/corporate" },
   ],
-};
+});
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const { t } = useTranslation();
   const role = profile?.role || "rider";
 
-  const navItems = navByRole[role] || navByRole.rider;
+  const navItems = navByRole(t)[role] || navByRole(t).rider;
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
@@ -59,7 +62,7 @@ export function AppSidebar() {
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("nav.navigation")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -82,7 +85,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-2">
+        <LanguageSwitcher collapsed={collapsed} />
         <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
           <Avatar className="h-8 w-8 shrink-0">
             <AvatarFallback className="bg-primary/20 text-primary text-xs">

@@ -9,6 +9,8 @@ import { motion } from "framer-motion";
 import { Mail, Lock, User } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,8 +20,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
+  const { t } = useTranslation();
 
-  // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && profile) {
       const route = profile.role === "admin" ? "/admin" : profile.role === "driver" ? "/driver" : "/rider";
@@ -35,7 +37,7 @@ const Login = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("Welcome back!");
+        toast.success(t("auth.welcomeBack"));
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -46,11 +48,10 @@ const Login = () => {
           },
         });
         if (error) throw error;
-        // If auto-confirm is on, user gets a session immediately
         if (data.session) {
-          toast.success("Account created! Redirecting...");
+          toast.success(t("auth.accountCreated"));
         } else {
-          toast.success("Check your email to confirm your account!");
+          toast.success(t("auth.checkEmail"));
         }
       }
     } catch (error: any) {
@@ -72,15 +73,18 @@ const Login = () => {
             <img src={logoImg} alt="OnlyKnifers" className="h-12 rounded" />
           </div>
           <p className="text-muted-foreground">
-            {isLogin ? "Sign in to your account" : "Create your account"}
+            {isLogin ? t("auth.signInTitle") : t("auth.signUpTitle")}
           </p>
         </div>
 
         <div className="glass-surface rounded-lg p-6">
+          <div className="flex justify-end mb-3">
+            <LanguageSwitcher />
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">{t("auth.fullName")}</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -95,7 +99,7 @@ const Login = () => {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -110,7 +114,7 @@ const Login = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -126,7 +130,7 @@ const Login = () => {
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
+              {loading ? t("auth.loading") : isLogin ? t("auth.signIn") : t("auth.signUp")}
             </Button>
           </form>
 
@@ -135,7 +139,7 @@ const Login = () => {
               onClick={() => setIsLogin(!isLogin)}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
             </button>
           </div>
         </div>

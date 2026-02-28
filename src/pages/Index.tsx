@@ -3,9 +3,30 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Zap, Shield, MapPin } from "lucide-react";
 import logoImg from "@/assets/logo.png";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const features = [
+    {
+      icon: Zap,
+      title: t("landing.instantDispatch"),
+      desc: t("landing.instantDispatchDesc"),
+    },
+    {
+      icon: MapPin,
+      title: t("landing.realTimeTracking"),
+      desc: t("landing.realTimeTrackingDesc"),
+    },
+    {
+      icon: Shield,
+      title: t("landing.verifiedDrivers"),
+      desc: t("landing.verifiedDriversDesc"),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -15,9 +36,12 @@ const Index = () => {
           <div className="flex items-center">
             <img src={logoImg} alt="OnlyKnifers" className="h-8 rounded" />
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
-            Sign In
-          </Button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
+              {t("nav.signIn")}
+            </Button>
+          </div>
         </div>
       </nav>
 
@@ -30,11 +54,11 @@ const Index = () => {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-              Cut Through <br />
-              <span className="text-gradient-gold">The Traffic</span>
+              {t("landing.heroTitle1")} <br />
+              <span className="text-gradient-gold">{t("landing.heroTitle2")}</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto">
-              Lightning-fast dispatch. Real-time tracking. Razor-sharp precision for every ride.
+              {t("landing.heroDesc")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -42,7 +66,7 @@ const Index = () => {
                 className="text-lg px-8 animate-pulse-glow"
                 onClick={() => navigate("/login")}
               >
-                Request a Ride
+                {t("landing.requestRide")}
               </Button>
               <Button
                 variant="outline"
@@ -50,7 +74,7 @@ const Index = () => {
                 className="text-lg px-8"
                 onClick={() => navigate("/login")}
               >
-                Drive with Us
+                {t("landing.driveWithUs")}
               </Button>
             </div>
           </motion.div>
@@ -61,23 +85,7 @@ const Index = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {[
-              {
-                icon: Zap,
-                title: "Instant Dispatch",
-                desc: "Our automated engine matches you with the nearest available driver in seconds.",
-              },
-              {
-                icon: MapPin,
-                title: "Real-Time Tracking",
-                desc: "Follow your driver's location from pickup to dropoff with live updates.",
-              },
-              {
-                icon: Shield,
-                title: "Verified Drivers",
-                desc: "Every driver passes our rigorous verification process before hitting the road.",
-              },
-            ].map((feature, i) => (
+            {features.map((feature, i) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
@@ -97,7 +105,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border py-8 px-4">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
-          © 2026 OnlyKnifers. All rights reserved.
+          {t("landing.footer")}
         </div>
       </footer>
     </div>

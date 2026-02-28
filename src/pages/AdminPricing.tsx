@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Save, Car, Briefcase, Bus, Gauge, Percent, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,7 @@ const serviceConfig = {
 
 const AdminPricing = () => {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [editState, setEditState] = useState<Record<string, Partial<ServicePricing>>>({});
   const [taxiEdit, setTaxiEdit] = useState<Partial<TaxiRate>>({});
   const [configEdits, setConfigEdits] = useState<Record<string, number>>({});
@@ -71,7 +73,7 @@ const AdminPricing = () => {
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["platform-config-all"] });
       setConfigDirty((p) => ({ ...p, [vars.key]: false }));
-      toast.success("Setting updated!");
+      toast.success(t("pricing.settingUpdated"));
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -120,7 +122,7 @@ const AdminPricing = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-service-pricing"] });
-      toast.success("Pricing updated!");
+      toast.success(t("pricing.pricingUpdated"));
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -137,7 +139,7 @@ const AdminPricing = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-taxi-rates"] });
       setTaxiEdit({});
-      toast.success("Taxi meter rates updated!");
+      toast.success(t("pricing.meterRatesUpdated"));
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -170,17 +172,17 @@ const AdminPricing = () => {
   const editedTaxi = taxiRate ? { ...taxiRate, ...taxiEdit } : null;
 
   if (isLoading) {
-    return <div className="py-8 text-center text-muted-foreground">Loading pricing…</div>;
+    return <div className="py-8 text-center text-muted-foreground">{t("pricing.loading")}</div>;
   }
 
   return (
     <div className="space-y-8 pt-4">
-      <h1 className="text-2xl font-bold">Service Pricing</h1>
+      <h1 className="text-2xl font-bold">{t("pricing.title")}</h1>
 
       {/* Platform Financial Settings */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <Settings className="h-5 w-5 text-primary" /> Platform Financial Settings
+          <Settings className="h-5 w-5 text-primary" /> {t("pricing.platformSettings")}
         </h2>
         <div className="grid gap-4 md:grid-cols-2">
           {configItems.map((item) => {
@@ -248,7 +250,7 @@ const AdminPricing = () => {
                       disabled={!dirty || configMutation.isPending}
                       onClick={() => configMutation.mutate({ key: item.key, value: val })}
                     >
-                      <Save className="h-4 w-4 mr-2" /> Save
+                      <Save className="h-4 w-4 mr-2" /> {t("pricing.save")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -261,38 +263,21 @@ const AdminPricing = () => {
       {/* Taxi Meter Rates */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <Gauge className="h-5 w-5 text-primary" /> Taxi Meter Rates
+          <Gauge className="h-5 w-5 text-primary" /> {t("pricing.taxiMeterRates")}
         </h2>
         {taxiLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("pricing.loading")}</p>
         ) : editedTaxi ? (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <Card>
               <CardContent className="pt-6">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <CentsField
-                    label="Base Fare"
-                    cents={editedTaxi.base_fare_cents}
-                    onChange={(v) => setTaxiEdit((p) => ({ ...p, base_fare_cents: v }))}
-                  />
-                  <CentsField
-                    label="Per KM"
-                    cents={editedTaxi.per_km_cents}
-                    onChange={(v) => setTaxiEdit((p) => ({ ...p, per_km_cents: v }))}
-                  />
-                  <CentsField
-                    label="Per Minute (waiting)"
-                    cents={editedTaxi.waiting_per_min_cents}
-                    onChange={(v) => setTaxiEdit((p) => ({ ...p, waiting_per_min_cents: v }))}
-                  />
+                  <CentsField label={t("pricing.baseFare")} cents={editedTaxi.base_fare_cents} onChange={(v) => setTaxiEdit((p) => ({ ...p, base_fare_cents: v }))} />
+                  <CentsField label={t("pricing.perKm")} cents={editedTaxi.per_km_cents} onChange={(v) => setTaxiEdit((p) => ({ ...p, per_km_cents: v }))} />
+                  <CentsField label={t("pricing.perMinWaiting")} cents={editedTaxi.waiting_per_min_cents} onChange={(v) => setTaxiEdit((p) => ({ ...p, waiting_per_min_cents: v }))} />
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Free Waiting (min)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={editedTaxi.free_waiting_min}
-                      onChange={(e) => setTaxiEdit((p) => ({ ...p, free_waiting_min: parseInt(e.target.value) || 0 }))}
-                    />
+                    <Label className="text-xs text-muted-foreground">{t("pricing.freeWaiting")}</Label>
+                    <Input type="number" min={0} value={editedTaxi.free_waiting_min} onChange={(e) => setTaxiEdit((p) => ({ ...p, free_waiting_min: parseInt(e.target.value) || 0 }))} />
                   </div>
                 </div>
                 <Button
@@ -301,19 +286,19 @@ const AdminPricing = () => {
                   disabled={!taxiDirty || taxiMutation.isPending}
                   onClick={() => taxiMutation.mutate(taxiEdit)}
                 >
-                  <Save className="h-4 w-4 mr-2" /> Save Meter Rates
+                  <Save className="h-4 w-4 mr-2" /> {t("pricing.saveMeterRates")}
                 </Button>
               </CardContent>
             </Card>
           </motion.div>
         ) : (
-          <p className="text-sm text-muted-foreground">No active taxi rate config found.</p>
+          <p className="text-sm text-muted-foreground">{t("pricing.noTaxiRate")}</p>
         )}
       </div>
 
       {/* Service Pricing Cards */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">General Service Pricing</h2>
+        <h2 className="text-lg font-semibold mb-3">{t("pricing.generalPricing")}</h2>
         <div className="grid gap-6 md:grid-cols-3">
           {pricingRows?.map((row) => {
             const cfg = serviceConfig[row.service_type as keyof typeof serviceConfig];
@@ -330,14 +315,14 @@ const AdminPricing = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <NumField label="Base Fare ($)" value={edited.base_fare} onChange={(v) => handleChange(row.id, "base_fare", v)} />
-                    <NumField label="Per KM Rate ($)" value={edited.per_km_rate} onChange={(v) => handleChange(row.id, "per_km_rate", v)} />
-                    <NumField label="Per Min Rate ($)" value={edited.per_min_rate} onChange={(v) => handleChange(row.id, "per_min_rate", v)} />
-                    <NumField label="Minimum Fare ($)" value={edited.minimum_fare} onChange={(v) => handleChange(row.id, "minimum_fare", v)} />
-                    <NumField label="Surge Multiplier" value={edited.surge_multiplier} onChange={(v) => handleChange(row.id, "surge_multiplier", v)} />
+                    <NumField label={t("pricing.baseFare") + " ($)"} value={edited.base_fare} onChange={(v) => handleChange(row.id, "base_fare", v)} />
+                    <NumField label={t("pricing.perKmRate")} value={edited.per_km_rate} onChange={(v) => handleChange(row.id, "per_km_rate", v)} />
+                    <NumField label={t("pricing.perMinRate")} value={edited.per_min_rate} onChange={(v) => handleChange(row.id, "per_min_rate", v)} />
+                    <NumField label={t("pricing.minimumFare")} value={edited.minimum_fare} onChange={(v) => handleChange(row.id, "minimum_fare", v)} />
+                    <NumField label={t("pricing.surgeMultiplier")} value={edited.surge_multiplier} onChange={(v) => handleChange(row.id, "surge_multiplier", v)} />
 
                     <div className="flex items-center justify-between">
-                      <Label>Flat Rate</Label>
+                      <Label>{t("pricing.flatRate")}</Label>
                       <Switch
                         checked={edited.is_flat_rate}
                         onCheckedChange={(v) => handleChange(row.id, "is_flat_rate", v)}
@@ -345,13 +330,13 @@ const AdminPricing = () => {
                     </div>
 
                     {edited.is_flat_rate && (
-                      <NumField label="Flat Rate ($)" value={edited.flat_rate ?? 0} onChange={(v) => handleChange(row.id, "flat_rate", v)} />
+                      <NumField label={t("pricing.flatRateAmount")} value={edited.flat_rate ?? 0} onChange={(v) => handleChange(row.id, "flat_rate", v)} />
                     )}
 
-                    <NumField label="Per Seat Rate ($)" value={edited.per_seat_rate ?? 0} onChange={(v) => handleChange(row.id, "per_seat_rate", v)} />
+                    <NumField label={t("pricing.perSeatRate")} value={edited.per_seat_rate ?? 0} onChange={(v) => handleChange(row.id, "per_seat_rate", v)} />
 
                     <div className="flex items-center justify-between">
-                      <Label>Active</Label>
+                      <Label>{t("pricing.active")}</Label>
                       <Switch
                         checked={edited.is_active}
                         onCheckedChange={(v) => handleChange(row.id, "is_active", v)}
@@ -364,7 +349,7 @@ const AdminPricing = () => {
                       disabled={!isDirty(row.id) || updateMutation.isPending}
                       onClick={() => handleSave(row)}
                     >
-                      <Save className="h-4 w-4 mr-2" /> Save Changes
+                      <Save className="h-4 w-4 mr-2" /> {t("pricing.saveChanges")}
                     </Button>
                   </CardContent>
                 </Card>
