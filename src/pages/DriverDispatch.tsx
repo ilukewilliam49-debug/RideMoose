@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus, Briefcase, Banknote } from "lucide-react";
+import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -13,6 +13,8 @@ import TaxiMeter from "@/components/TaxiMeter";
 const DriverDispatch = () => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const proofInputRef = useRef<HTMLInputElement>(null);
 
   useDriverLocation(profile?.id, !!profile?.is_available);
 
@@ -117,6 +119,35 @@ const DriverDispatch = () => {
       queryClient.invalidateQueries({ queryKey: ["outstanding-rides"] });
     }
   };
+  const uploadProofPhoto = async (rideId: string, file: File) => {
+    setUploadingProof(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${rideId}/proof.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("proof-photos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("proof-photos")
+        .getPublicUrl(path);
+
+      const { error: updateError } = await supabase
+        .from("rides")
+        .update({ proof_photo_url: urlData.publicUrl } as any)
+        .eq("id", rideId);
+      if (updateError) throw updateError;
+
+      toast.success("Proof photo uploaded!");
+      queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
   const updateRideStatus = async (rideId: string, status: string) => {
     const updates: any = { status };
     if (status === "in_progress") updates.started_at = new Date().toISOString();
@@ -144,7 +175,7 @@ const DriverDispatch = () => {
     }));
 
   const ServiceIcon = ({ type }: { type: string }) =>
-    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
+    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
 
   return (
     <div className="space-y-6 pt-4">
@@ -182,20 +213,69 @@ const DriverDispatch = () => {
             {activeRide.service_type === "taxi" ? (
               <TaxiMeter rideId={activeRide.id} meterStatus={activeRide.meter_status} />
             ) : (
-              <div className="flex gap-2">
-                {activeRide.status === "accepted" && (
-                  <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                    Start Trip
-                  </Button>
+              <div className="space-y-3">
+                {/* Courier: show package info and proof photo */}
+                {activeRide.service_type === "courier" && (
+                  <div className="space-y-2">
+                    {(activeRide as any).package_size && (
+                      <p className="text-xs text-muted-foreground">
+                        Package: <span className="capitalize font-medium">{(activeRide as any).package_size}</span>
+                      </p>
+                    )}
+                    {(activeRide as any).pickup_notes && (
+                      <p className="text-xs text-muted-foreground">Pickup notes: {(activeRide as any).pickup_notes}</p>
+                    )}
+                    {(activeRide as any).dropoff_notes && (
+                      <p className="text-xs text-muted-foreground">Dropoff notes: {(activeRide as any).dropoff_notes}</p>
+                    )}
+                    {activeRide.status === "in_progress" && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url && (
+                      <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
+                        <p className="text-xs text-yellow-500 font-medium mb-2">📸 Proof photo required before completing</p>
+                        <input
+                          ref={proofInputRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadProofPhoto(activeRide.id, file);
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={uploadingProof}
+                          onClick={() => proofInputRef.current?.click()}
+                        >
+                          {uploadingProof ? "Uploading..." : "Upload Proof Photo"}
+                        </Button>
+                      </div>
+                    )}
+                    {(activeRide as any).proof_photo_url && (
+                      <p className="text-xs text-green-500">✓ Proof photo uploaded</p>
+                    )}
+                  </div>
                 )}
-                {activeRide.status === "in_progress" && (
-                  <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "completed")}>
-                    Complete Trip
+                <div className="flex gap-2">
+                  {activeRide.status === "accepted" && (
+                    <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
+                      {activeRide.service_type === "courier" ? "Start Delivery" : "Start Trip"}
+                    </Button>
+                  )}
+                  {activeRide.status === "in_progress" && (
+                    <Button
+                      size="sm"
+                      disabled={activeRide.service_type === "courier" && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url}
+                      onClick={() => updateRideStatus(activeRide.id, "completed")}
+                    >
+                      {activeRide.service_type === "courier" ? "Complete Delivery" : "Complete Trip"}
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
+                    Cancel
                   </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
-                  Cancel
-                </Button>
+                </div>
               </div>
             )}
           </div>
