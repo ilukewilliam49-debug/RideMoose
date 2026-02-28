@@ -82,7 +82,12 @@
     "phase2": "Phase 2 — Réduit",
     "phase3": "Taux standard (4,9%)",
     "commission": "Commission",
-    "commissionRate": "{{rate}}%"
+    "commissionRate": "{{rate}}%",
+    "fare": "Tarif",
+    "bidAmount": "Montant de l'offre",
+    "platformCommission": "Commission plateforme ({{rate}}%)",
+    "processingFee": "Frais de traitement",
+    "netEarnings": "Revenus nets"
   },
   "pricing": {
     "title": "Tarification des services",
