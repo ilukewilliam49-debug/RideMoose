@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package } from "lucide-react";
+import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -219,6 +219,17 @@ const DriverDispatch = () => {
                 {/* Courier: show package info and proof photo */}
                 {activeRide.service_type === "courier" && (
                   <div className="space-y-2">
+                    {(activeRide as any).item_description && (
+                      <p className="text-xs text-muted-foreground">
+                        📦 Item: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
+                      </p>
+                    )}
+                    {(activeRide as any).marketplace_delivery && (
+                      <div className="flex items-center gap-1.5 text-xs text-yellow-500">
+                        <ShoppingBag className="h-3.5 w-3.5" />
+                        <span>Marketplace delivery — ensure vehicle capacity fits item</span>
+                      </div>
+                    )}
                     {(activeRide as any).package_size && (
                       <p className="text-xs text-muted-foreground">
                         Package: <span className="capitalize font-medium">{(activeRide as any).package_size}</span>
@@ -350,10 +361,26 @@ const DriverDispatch = () => {
                   {ride.service_type === "shuttle" && (
                     <span className="text-xs text-muted-foreground">{ride.passenger_count} pax</span>
                   )}
+                  {ride.service_type === "courier" && (ride as any).marketplace_delivery && (
+                    <span className="flex items-center gap-1 text-xs text-yellow-500">
+                      <ShoppingBag className="h-3 w-3" /> Marketplace
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm font-medium truncate">
                   {ride.pickup_address} → {ride.dropoff_address}
                 </p>
+                {ride.service_type === "courier" && (ride as any).item_description && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    📦 {(ride as any).item_description}
+                  </p>
+                )}
+                {ride.service_type === "courier" && (ride as any).marketplace_delivery && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-yellow-500">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Ensure vehicle capacity fits item</span>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground font-mono">
                   ${Number(ride.estimated_price || 0).toFixed(2)}
                 </p>
