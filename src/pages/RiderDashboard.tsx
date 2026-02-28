@@ -572,6 +572,18 @@ const RiderDashboard = () => {
             {driverProfile && (
               <p className="text-xs text-muted-foreground">{t("rider.driver")}: {driverProfile.full_name}</p>
             )}
+            {/* Payment hold indicator for large delivery */}
+            {activeRide.service_type === "large_delivery" && activeRide.payment_status === "authorized" && activeRide.authorized_amount_cents > 0 && (
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                <CreditCard className="h-4 w-4 text-primary shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-primary">Payment Authorized</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    ${(activeRide.authorized_amount_cents / 100).toFixed(2)} held — captured on delivery completion
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Large delivery bids panel */}
             {activeRide.service_type === "large_delivery" && activeRide.status === "requested" && (
               <div className="mt-3">
