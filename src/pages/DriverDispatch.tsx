@@ -404,19 +404,19 @@ const DriverDispatch = () => {
                     {ride.pickup_address} → {ride.dropoff_address}
                   </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-                    <span>Total: ${(totalFare / 100).toFixed(2)}</span>
-                    {captured > 0 && <span>Paid in app: ${(captured / 100).toFixed(2)}</span>}
-                    <span className="text-yellow-500 font-semibold">Due: ${(displayOutstanding / 100).toFixed(2)}</span>
+                    <span>{t('earnings.total')}: ${(totalFare / 100).toFixed(2)}</span>
+                    {captured > 0 && <span>{t('earnings.paidInApp')}: ${(captured / 100).toFixed(2)}</span>}
+                    <span className="text-yellow-500 font-semibold">{t('earnings.due')}: ${(displayOutstanding / 100).toFixed(2)}</span>
                   </div>
                   {ride.outstanding_reason === "fare_exceeded_authorization" && (
-                    <p className="text-[10px] text-yellow-500">Fare exceeded pre-authorization</p>
+                    <p className="text-[10px] text-yellow-500">{t('earnings.fareExceeded')}</p>
                   )}
                   <Button
                     size="sm"
                     className="w-full gap-1.5"
                     onClick={() => markOutstandingCollected(ride.id, captured > 0)}
                   >
-                    <Banknote className="h-3.5 w-3.5" /> Mark Remaining Collected
+                    <Banknote className="h-3.5 w-3.5" /> {t('earnings.markCollected')}
                   </Button>
                 </div>
               );

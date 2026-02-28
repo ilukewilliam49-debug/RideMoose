@@ -87,7 +87,12 @@
     "bidAmount": "Bid Amount",
     "platformCommission": "Platform Commission ({{rate}}%)",
     "processingFee": "Processing Fee",
-    "netEarnings": "Net Earnings"
+    "netEarnings": "Net Earnings",
+    "total": "Total",
+    "paidInApp": "Paid in app",
+    "due": "Due",
+    "fareExceeded": "Fare exceeded pre-authorization",
+    "markCollected": "Mark Remaining Collected"
   },
   "pricing": {
     "title": "Service Pricing",

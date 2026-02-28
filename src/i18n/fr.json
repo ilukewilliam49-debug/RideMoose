@@ -87,7 +87,12 @@
     "bidAmount": "Montant de l'offre",
     "platformCommission": "Commission plateforme ({{rate}}%)",
     "processingFee": "Frais de traitement",
-    "netEarnings": "Revenus nets"
+    "netEarnings": "Revenus nets",
+    "total": "Total",
+    "paidInApp": "Payé dans l'appli",
+    "due": "Dû",
+    "fareExceeded": "Le tarif a dépassé la pré-autorisation",
+    "markCollected": "Marquer le solde perçu"
   },
   "pricing": {
     "title": "Tarification des services",
