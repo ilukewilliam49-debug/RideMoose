@@ -1078,6 +1078,27 @@ const RiderDashboard = () => {
                     {outstanding > 0 && <span className="text-yellow-500">• {t("rider.due")}: ${(outstanding / 100).toFixed(2)}</span>}
                   </div>
                 )}
+                {/* Large delivery receipt breakdown */}
+                {ride.status === "completed" && ride.service_type === "large_delivery" && totalFare > 0 && (
+                  <div className="mt-1 text-[10px] font-mono text-muted-foreground border-t border-border pt-1 space-y-0.5">
+                    <div className="flex justify-between gap-4">
+                      <span>Bid Amount:</span>
+                      <span>${(totalFare / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span>Platform Fee (8%):</span>
+                      <span>-${((ride.commission_cents || Math.round(totalFare * 0.08)) / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span>Processing Fee:</span>
+                      <span>-${((ride.stripe_fee_cents || Math.round(totalFare * 0.029 + 30)) / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between gap-4 font-medium text-foreground">
+                      <span>Driver Earnings:</span>
+                      <span>${((ride.driver_earnings_cents || 0) / 100).toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="text-right flex items-center gap-3">
                 {ride.status === "completed" && ride.driver_id && (
