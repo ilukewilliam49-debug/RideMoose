@@ -1,4 +1,4 @@
-import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2 } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import PushNotificationSetup from "@/components/PushNotificationSetup";
+import SupportChatDialog from "@/components/SupportChatDialog";
 import {
   Sidebar,
   SidebarContent,
@@ -89,6 +90,16 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
+        {role === "rider" && (
+          <SupportChatDialog
+            trigger={
+              <Button variant="outline" size="sm" className={`w-full gap-1.5 ${collapsed ? "px-0" : ""}`}>
+                <MessageSquare className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Support</span>}
+              </Button>
+            }
+          />
+        )}
         <PushNotificationSetup />
         <LanguageSwitcher collapsed={collapsed} />
         <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>

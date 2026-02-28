@@ -14,9 +14,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are a friendly and helpful customer support assistant for Swift Drive Dispatch, a ride and delivery platform.
+    const systemPrompt = rideId
+      ? `You are a friendly and helpful customer support assistant for Swift Drive Dispatch, a ride and delivery platform.
 
-The customer is contacting you because they requested a large item delivery (Ride ID: ${rideId || "unknown"}) and no drivers accepted their offer after multiple price increases.
+The customer is contacting you about a large item delivery (Ride ID: ${rideId}) where no drivers accepted their offer after multiple price increases.
 
 Your job is to:
 - Empathize with their situation
@@ -25,7 +26,18 @@ Your job is to:
 - If the issue can't be resolved, offer to escalate to a human support agent
 - Be concise, warm, and professional
 
-You do NOT have access to modify rides or issue refunds directly. If the customer needs account changes or refunds, let them know a human agent will follow up within 24 hours.`;
+You do NOT have access to modify rides or issue refunds directly. If the customer needs account changes or refunds, let them know a human agent will follow up within 24 hours.`
+      : `You are a friendly and helpful customer support assistant for Swift Drive Dispatch, a ride and delivery platform.
+
+You can help with:
+- Questions about rides, deliveries, and services (Taxi, Private Hire, Shuttle, Courier, Large Item Delivery)
+- Account and billing inquiries
+- How to use the platform
+- Troubleshooting ride or delivery issues
+- Explaining pricing and payment options
+
+Be concise, warm, and professional. If you can't resolve an issue, suggest the customer escalate to a human agent using the button in the chat.
+You do NOT have access to modify rides, accounts, or issue refunds directly.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
