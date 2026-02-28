@@ -792,7 +792,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
-      service_type: "taxi" | "shuttle" | "private_hire"
+      service_type: "taxi" | "shuttle" | "private_hire" | "courier"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -930,7 +930,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
-      service_type: ["taxi", "shuttle", "private_hire"],
+      service_type: ["taxi", "shuttle", "private_hire", "courier"],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
     },
