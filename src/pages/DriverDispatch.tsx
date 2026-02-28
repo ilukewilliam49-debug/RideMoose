@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import DriverBidForm from "@/components/DriverBidForm";
 
 const DriverDispatch = () => {
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [uploadingProof, setUploadingProof] = useState(false);
   const proofInputRef = useRef<HTMLInputElement>(null);
@@ -453,19 +455,19 @@ const DriverDispatch = () => {
                   </div>
                   <div className="text-[10px] font-mono text-muted-foreground border-t border-border pt-2 space-y-1">
                     <div className="flex justify-between">
-                      <span>{ride.service_type === 'courier' ? 'Fare' : 'Bid Amount'}</span>
+                      <span>{ride.service_type === 'courier' ? t('earnings.fare') : t('earnings.bidAmount')}</span>
                       <span>${(bidAmount / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Platform Commission ({ride.service_type === 'courier' ? '6' : '8'}%)</span>
+                      <span>{t('earnings.platformCommission', { rate: ride.service_type === 'courier' ? '6' : '8' })}</span>
                       <span className="text-destructive">-${(commission / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Processing Fee</span>
+                      <span>{t('earnings.processingFee')}</span>
                       <span className="text-destructive">-${(stripeFee / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-xs text-primary pt-1 border-t border-border">
-                      <span>Net Earnings</span>
+                      <span>{t('earnings.netEarnings')}</span>
                       <span>${(earnings / 100).toFixed(2)}</span>
                     </div>
                   </div>

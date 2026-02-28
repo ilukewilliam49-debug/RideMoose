@@ -82,7 +82,12 @@
     "phase2": "Phase 2 — Reduced",
     "phase3": "Standard Rate (4.9%)",
     "commission": "Commission",
-    "commissionRate": "{{rate}}%"
+    "commissionRate": "{{rate}}%",
+    "fare": "Fare",
+    "bidAmount": "Bid Amount",
+    "platformCommission": "Platform Commission ({{rate}}%)",
+    "processingFee": "Processing Fee",
+    "netEarnings": "Net Earnings"
   },
   "pricing": {
     "title": "Service Pricing",
