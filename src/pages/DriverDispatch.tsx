@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight } from "lucide-react";
+import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -93,6 +93,24 @@ const DriverDispatch = () => {
         .eq("driver_id", profile.id)
         .eq("status", "completed")
         .or("payment_status.eq.partial,and(payment_option.eq.pay_driver,payment_status.eq.unpaid)")
+        .order("completed_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.id,
+  });
+
+  const { data: recentDeliveries } = useQuery({
+    queryKey: ["recent-deliveries", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("rides")
+        .select("*")
+        .eq("driver_id", profile.id)
+        .eq("status", "completed")
+        .eq("service_type", "large_delivery")
         .order("completed_at", { ascending: false })
         .limit(10);
       if (error) throw error;
@@ -398,6 +416,54 @@ const DriverDispatch = () => {
                   >
                     <Banknote className="h-3.5 w-3.5" /> Mark Remaining Collected
                   </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent completed large deliveries with earnings breakdown */}
+      {recentDeliveries && recentDeliveries.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-primary" />
+            Recent Deliveries
+          </h2>
+          <div className="space-y-2">
+            {recentDeliveries.map((ride: any) => {
+              const bidAmount = ride.final_fare_cents || 0;
+              const commission = ride.commission_cents || 0;
+              const stripeFee = ride.stripe_fee_cents || 0;
+              const earnings = ride.driver_earnings_cents || 0;
+              return (
+                <div key={ride.id} className="glass-surface rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium truncate flex-1 min-w-0">
+                      {ride.pickup_address} → {ride.dropoff_address}
+                    </p>
+                    <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                      {ride.completed_at ? new Date(ride.completed_at).toLocaleDateString() : ""}
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-mono text-muted-foreground border-t border-border pt-2 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Bid Amount</span>
+                      <span>${(bidAmount / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Platform Commission (8%)</span>
+                      <span className="text-destructive">-${(commission / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Processing Fee</span>
+                      <span className="text-destructive">-${(stripeFee / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-xs text-primary pt-1 border-t border-border">
+                      <span>Net Earnings</span>
+                      <span>${(earnings / 100).toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
               );
             })}
