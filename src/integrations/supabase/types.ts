@@ -469,6 +469,7 @@ export type Database = {
           dropoff_address: string
           dropoff_lat: number | null
           dropoff_lng: number | null
+          dropoff_notes: string | null
           duration_min: number
           estimated_price: number | null
           final_fare_cents: number | null
@@ -484,6 +485,7 @@ export type Database = {
           outstanding_reason: string | null
           overage_cents: number | null
           overage_client_secret: string | null
+          package_size: string | null
           paid_at: string | null
           passenger_count: number
           payment_option: string
@@ -491,8 +493,11 @@ export type Database = {
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
+          pickup_notes: string | null
           po_number: string | null
           pricing_model: string
+          proof_photo_required: boolean
+          proof_photo_url: string | null
           rider_id: string
           scheduled_at: string | null
           service_fee_cents: number
@@ -519,6 +524,7 @@ export type Database = {
           dropoff_address: string
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          dropoff_notes?: string | null
           duration_min?: number
           estimated_price?: number | null
           final_fare_cents?: number | null
@@ -534,6 +540,7 @@ export type Database = {
           outstanding_reason?: string | null
           overage_cents?: number | null
           overage_client_secret?: string | null
+          package_size?: string | null
           paid_at?: string | null
           passenger_count?: number
           payment_option?: string
@@ -541,8 +548,11 @@ export type Database = {
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pickup_notes?: string | null
           po_number?: string | null
           pricing_model?: string
+          proof_photo_required?: boolean
+          proof_photo_url?: string | null
           rider_id: string
           scheduled_at?: string | null
           service_fee_cents?: number
@@ -569,6 +579,7 @@ export type Database = {
           dropoff_address?: string
           dropoff_lat?: number | null
           dropoff_lng?: number | null
+          dropoff_notes?: string | null
           duration_min?: number
           estimated_price?: number | null
           final_fare_cents?: number | null
@@ -584,6 +595,7 @@ export type Database = {
           outstanding_reason?: string | null
           overage_cents?: number | null
           overage_client_secret?: string | null
+          package_size?: string | null
           paid_at?: string | null
           passenger_count?: number
           payment_option?: string
@@ -591,8 +603,11 @@ export type Database = {
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pickup_notes?: string | null
           po_number?: string | null
           pricing_model?: string
+          proof_photo_required?: boolean
+          proof_photo_url?: string | null
           rider_id?: string
           scheduled_at?: string | null
           service_fee_cents?: number

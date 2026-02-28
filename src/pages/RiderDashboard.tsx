@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2 } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -16,7 +16,7 @@ import { detectGeoZone } from "@/lib/geofence";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
 
-type ServiceType = "taxi" | "private_hire" | "shuttle";
+type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
@@ -37,6 +37,9 @@ const RiderDashboard = () => {
   const [billToOrg, setBillToOrg] = useState(false);
   const [poNumber, setPoNumber] = useState("");
   const [costCenter, setCostCenter] = useState("");
+  const [packageSize, setPackageSize] = useState<"small" | "medium" | "large">("small");
+  const [pickupNotes, setPickupNotes] = useState("");
+  const [dropoffNotes, setDropoffNotes] = useState("");
 
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
@@ -116,7 +119,7 @@ const RiderDashboard = () => {
         duration_in_traffic_text: string;
       };
     },
-    enabled: !!pickupCoords && !!dropoffCoords && serviceType === "taxi",
+    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier"),
     staleTime: 60_000,
   });
 
@@ -206,6 +209,15 @@ const RiderDashboard = () => {
       if (!pickup || !dropoff) return null;
       const fareCents = matchedZone ? matchedZone.flat_fare_cents : 5000;
       return (fareCents / 100).toFixed(2);
+    }
+    // Courier: base + distance
+    if (serviceType === "courier") {
+      const routeKm = directionsData?.distance_km ?? distanceKm;
+      if (!routeKm) return null;
+      const baseCents = 800;
+      const distFeeCents = Math.round(routeKm * 150);
+      const totalCents = Math.max(1200, baseCents + distFeeCents);
+      return (totalCents / 100).toFixed(2);
     }
     // Taxi: use taxi_rates with route distance from Directions API when available
     if (serviceType === "taxi") {
@@ -421,7 +433,7 @@ const RiderDashboard = () => {
         distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
         service_type: serviceType,
         passenger_count: passengerCount,
-        pricing_model: serviceType === "private_hire" ? "flat_zone" : "metered",
+        pricing_model: serviceType === "private_hire" ? "flat_zone" : serviceType === "courier" ? "courier" : "metered",
         status: "requested",
         payment_option: isOrgBilling ? "pay_driver" : paymentOption,
         billed_to: isOrgBilling ? "organization" : "individual",
@@ -429,7 +441,13 @@ const RiderDashboard = () => {
         payment_status: isOrgBilling ? "invoiced_pending" : "unpaid",
         po_number: isOrgBilling && poNumber ? poNumber : null,
         cost_center: isOrgBilling && costCenter ? costCenter : null,
-      }).select("id").single();
+        ...(serviceType === "courier" ? {
+          package_size: packageSize,
+          pickup_notes: pickupNotes || null,
+          dropoff_notes: dropoffNotes || null,
+          proof_photo_required: true,
+        } : {}),
+      } as any).select("id").single();
       if (error) throw error;
 
       // Skip Stripe for org-billed rides
@@ -544,11 +562,12 @@ const RiderDashboard = () => {
           {/* Service Type Toggle */}
           <div className="space-y-2">
             <Label>{t("rider.serviceType")}</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {([
                 { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
                 { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
                 { key: "shuttle" as ServiceType, icon: Bus, label: t("rider.shuttle"), desc: t("rider.perSeatPricing") },
+                { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
               ]).map(({ key, icon: Icon, label, desc }) => (
                 <button
                   key={key}
@@ -583,6 +602,52 @@ const RiderDashboard = () => {
                 onChange={(e) => setPassengerCount(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
                 className="w-24 bg-secondary"
               />
+            </div>
+          )}
+
+          {/* Courier fields */}
+          {serviceType === "courier" && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  {t("rider.packageSize")}
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["small", "medium", "large"] as const).map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setPackageSize(size)}
+                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${
+                        packageSize === size
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-secondary hover:bg-accent"
+                      }`}
+                    >
+                      {t(`rider.package_${size}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.pickupNotes")}</Label>
+                <Input
+                  value={pickupNotes}
+                  onChange={(e) => setPickupNotes(e.target.value)}
+                  placeholder={t("rider.pickupNotesPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.dropoffNotes")}</Label>
+                <Input
+                  value={dropoffNotes}
+                  onChange={(e) => setDropoffNotes(e.target.value)}
+                  placeholder={t("rider.dropoffNotesPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
             </div>
           )}
 
@@ -832,7 +897,7 @@ const RiderDashboard = () => {
 
           {!paymentClientSecret && (
             <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
-              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : t("rider.requestShuttle")}
+              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : t("rider.requestShuttle")}
             </Button>
           )}
         </motion.div>

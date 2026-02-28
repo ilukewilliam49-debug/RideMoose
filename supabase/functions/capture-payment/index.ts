@@ -56,7 +56,10 @@ serve(async (req) => {
     let effectiveCommissionRate = cfg.commission_rate ? cfg.commission_rate / 100 : 0.049;
     let inPromo = false;
 
-    if (ride.driver_id) {
+    // Courier rides use a fixed 6% commission, no ramp
+    if (ride.service_type === "courier") {
+      effectiveCommissionRate = 0.06;
+    } else if (ride.driver_id) {
       const { data: driverProfile } = await serviceClient
         .from("profiles")
         .select("commission_rate, launch_start_date, driver_balance_cents")
