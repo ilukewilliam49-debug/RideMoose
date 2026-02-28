@@ -480,6 +480,8 @@ export type Database = {
           id: string
           invoice_id: string | null
           invoiced: boolean
+          item_description: string | null
+          marketplace_delivery: boolean
           meter_ended_at: string | null
           meter_started_at: string | null
           meter_status: string
@@ -535,6 +537,8 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           invoiced?: boolean
+          item_description?: string | null
+          marketplace_delivery?: boolean
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
@@ -590,6 +594,8 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           invoiced?: boolean
+          item_description?: string | null
+          marketplace_delivery?: boolean
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string

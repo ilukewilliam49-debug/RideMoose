@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import { detectGeoZone } from "@/lib/geofence";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
@@ -40,6 +41,8 @@ const RiderDashboard = () => {
   const [packageSize, setPackageSize] = useState<"small" | "medium" | "large">("small");
   const [pickupNotes, setPickupNotes] = useState("");
   const [dropoffNotes, setDropoffNotes] = useState("");
+  const [itemDescription, setItemDescription] = useState("");
+  const [marketplaceDelivery, setMarketplaceDelivery] = useState(false);
 
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
@@ -446,6 +449,8 @@ const RiderDashboard = () => {
           pickup_notes: pickupNotes || null,
           dropoff_notes: dropoffNotes || null,
           proof_photo_required: true,
+          item_description: itemDescription || null,
+          marketplace_delivery: marketplaceDelivery,
         } : {}),
       } as any).select("id").single();
       if (error) throw error;
@@ -630,6 +635,34 @@ const RiderDashboard = () => {
                   ))}
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Item Description</Label>
+                <Input
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  placeholder="Describe the item being delivered"
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Marketplace Delivery</p>
+                    <p className="text-[10px] text-muted-foreground">Item purchased from a store/marketplace</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={marketplaceDelivery}
+                  onCheckedChange={setMarketplaceDelivery}
+                />
+              </div>
+              {marketplaceDelivery && (
+                <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-yellow-500">Ensure vehicle capacity fits item.</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>{t("rider.pickupNotes")}</Label>
                 <Input
