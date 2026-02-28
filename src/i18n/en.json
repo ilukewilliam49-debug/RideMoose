@@ -73,7 +73,13 @@
     "thisMonth": "This Month",
     "last30Days": "Last 30 Days",
     "allTime": "All Time",
-    "quickSelect": "Quick Select"
+    "quickSelect": "Quick Select",
+    "promoActive": "Launch Promo Active",
+    "promoDesc": "0% commission until {{date}}",
+    "promoDaysLeft": "{{days}} days left",
+    "promoExpired": "Standard Rate",
+    "commission": "Commission",
+    "commissionRate": "{{rate}}%"
   },
   "pricing": {
     "title": "Service Pricing",

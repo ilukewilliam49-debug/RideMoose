@@ -73,7 +73,13 @@
     "thisMonth": "Ce mois",
     "last30Days": "30 derniers jours",
     "allTime": "Depuis toujours",
-    "quickSelect": "Sélection rapide"
+    "quickSelect": "Sélection rapide",
+    "promoActive": "Promo lancement active",
+    "promoDesc": "0% commission jusqu'au {{date}}",
+    "promoDaysLeft": "{{days}} jours restants",
+    "promoExpired": "Taux standard",
+    "commission": "Commission",
+    "commissionRate": "{{rate}}%"
   },
   "pricing": {
     "title": "Tarification des services",
