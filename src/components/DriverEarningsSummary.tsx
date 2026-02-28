@@ -10,19 +10,21 @@ import { DollarSign, TrendingUp, CreditCard, CalendarIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import type { DateRange } from "react-day-picker";
-
-const presets = [
-  { label: "This Week", range: () => ({ from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: new Date() }) },
-  { label: "This Month", range: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
-  { label: "Last 30 Days", range: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
-  { label: "All Time", range: () => ({ from: undefined as Date | undefined, to: undefined as Date | undefined }) },
-];
 
 const DriverEarningsSummary = () => {
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [activePreset, setActivePreset] = useState("All Time");
+  const [activePreset, setActivePreset] = useState("allTime");
+
+  const presets = [
+    { key: "thisWeek", label: t("earnings.thisWeek"), range: () => ({ from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: new Date() }) },
+    { key: "thisMonth", label: t("earnings.thisMonth"), range: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
+    { key: "last30Days", label: t("earnings.last30Days"), range: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+    { key: "allTime", label: t("earnings.allTime"), range: () => ({ from: undefined as Date | undefined, to: undefined as Date | undefined }) },
+  ];
 
   const fromDate = dateRange?.from;
   const toDate = dateRange?.to;
@@ -63,22 +65,23 @@ const DriverEarningsSummary = () => {
   const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   const handlePreset = (preset: typeof presets[number]) => {
-    setActivePreset(preset.label);
+    setActivePreset(preset.key);
     const r = preset.range();
     setDateRange(r.from ? { from: r.from, to: r.to } : undefined);
   };
 
   const items = [
-    { icon: TrendingUp, label: "Gross Fares", value: stats ? fmt(stats.totalGross) : "—", color: "text-primary" },
-    { icon: CreditCard, label: "Card Processing Fee", value: stats ? fmt(stats.totalStripeFees) : "—", color: "text-muted-foreground" },
-    { icon: DollarSign, label: "Net Earnings", value: stats ? fmt(stats.totalEarnings) : "—", color: "text-green-500" },
+    { icon: TrendingUp, label: t("earnings.grossFares"), value: stats ? fmt(stats.totalGross) : "—", color: "text-primary" },
+    { icon: CreditCard, label: t("earnings.cardProcessingFee"), value: stats ? fmt(stats.totalStripeFees) : "—", color: "text-muted-foreground" },
+    { icon: DollarSign, label: t("earnings.netEarnings"), value: stats ? fmt(stats.totalEarnings) : "—", color: "text-green-500" },
   ];
 
+  const activePresetLabel = presets.find((p) => p.key === activePreset)?.label || activePreset;
   const dateLabel = fromDate && toDate
     ? `${format(fromDate, "MMM d")} – ${format(toDate, "MMM d, yyyy")}`
     : fromDate
       ? `From ${format(fromDate, "MMM d, yyyy")}`
-      : activePreset;
+      : activePresetLabel;
 
   return (
     <Card>
@@ -86,8 +89,8 @@ const DriverEarningsSummary = () => {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
-            Earnings Summary
-            {stats && <span className="text-xs font-normal text-muted-foreground">({stats.tripCount} trips)</span>}
+            {t("earnings.title")}
+            {stats && <span className="text-xs font-normal text-muted-foreground">({stats.tripCount} {t("earnings.trips")})</span>}
           </CardTitle>
 
           <Popover>
@@ -100,11 +103,11 @@ const DriverEarningsSummary = () => {
             <PopoverContent className="w-auto p-0" align="end">
               <div className="flex flex-col sm:flex-row">
                 <div className="flex flex-col gap-1 p-3 border-b sm:border-b-0 sm:border-r border-border">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Quick Select</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{t("earnings.quickSelect")}</p>
                   {presets.map((preset) => (
                     <Button
-                      key={preset.label}
-                      variant={activePreset === preset.label ? "default" : "ghost"}
+                      key={preset.key}
+                      variant={activePreset === preset.key ? "default" : "ghost"}
                       size="sm"
                       className="justify-start text-xs h-7"
                       onClick={() => handlePreset(preset)}
@@ -118,7 +121,7 @@ const DriverEarningsSummary = () => {
                   selected={dateRange}
                   onSelect={(range) => {
                     setDateRange(range);
-                    setActivePreset("Custom");
+                    setActivePreset("custom");
                   }}
                   numberOfMonths={1}
                   disabled={(date) => date > new Date()}

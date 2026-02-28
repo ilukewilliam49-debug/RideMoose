@@ -2,54 +2,58 @@ import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { Car, MapPin, DollarSign, Clock, UtensilsCrossed, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const services = [
-  {
-    icon: Car,
-    label: "Rides",
-    desc: "Get a ride anywhere, anytime",
-    path: "/rider/rides",
-    gradient: "from-primary/20 to-primary/5",
-  },
-  {
-    icon: UtensilsCrossed,
-    label: "Food Delivery",
-    desc: "Your favorite meals, delivered fast",
-    path: "/rider/rides",
-    gradient: "from-orange-500/20 to-orange-500/5",
-  },
-  {
-    icon: ShoppingCart,
-    label: "Groceries",
-    desc: "Fresh groceries at your door",
-    path: "/rider/rides",
-    gradient: "from-emerald-500/20 to-emerald-500/5",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 const DashboardHome = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  const greeting = profile?.full_name ? `Welcome, ${profile.full_name}` : "Welcome";
+  const services = [
+    {
+      icon: Car,
+      label: t("dashboard.rides"),
+      desc: t("dashboard.ridesDesc"),
+      path: "/rider/rides",
+      gradient: "from-primary/20 to-primary/5",
+    },
+    {
+      icon: UtensilsCrossed,
+      label: t("dashboard.foodDelivery"),
+      desc: t("dashboard.foodDeliveryDesc"),
+      path: "/rider/rides",
+      gradient: "from-orange-500/20 to-orange-500/5",
+    },
+    {
+      icon: ShoppingCart,
+      label: t("dashboard.groceries"),
+      desc: t("dashboard.groceriesDesc"),
+      path: "/rider/rides",
+      gradient: "from-emerald-500/20 to-emerald-500/5",
+    },
+  ];
+
+  const greeting = profile?.full_name
+    ? t("dashboard.welcome", { name: profile.full_name })
+    : t("dashboard.welcomeDefault");
 
   const role = profile?.role || "rider";
 
-  const stats = {
+  const stats: Record<string, { icon: any; label: string; value: string }[]> = {
     rider: [
-      { icon: Car, label: "Total Rides", value: "—" },
-      { icon: DollarSign, label: "Total Spent", value: "—" },
-      { icon: Clock, label: "Avg Wait", value: "—" },
+      { icon: Car, label: t("dashboard.totalRides"), value: "—" },
+      { icon: DollarSign, label: t("dashboard.totalSpent"), value: "—" },
+      { icon: Clock, label: t("dashboard.avgWait"), value: "—" },
     ],
     driver: [
-      { icon: Car, label: "Trips Completed", value: "—" },
-      { icon: DollarSign, label: "Earnings", value: "—" },
-      { icon: Clock, label: "Hours Online", value: "—" },
+      { icon: Car, label: t("dashboard.tripsCompleted"), value: "—" },
+      { icon: DollarSign, label: t("dashboard.earnings"), value: "—" },
+      { icon: Clock, label: t("dashboard.hoursOnline"), value: "—" },
     ],
     admin: [
-      { icon: Car, label: "Active Rides", value: "—" },
-      { icon: MapPin, label: "Online Drivers", value: "—" },
-      { icon: DollarSign, label: "Revenue Today", value: "—" },
+      { icon: Car, label: t("dashboard.activeRides"), value: "—" },
+      { icon: MapPin, label: t("dashboard.onlineDrivers"), value: "—" },
+      { icon: DollarSign, label: t("dashboard.revenueToday"), value: "—" },
     ],
   };
 
@@ -59,7 +63,7 @@ const DashboardHome = () => {
     <div className="space-y-8 pt-4">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold">{greeting}</h1>
-        <p className="text-muted-foreground text-sm mt-1">What do you need today?</p>
+        <p className="text-muted-foreground text-sm mt-1">{t("dashboard.whatDoYouNeed")}</p>
       </motion.div>
 
       {/* Service Cards */}
@@ -82,7 +86,7 @@ const DashboardHome = () => {
 
       {/* Stats */}
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">Your Overview</h2>
+        <h2 className="text-sm font-medium text-muted-foreground mb-3">{t("dashboard.yourOverview")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {cards.map((card, i) => (
             <motion.div
