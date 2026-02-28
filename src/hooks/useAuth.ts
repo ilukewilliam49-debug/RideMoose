@@ -15,6 +15,7 @@ export interface Profile {
   can_taxi: boolean;
   can_private_hire: boolean;
   can_shuttle: boolean;
+  can_courier: boolean;
   seat_capacity: number | null;
   driver_balance_cents: number;
   commission_rate: number;

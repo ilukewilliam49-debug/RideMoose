@@ -20,12 +20,13 @@ const DriverDispatch = () => {
 
   // Only fetch rides matching driver's capabilities
   const { data: pendingRides } = useQuery({
-    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle],
+    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier],
     queryFn: async () => {
-      const serviceTypes: ("taxi" | "private_hire" | "shuttle")[] = [];
+      const serviceTypes: ("taxi" | "private_hire" | "shuttle" | "courier")[] = [];
       if (profile?.can_taxi) serviceTypes.push("taxi");
       if (profile?.can_private_hire) serviceTypes.push("private_hire");
       if (profile?.can_shuttle) serviceTypes.push("shuttle");
+      if (profile?.can_courier) serviceTypes.push("courier");
       if (serviceTypes.length === 0) return [];
 
       const { data, error } = await supabase
@@ -185,6 +186,7 @@ const DriverDispatch = () => {
           {profile?.can_taxi && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Car className="h-3 w-3" /> Taxi</span>}
           {profile?.can_private_hire && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Briefcase className="h-3 w-3" /> Private</span>}
           {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> Shuttle</span>}
+          {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Package className="h-3 w-3" /> Courier</span>}
         </div>
       </div>
 

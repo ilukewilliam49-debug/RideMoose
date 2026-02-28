@@ -318,6 +318,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          can_courier: boolean
           can_private_hire: boolean
           can_shuttle: boolean
           can_taxi: boolean
@@ -343,6 +344,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          can_courier?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
@@ -368,6 +370,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          can_courier?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
