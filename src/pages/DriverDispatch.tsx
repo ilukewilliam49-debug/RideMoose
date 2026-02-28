@@ -144,9 +144,9 @@ const DriverDispatch = () => {
       .eq("id", rideId)
       .eq("status", "requested");
     if (error) {
-      toast.error("Could not accept ride. It may have been taken.");
+      toast.error(t('dispatch.couldNotAccept'));
     } else {
-      toast.success("Ride accepted!");
+      toast.success(t('dispatch.rideAccepted'));
     }
   };
 
@@ -162,7 +162,7 @@ const DriverDispatch = () => {
       .eq("id", rideId);
     if (error) toast.error(error.message);
     else {
-      toast.success("Marked as collected!");
+      toast.success(t('dispatch.markedCollected'));
       queryClient.invalidateQueries({ queryKey: ["outstanding-rides"] });
     }
   };
@@ -186,7 +186,7 @@ const DriverDispatch = () => {
         .eq("id", rideId);
       if (updateError) throw updateError;
 
-      toast.success("Proof photo uploaded!");
+      toast.success(t('dispatch.proofPhotoUploaded'));
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     } catch (err: any) {
       toast.error(err.message);
@@ -217,14 +217,14 @@ const DriverDispatch = () => {
       }
     }
 
-    toast.success(`Ride ${status.replace("_", " ")}!`);
+    toast.success(t('dispatch.rideStatusUpdate', { status: status.replace("_", " ") }));
   };
 
   const activeMarkers: MapMarker[] = activeRide
     ? [
-        ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: "Pickup" }] : []),
-        ...(activeRide.dropoff_lat && activeRide.dropoff_lng ? [{ lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, type: "dropoff" as const, label: "Dropoff" }] : []),
-        ...(profile?.latitude && profile?.longitude ? [{ lat: profile.latitude, lng: profile.longitude, type: "driver" as const, label: "You" }] : []),
+        ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: t('dispatch.pickup') }] : []),
+        ...(activeRide.dropoff_lat && activeRide.dropoff_lng ? [{ lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, type: "dropoff" as const, label: t('dispatch.dropoff') }] : []),
+        ...(profile?.latitude && profile?.longitude ? [{ lat: profile.latitude, lng: profile.longitude, type: "driver" as const, label: t('dispatch.you') }] : []),
       ]
     : [];
 
@@ -243,13 +243,13 @@ const DriverDispatch = () => {
   return (
     <div className="space-y-6 pt-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dispatch Board</h1>
+        <h1 className="text-2xl font-bold">{t('dispatch.dispatchBoard')}</h1>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {profile?.can_taxi && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Car className="h-3 w-3" /> Taxi</span>}
-          {profile?.can_private_hire && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Briefcase className="h-3 w-3" /> Private</span>}
-          {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> Shuttle</span>}
-          {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Package className="h-3 w-3" /> Courier</span>}
-          {profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type) && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Truck className="h-3 w-3" /> Large</span>}
+          {profile?.can_taxi && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Car className="h-3 w-3" /> {t('dispatch.taxi')}</span>}
+          {profile?.can_private_hire && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Briefcase className="h-3 w-3" /> {t('dispatch.private')}</span>}
+          {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> {t('dispatch.shuttle')}</span>}
+          {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Package className="h-3 w-3" /> {t('dispatch.courier')}</span>}
+          {profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type) && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Truck className="h-3 w-3" /> {t('dispatch.large')}</span>}
         </div>
       </div>
 
@@ -259,9 +259,9 @@ const DriverDispatch = () => {
           {activeMarkers.length > 0 && <RideMap markers={activeMarkers} />}
           <div className="glass-surface rounded-lg p-5 border border-primary/30">
             <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-sm font-semibold text-primary">ACTIVE RIDE</h2>
+              <h2 className="text-sm font-semibold text-primary">{t('dispatch.activeRide')}</h2>
               <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                {activeRide.service_type === "private_hire" ? "Private Hire – Flat Rate" : activeRide.service_type}
+                {activeRide.service_type === "private_hire" ? t('dispatch.privateHireFlatRate') : activeRide.service_type}
               </span>
             </div>
             <div className="space-y-2 mb-4">
@@ -284,29 +284,29 @@ const DriverDispatch = () => {
                   <div className="space-y-2">
                     {(activeRide as any).item_description && (
                       <p className="text-xs text-muted-foreground">
-                        📦 Item: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
+                        📦 {t('dispatch.item')}: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
                       </p>
                     )}
                     {(activeRide as any).marketplace_delivery && (
                       <div className="flex items-center gap-1.5 text-xs text-yellow-500">
                         <ShoppingBag className="h-3.5 w-3.5" />
-                        <span>Marketplace delivery — ensure vehicle capacity fits item</span>
+                        <span>{t('dispatch.marketplaceDeliveryNote')}</span>
                       </div>
                     )}
                     {(activeRide as any).package_size && (
                       <p className="text-xs text-muted-foreground">
-                        Package: <span className="capitalize font-medium">{(activeRide as any).package_size}</span>
+                        {t('dispatch.package')}: <span className="capitalize font-medium">{(activeRide as any).package_size}</span>
                       </p>
                     )}
                     {(activeRide as any).pickup_notes && (
-                      <p className="text-xs text-muted-foreground">Pickup notes: {(activeRide as any).pickup_notes}</p>
+                      <p className="text-xs text-muted-foreground">{t('dispatch.pickupNotes')}: {(activeRide as any).pickup_notes}</p>
                     )}
                     {(activeRide as any).dropoff_notes && (
-                      <p className="text-xs text-muted-foreground">Dropoff notes: {(activeRide as any).dropoff_notes}</p>
+                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
                     )}
                     {activeRide.status === "in_progress" && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url && (
                       <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
-                        <p className="text-xs text-yellow-500 font-medium mb-2">📸 Proof photo required before completing</p>
+                        <p className="text-xs text-yellow-500 font-medium mb-2">📸 {t('dispatch.proofRequired')}</p>
                         <input
                           ref={proofInputRef}
                           type="file"
@@ -324,12 +324,12 @@ const DriverDispatch = () => {
                           disabled={uploadingProof}
                           onClick={() => proofInputRef.current?.click()}
                         >
-                          {uploadingProof ? "Uploading..." : "Upload Proof Photo"}
+                          {uploadingProof ? t('dispatch.uploading') : t('dispatch.uploadProofPhoto')}
                         </Button>
                       </div>
                     )}
                     {(activeRide as any).proof_photo_url && (
-                      <p className="text-xs text-green-500">✓ Proof photo uploaded</p>
+                      <p className="text-xs text-green-500">✓ {t('dispatch.proofUploaded')}</p>
                     )}
                   </div>
                 )}
@@ -338,7 +338,7 @@ const DriverDispatch = () => {
                   <div className="space-y-2">
                     {(activeRide as any).item_description && (
                       <p className="text-xs text-muted-foreground">
-                        📦 Item: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
+                        📦 {t('dispatch.item')}: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
                       </p>
                     )}
                     {(activeRide as any).weight_estimate_kg && (
@@ -347,23 +347,23 @@ const DriverDispatch = () => {
                       </p>
                     )}
                     {(activeRide as any).requires_loading_help && (
-                      <p className="text-xs text-yellow-500">⚠ Loading help required</p>
+                      <p className="text-xs text-yellow-500">⚠ {t('dispatch.loadingHelpRequired')}</p>
                     )}
                     {(activeRide as any).stairs_involved && (
-                      <p className="text-xs text-yellow-500">⚠ Stairs involved</p>
+                      <p className="text-xs text-yellow-500">⚠ {t('dispatch.stairsInvolved')}</p>
                     )}
                     {(activeRide as any).pickup_notes && (
-                      <p className="text-xs text-muted-foreground">Pickup notes: {(activeRide as any).pickup_notes}</p>
+                      <p className="text-xs text-muted-foreground">{t('dispatch.pickupNotes')}: {(activeRide as any).pickup_notes}</p>
                     )}
                     {(activeRide as any).dropoff_notes && (
-                      <p className="text-xs text-muted-foreground">Dropoff notes: {(activeRide as any).dropoff_notes}</p>
+                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
                     )}
                   </div>
                 )}
                 <div className="flex gap-2">
                   {activeRide.status === "accepted" && (
                     <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? "Start Delivery" : "Start Trip"}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? t('dispatch.startDelivery') : t('dispatch.startTrip')}
                     </Button>
                   )}
                   {activeRide.status === "in_progress" && (
@@ -372,11 +372,11 @@ const DriverDispatch = () => {
                       disabled={(activeRide.service_type === "courier" || activeRide.service_type === "large_delivery") && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url}
                       onClick={() => updateRideStatus(activeRide.id, "completed")}
                     >
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? "Complete Delivery" : "Complete Trip"}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? t('dispatch.completeDelivery') : t('dispatch.completeTrip')}
                     </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
-                    Cancel
+                    {t('dispatch.cancel')}
                   </Button>
                 </div>
               </div>
@@ -390,7 +390,7 @@ const DriverDispatch = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Banknote className="h-5 w-5 text-yellow-500" />
-            Collect Remaining Balance
+            {t('dispatch.collectBalance')}
           </h2>
           <div className="space-y-2">
             {outstandingRides.map((ride) => {
@@ -430,7 +430,7 @@ const DriverDispatch = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Receipt className="h-5 w-5 text-primary" />
-            Recent Deliveries
+            {t('dispatch.recentDeliveries')}
           </h2>
           <div className="space-y-2">
             {recentDeliveries.map((ride: any) => {
@@ -443,7 +443,7 @@ const DriverDispatch = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${ride.service_type === 'courier' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'}`}>
-                        {ride.service_type === 'courier' ? 'Courier' : 'Large Delivery'}
+                        {ride.service_type === 'courier' ? t('dispatch.courierBadge') : t('dispatch.largeDeliveryBadge')}
                       </span>
                       <p className="text-sm font-medium truncate min-w-0">
                         {ride.pickup_address} → {ride.dropoff_address}
@@ -483,9 +483,9 @@ const DriverDispatch = () => {
       )}
 
       <div>
-        <h2 className="text-lg font-semibold mb-3">Incoming Requests</h2>
+        <h2 className="text-lg font-semibold mb-3">{t('dispatch.incomingRequests')}</h2>
         {pendingRides?.length === 0 && (
-          <p className="text-sm text-muted-foreground">No pending ride requests.</p>
+          <p className="text-sm text-muted-foreground">{t('dispatch.noPendingRequests')}</p>
         )}
         <div className="space-y-2">
           {pendingRides?.map((ride) => (
@@ -502,11 +502,11 @@ const DriverDispatch = () => {
                     {ride.service_type}
                   </span>
                   {ride.service_type === "shuttle" && (
-                    <span className="text-xs text-muted-foreground">{ride.passenger_count} pax</span>
+                    <span className="text-xs text-muted-foreground">{ride.passenger_count} {t('dispatch.pax')}</span>
                   )}
                   {ride.service_type === "courier" && (ride as any).marketplace_delivery && (
                     <span className="flex items-center gap-1 text-xs text-yellow-500">
-                      <ShoppingBag className="h-3 w-3" /> Marketplace
+                      <ShoppingBag className="h-3 w-3" /> {t('dispatch.marketplace')}
                     </span>
                   )}
                 </div>
@@ -521,7 +521,7 @@ const DriverDispatch = () => {
                 {ride.service_type === "courier" && (ride as any).marketplace_delivery && (
                   <div className="flex items-center gap-1.5 text-[10px] text-yellow-500">
                     <AlertTriangle className="h-3 w-3" />
-                    <span>Ensure vehicle capacity fits item</span>
+                    <span>{t('dispatch.ensureCapacity')}</span>
                   </div>
                 )}
                 {ride.service_type === "large_delivery" && (ride as any).item_description && (
@@ -535,10 +535,10 @@ const DriverDispatch = () => {
                       <span className="text-muted-foreground">~{(ride as any).weight_estimate_kg} kg</span>
                     )}
                     {(ride as any).requires_loading_help && (
-                      <span className="text-yellow-500">Loading help</span>
+                      <span className="text-yellow-500">{t('dispatch.loadingHelp')}</span>
                     )}
                     {(ride as any).stairs_involved && (
-                      <span className="text-yellow-500">Stairs</span>
+                      <span className="text-yellow-500">{t('dispatch.stairs')}</span>
                     )}
                   </div>
                 )}
