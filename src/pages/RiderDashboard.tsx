@@ -16,6 +16,7 @@ import RideRatingDialog from "@/components/RideRatingDialog";
 import { detectGeoZone } from "@/lib/geofence";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
+import DeliveryBidsList from "@/components/DeliveryBidsList";
 
 type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery";
 
@@ -562,6 +563,12 @@ const RiderDashboard = () => {
             </p>
             {driverProfile && (
               <p className="text-xs text-muted-foreground">{t("rider.driver")}: {driverProfile.full_name}</p>
+            )}
+            {/* Large delivery bids panel */}
+            {activeRide.service_type === "large_delivery" && activeRide.status === "requested" && (
+              <div className="mt-3">
+                <DeliveryBidsList rideId={activeRide.id} />
+              </div>
             )}
             {(activeRide.status === "requested" || activeRide.status === "accepted") && (
               <Button
