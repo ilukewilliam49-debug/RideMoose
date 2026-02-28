@@ -341,6 +341,7 @@ export type Database = {
           standard_commission_rate: number
           updated_at: string
           user_id: string
+          vehicle_type: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -367,6 +368,7 @@ export type Database = {
           standard_commission_rate?: number
           updated_at?: string
           user_id: string
+          vehicle_type?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -393,6 +395,7 @@ export type Database = {
           standard_commission_rate?: number
           updated_at?: string
           user_id?: string
+          vehicle_type?: string | null
         }
         Relationships: [
           {
@@ -503,16 +506,19 @@ export type Database = {
           pricing_model: string
           proof_photo_required: boolean
           proof_photo_url: string | null
+          requires_loading_help: boolean
           rider_id: string
           scheduled_at: string | null
           service_fee_cents: number
           service_type: Database["public"]["Enums"]["service_type"]
+          stairs_involved: boolean
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
           stripe_fee_cents: number
           stripe_payment_intent_id: string | null
           updated_at: string
           waiting_min: number
+          weight_estimate_kg: number | null
         }
         Insert: {
           authorized_amount_cents?: number | null
@@ -560,16 +566,19 @@ export type Database = {
           pricing_model?: string
           proof_photo_required?: boolean
           proof_photo_url?: string | null
+          requires_loading_help?: boolean
           rider_id: string
           scheduled_at?: string | null
           service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
+          stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string
           waiting_min?: number
+          weight_estimate_kg?: number | null
         }
         Update: {
           authorized_amount_cents?: number | null
@@ -617,16 +626,19 @@ export type Database = {
           pricing_model?: string
           proof_photo_required?: boolean
           proof_photo_url?: string | null
+          requires_loading_help?: boolean
           rider_id?: string
           scheduled_at?: string | null
           service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
+          stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string
           waiting_min?: number
+          weight_estimate_kg?: number | null
         }
         Relationships: [
           {
@@ -816,7 +828,12 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
-      service_type: "taxi" | "shuttle" | "private_hire" | "courier"
+      service_type:
+        | "taxi"
+        | "shuttle"
+        | "private_hire"
+        | "courier"
+        | "large_delivery"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -954,7 +971,13 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
-      service_type: ["taxi", "shuttle", "private_hire", "courier"],
+      service_type: [
+        "taxi",
+        "shuttle",
+        "private_hire",
+        "courier",
+        "large_delivery",
+      ],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
     },
