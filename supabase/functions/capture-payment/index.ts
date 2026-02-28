@@ -52,6 +52,32 @@ serve(async (req) => {
       .single();
     if (rideError || !ride) throw new Error("Ride not found");
 
+    // Large delivery: commission/fees already set during bid authorization
+    if (ride.service_type === "large_delivery" && ride.payment_status === "authorized" && ride.stripe_payment_intent_id) {
+      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+        apiVersion: "2025-08-27.basil",
+      });
+
+      const amountToCapture = ride.final_fare_cents || ride.authorized_amount_cents || 0;
+      await stripe.paymentIntents.capture(ride.stripe_payment_intent_id, {
+        amount_to_capture: amountToCapture,
+      });
+
+      await serviceClient
+        .from("rides")
+        .update({
+          captured_amount_cents: amountToCapture,
+          outstanding_amount_cents: 0,
+          payment_status: "paid",
+          paid_at: new Date().toISOString(),
+        })
+        .eq("id", ride_id);
+
+      return new Response(
+        JSON.stringify({ status: "captured", amount_cents: amountToCapture }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
     // Fetch driver profile for 3-phase commission ramp
     let effectiveCommissionRate = cfg.commission_rate ? cfg.commission_rate / 100 : 0.049;
     let inPromo = false;

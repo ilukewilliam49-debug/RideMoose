@@ -180,8 +180,24 @@ const DriverDispatch = () => {
     if (status === "in_progress") updates.started_at = new Date().toISOString();
     if (status === "completed") updates.completed_at = new Date().toISOString();
     const { error } = await supabase.from("rides").update(updates).eq("id", rideId);
-    if (error) toast.error(error.message);
-    else toast.success(`Ride ${status.replace("_", " ")}!`);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    // Capture payment for completed large_delivery rides
+    if (status === "completed" && activeRide?.service_type === "large_delivery" && activeRide?.payment_status === "authorized") {
+      try {
+        const { error: captureErr } = await supabase.functions.invoke("capture-payment", {
+          body: { ride_id: rideId },
+        });
+        if (captureErr) console.error("Capture error:", captureErr);
+      } catch (e) {
+        console.error("Payment capture failed:", e);
+      }
+    }
+
+    toast.success(`Ride ${status.replace("_", " ")}!`);
   };
 
   const activeMarkers: MapMarker[] = activeRide
