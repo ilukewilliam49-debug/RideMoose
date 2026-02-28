@@ -3,7 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Send, Bot, User, Loader2 } from "lucide-react";
+import { MessageSquare, Send, Bot, User, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -20,6 +22,8 @@ const SupportChatDialog = ({ rideId, trigger }: SupportChatDialogProps) => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [escalated, setEscalated] = useState(false);
+  const [escalating, setEscalating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,12 +32,11 @@ const SupportChatDialog = ({ rideId, trigger }: SupportChatDialogProps) => {
     }
   }, [messages]);
 
-  // Send initial greeting when opened for the first time
   useEffect(() => {
     if (open && messages.length === 0) {
       const greeting: Msg = {
         role: "assistant",
-        content: "Hi there! 👋 I'm sorry to hear you're having trouble finding a driver for your delivery. I'm here to help — tell me more about the issue and I'll do my best to assist you.",
+        content: "Hi there! 👋 I'm sorry to hear you're having trouble finding a driver for your delivery. I'm here to help — tell me more about the issue and I'll do my best to assist you.\n\nIf you'd prefer to speak with a human agent, you can escalate at any time using the button below.",
       };
       setMessages([greeting]);
     }
@@ -115,6 +118,30 @@ const SupportChatDialog = ({ rideId, trigger }: SupportChatDialogProps) => {
     }
   };
 
+  const handleEscalate = async () => {
+    setEscalating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("escalate-support", {
+        body: { rideId, messages },
+      });
+      if (error) throw error;
+
+      setEscalated(true);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "✅ **Your conversation has been escalated to our support team.** A human agent will review your case and get back to you within 24 hours. You can close this chat — we have all the details we need.",
+        },
+      ]);
+      toast.success("Escalated to support team. We'll follow up within 24 hours.");
+    } catch (e: any) {
+      toast.error("Failed to escalate: " + (e.message || "Unknown error"));
+    } finally {
+      setEscalating(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -173,7 +200,29 @@ const SupportChatDialog = ({ rideId, trigger }: SupportChatDialogProps) => {
           </div>
         </ScrollArea>
 
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-border space-y-2">
+          {!escalated && messages.length > 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 text-xs"
+              disabled={escalating || isLoading}
+              onClick={handleEscalate}
+            >
+              {escalating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <AlertTriangle className="h-3 w-3" />
+              )}
+              Escalate to Human Agent
+            </Button>
+          )}
+          {escalated && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground justify-center py-1">
+              <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+              Escalated — a human agent will follow up
+            </div>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -184,11 +233,11 @@ const SupportChatDialog = ({ rideId, trigger }: SupportChatDialogProps) => {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
+              placeholder={escalated ? "Chat ended — agent will follow up" : "Type your message..."}
               className="flex-1 h-9 text-sm"
-              disabled={isLoading}
+              disabled={isLoading || escalated}
             />
-            <Button type="submit" size="sm" disabled={isLoading || !input.trim()}>
+            <Button type="submit" size="sm" disabled={isLoading || !input.trim() || escalated}>
               <Send className="h-3.5 w-3.5" />
             </Button>
           </form>
