@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS standard_commission_rate numeric NOT NULL DEFAULT 0.049;
