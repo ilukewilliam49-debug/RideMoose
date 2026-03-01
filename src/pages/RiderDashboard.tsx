@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint, Phone, Check } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -64,7 +64,14 @@ const RiderDashboard = () => {
   const [crateConfirmed, setCrateConfirmed] = useState(false);
   const [destinationType, setDestinationType] = useState<"vet" | "grooming" | "boarding" | "airport">("vet");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  // Phone number for SMS notifications
+  const [riderPhone, setRiderPhone] = useState(profile?.phone || "");
+  const [phoneSaving, setPhoneSaving] = useState(false);
+  const [phoneEditing, setPhoneEditing] = useState(false);
 
+  useEffect(() => {
+    if (profile?.phone) setRiderPhone(profile.phone);
+  }, [profile?.phone]);
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
@@ -689,6 +696,24 @@ const RiderDashboard = () => {
   const showActiveMap = activeRide && activeMarkers.length > 0;
   const showBookingMap = !activeRide && mapMarkers.length > 0;
 
+  const savePhone = async () => {
+    if (!profile?.id || !riderPhone.trim()) return;
+    setPhoneSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ phone: riderPhone.trim() })
+        .eq("id", profile.id);
+      if (error) throw error;
+      toast.success(t("rider.phoneSaved"));
+      setPhoneEditing(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setPhoneSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pt-4">
       <div className="space-y-1">
@@ -720,7 +745,35 @@ const RiderDashboard = () => {
         )}
       </div>
 
-      {/* Active ride tracking — pet transport gets enhanced live tracker */}
+      {/* Phone number for SMS notifications */}
+      {!activeRide && (!profile?.phone || phoneEditing) && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-primary" />
+            <p className="text-sm font-medium">{t("rider.addPhoneTitle")}</p>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("rider.addPhoneDesc")}</p>
+          <div className="flex gap-2">
+            <Input
+              value={riderPhone}
+              onChange={(e) => setRiderPhone(e.target.value)}
+              placeholder="+1 555 123 4567"
+              className="bg-secondary text-sm flex-1"
+              type="tel"
+            />
+            <Button size="sm" onClick={savePhone} disabled={phoneSaving || !riderPhone.trim()}>
+              {phoneSaving ? "..." : <Check className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+      )}
+      {!activeRide && profile?.phone && !phoneEditing && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Phone className="h-3 w-3" />
+          <span>{t("rider.smsEnabled")}: {profile.phone}</span>
+          <button onClick={() => setPhoneEditing(true)} className="text-primary hover:underline ml-1">{t("rider.edit")}</button>
+        </div>
+      )}
       {activeRide && (activeRide as any).service_type === "pet_transport" && (
         <div className="space-y-3">
           <LivePetTracker ride={activeRide as any} />
