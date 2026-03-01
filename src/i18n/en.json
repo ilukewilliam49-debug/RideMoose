@@ -53,6 +53,8 @@
     "foodDeliveryDesc": "Your favorite meals, delivered fast",
     "groceries": "Groceries",
     "groceriesDesc": "Fresh groceries at your door",
+    "delivery": "Delivery",
+    "deliveryDesc": "Send packages, large items & more",
     "totalRides": "Total Rides",
     "totalSpent": "Total Spent",
     "avgWait": "Avg Wait",
