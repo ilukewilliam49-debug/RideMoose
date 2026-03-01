@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt, Store, ShoppingCart, UtensilsCrossed, PawPrint } from "lucide-react";
+import { Check, MapPin, MapPinned, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt, Store, ShoppingCart, UtensilsCrossed, PawPrint, Clock } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -285,12 +285,13 @@ const DriverDispatch = () => {
         },
       });
       if (error) return null;
-      return data as { polyline: string | null };
+      return data as { polyline: string | null; distance_km: number; duration_text: string; duration_in_traffic_text: string; duration_in_traffic_sec: number; duration_sec: number };
     },
     enabled: !!activeRide?.pickup_lat && !!activeRide?.dropoff_lat,
     staleTime: 300_000,
   });
   const activeRoutePolyline = activeRideDirections?.polyline ?? null;
+  const activeTrafficDelayMin = activeRideDirections ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0) : 0;
 
   const pendingMarkers: MapMarker[] = (pendingRides || [])
     .filter((r) => r.pickup_lat && r.pickup_lng)
@@ -325,6 +326,24 @@ const DriverDispatch = () => {
       {activeRide && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
           {activeMarkers.length > 0 && <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />}
+          {activeRideDirections && (
+            <div className="glass-surface rounded-lg p-3 mt-2 flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <MapPinned className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">{activeRideDirections.distance_km.toFixed(1)} km</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">{activeRideDirections.duration_in_traffic_text || activeRideDirections.duration_text}</span>
+              </div>
+              {activeTrafficDelayMin > 2 && (
+                <div className="flex items-center gap-1.5 text-amber-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-xs font-medium">+{Math.round(activeTrafficDelayMin)} min traffic</span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="glass-surface rounded-lg p-5 border border-primary/30">
             <div className="flex items-center gap-2 mb-3">
               <h2 className="text-sm font-semibold text-primary">{t('dispatch.activeRide')}</h2>
