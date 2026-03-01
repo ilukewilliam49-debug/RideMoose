@@ -68,10 +68,12 @@ const RiderDashboard = () => {
   const [riderPhone, setRiderPhone] = useState(profile?.phone || "");
   const [phoneSaving, setPhoneSaving] = useState(false);
   const [phoneEditing, setPhoneEditing] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState((profile as any)?.sms_notifications_enabled ?? true);
 
   useEffect(() => {
     if (profile?.phone) setRiderPhone(profile.phone);
-  }, [profile?.phone]);
+    if ((profile as any)?.sms_notifications_enabled !== undefined) setSmsEnabled((profile as any).sms_notifications_enabled);
+  }, [profile?.phone, (profile as any)?.sms_notifications_enabled]);
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
@@ -768,10 +770,34 @@ const RiderDashboard = () => {
         </div>
       )}
       {!activeRide && profile?.phone && !phoneEditing && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Phone className="h-3 w-3" />
-          <span>{t("rider.smsEnabled")}: {profile.phone}</span>
-          <button onClick={() => setPhoneEditing(true)} className="text-primary hover:underline ml-1">{t("rider.edit")}</button>
+        <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-4 py-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Phone className="h-3 w-3" />
+            <span>{t("rider.smsEnabled")}: {profile.phone}</span>
+            <button onClick={() => setPhoneEditing(true)} className="text-primary hover:underline ml-1">{t("rider.edit")}</button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="sms-toggle" className="text-xs text-muted-foreground cursor-pointer">{smsEnabled ? t("rider.smsOn") : t("rider.smsOff")}</Label>
+            <Switch
+              id="sms-toggle"
+              checked={smsEnabled}
+              onCheckedChange={async (checked) => {
+                setSmsEnabled(checked);
+                if (profile?.id) {
+                  const { error } = await supabase
+                    .from("profiles")
+                    .update({ sms_notifications_enabled: checked })
+                    .eq("id", profile.id);
+                  if (error) {
+                    toast.error(error.message);
+                    setSmsEnabled(!checked);
+                  } else {
+                    toast.success(checked ? t("rider.smsTurnedOn") : t("rider.smsTurnedOff"));
+                  }
+                }
+              }}
+            />
+          </div>
         </div>
       )}
       {activeRide && (activeRide as any).service_type === "pet_transport" && (
