@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.cancel-bid-payment]
 verify_jwt = false
+
+[functions.pet-arrival-notify]
+verify_jwt = false

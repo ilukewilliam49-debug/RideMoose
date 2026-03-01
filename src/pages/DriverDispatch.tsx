@@ -10,6 +10,7 @@ import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, S
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
+import { usePetArrivalCheck } from "@/hooks/usePetArrivalCheck";
 import TaxiMeter from "@/components/TaxiMeter";
 import DriverBidForm from "@/components/DriverBidForm";
 
@@ -69,6 +70,9 @@ const DriverDispatch = () => {
     },
     enabled: !!profile?.id,
   });
+
+  // Pet arrival proximity check
+  usePetArrivalCheck(activeRide as any);
 
   // Fetch driver's existing bids on pending large_delivery rides
   const { data: myBids } = useQuery({

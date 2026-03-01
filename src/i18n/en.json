@@ -305,7 +305,9 @@
     "etaPickup": "ETA to pickup",
     "etaDropoff": "ETA to destination",
     "driverArriving": "Driver arriving now!",
-    "arrivedAtDropoff": "Arriving at destination!"
+    "arrivedAtDropoff": "Arriving at destination!",
+    "petArrivalPickup": "Driver arrived at pickup",
+    "petArrivalDropoff": "Arriving at destination"
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
