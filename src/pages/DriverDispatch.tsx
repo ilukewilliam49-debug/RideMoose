@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt } from "lucide-react";
+import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt, Store } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -25,11 +25,11 @@ const DriverDispatch = () => {
   const { data: pendingRides } = useQuery({
     queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier, profile?.vehicle_type],
     queryFn: async () => {
-      const serviceTypes: ("taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery")[] = [];
+      const serviceTypes: ("taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery")[] = [];
       if (profile?.can_taxi) serviceTypes.push("taxi");
       if (profile?.can_private_hire) serviceTypes.push("private_hire");
       if (profile?.can_shuttle) serviceTypes.push("shuttle");
-      if (profile?.can_courier) serviceTypes.push("courier");
+      if (profile?.can_courier) { serviceTypes.push("courier"); serviceTypes.push("retail_delivery"); }
       // large_delivery eligibility is based on vehicle_type
       if (profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type)) serviceTypes.push("large_delivery");
       if (serviceTypes.length === 0) return [];
@@ -112,7 +112,7 @@ const DriverDispatch = () => {
         .select("*")
         .eq("driver_id", profile.id)
         .eq("status", "completed")
-        .in("service_type", ["large_delivery", "courier"])
+        .in("service_type", ["large_delivery", "courier", "retail_delivery"])
         .order("completed_at", { ascending: false })
         .limit(10);
       if (error) throw error;
@@ -217,6 +217,8 @@ const DriverDispatch = () => {
       }
     }
 
+    // For retail_delivery, proof photo is required before completion (handled by disabled button)
+
     toast.success(t('dispatch.rideStatusUpdate', { status: status.replace("_", " ") }));
   };
 
@@ -238,7 +240,7 @@ const DriverDispatch = () => {
     }));
 
   const ServiceIcon = ({ type }: { type: string }) =>
-    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : type === "large_delivery" ? <Truck className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
+    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : type === "large_delivery" ? <Truck className="h-3.5 w-3.5" /> : type === "retail_delivery" ? <Store className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
 
   return (
     <div className="space-y-6 pt-4">
@@ -249,6 +251,7 @@ const DriverDispatch = () => {
           {profile?.can_private_hire && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Briefcase className="h-3 w-3" /> {t('dispatch.private')}</span>}
           {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> {t('dispatch.shuttle')}</span>}
           {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Package className="h-3 w-3" /> {t('dispatch.courier')}</span>}
+          {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Store className="h-3 w-3" /> {t('dispatch.retail')}</span>}
           {profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type) && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Truck className="h-3 w-3" /> {t('dispatch.large')}</span>}
         </div>
       </div>
@@ -360,19 +363,75 @@ const DriverDispatch = () => {
                     )}
                   </div>
                 )}
+                {/* Retail Delivery: show store/order details and proof photo */}
+                {activeRide.service_type === "retail_delivery" && (
+                  <div className="space-y-2">
+                    {(activeRide as any).store_id && (
+                      <p className="text-xs text-muted-foreground">
+                        🏪 {t('dispatch.storeId')}: <span className="font-medium text-foreground">{(activeRide as any).store_id}</span>
+                      </p>
+                    )}
+                    {(activeRide as any).order_value_cents && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('dispatch.orderValue')}: <span className="font-medium text-foreground">${((activeRide as any).order_value_cents / 100).toFixed(2)}</span>
+                      </p>
+                    )}
+                    {(activeRide as any).package_size && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('dispatch.package')}: <span className="capitalize font-medium">{(activeRide as any).package_size}</span>
+                      </p>
+                    )}
+                    {(activeRide as any).signature_required && (
+                      <p className="text-xs text-yellow-500">✍ {t('dispatch.signatureRequired')}</p>
+                    )}
+                    {(activeRide as any).pickup_notes && (
+                      <p className="text-xs text-muted-foreground">{t('dispatch.pickupNotes')}: {(activeRide as any).pickup_notes}</p>
+                    )}
+                    {(activeRide as any).dropoff_notes && (
+                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
+                    )}
+                    {activeRide.status === "in_progress" && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url && (
+                      <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
+                        <p className="text-xs text-yellow-500 font-medium mb-2">📸 {t('dispatch.proofRequired')}</p>
+                        <input
+                          ref={proofInputRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadProofPhoto(activeRide.id, file);
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={uploadingProof}
+                          onClick={() => proofInputRef.current?.click()}
+                        >
+                          {uploadingProof ? t('dispatch.uploading') : t('dispatch.uploadProofPhoto')}
+                        </Button>
+                      </div>
+                    )}
+                    {(activeRide as any).proof_photo_url && (
+                      <p className="text-xs text-green-500">✓ {t('dispatch.proofUploaded')}</p>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   {activeRide.status === "accepted" && (
                     <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? t('dispatch.startDelivery') : t('dispatch.startTrip')}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" ? t('dispatch.startDelivery') : t('dispatch.startTrip')}
                     </Button>
                   )}
                   {activeRide.status === "in_progress" && (
                     <Button
                       size="sm"
-                      disabled={(activeRide.service_type === "courier" || activeRide.service_type === "large_delivery") && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url}
+                      disabled={(activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery") && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url}
                       onClick={() => updateRideStatus(activeRide.id, "completed")}
                     >
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" ? t('dispatch.completeDelivery') : t('dispatch.completeTrip')}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" ? t('dispatch.completeDelivery') : t('dispatch.completeTrip')}
                     </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
@@ -442,8 +501,8 @@ const DriverDispatch = () => {
                 <div key={ride.id} className="glass-surface rounded-lg p-4 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${ride.service_type === 'courier' ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'}`}>
-                        {ride.service_type === 'courier' ? t('dispatch.courierBadge') : t('dispatch.largeDeliveryBadge')}
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${ride.service_type === 'courier' ? 'bg-accent text-accent-foreground' : ride.service_type === 'retail_delivery' ? 'bg-secondary text-secondary-foreground' : 'bg-primary/10 text-primary'}`}>
+                        {ride.service_type === 'courier' ? t('dispatch.courierBadge') : ride.service_type === 'retail_delivery' ? t('dispatch.retailDeliveryBadge') : t('dispatch.largeDeliveryBadge')}
                       </span>
                       <p className="text-sm font-medium truncate min-w-0">
                         {ride.pickup_address} → {ride.dropoff_address}
@@ -455,11 +514,11 @@ const DriverDispatch = () => {
                   </div>
                   <div className="text-[10px] font-mono text-muted-foreground border-t border-border pt-2 space-y-1">
                     <div className="flex justify-between">
-                      <span>{ride.service_type === 'courier' ? t('earnings.fare') : t('earnings.bidAmount')}</span>
+                      <span>{ride.service_type === 'courier' || ride.service_type === 'retail_delivery' ? t('earnings.fare') : t('earnings.bidAmount')}</span>
                       <span>${(bidAmount / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>{t('earnings.platformCommission', { rate: ride.service_type === 'courier' ? '6' : '8' })}</span>
+                      <span>{t('earnings.platformCommission', { rate: ride.service_type === 'courier' ? '6' : ride.service_type === 'retail_delivery' ? '7' : '8' })}</span>
                       <span className="text-destructive">-${(commission / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
@@ -539,6 +598,17 @@ const DriverDispatch = () => {
                     )}
                     {(ride as any).stairs_involved && (
                       <span className="text-yellow-500">{t('dispatch.stairs')}</span>
+                    )}
+                  </div>
+                )}
+                {/* Retail delivery details in request list */}
+                {ride.service_type === "retail_delivery" && (
+                  <div className="flex flex-wrap gap-2 text-[10px]">
+                    {(ride as any).store_id && (
+                      <span className="text-muted-foreground">🏪 {(ride as any).store_id}</span>
+                    )}
+                    {(ride as any).signature_required && (
+                      <span className="text-yellow-500">{t('dispatch.signatureRequired')}</span>
                     )}
                   </div>
                 )}

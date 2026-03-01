@@ -232,7 +232,18 @@
     "status_accepted": "Accepté",
     "status_in_progress": "En cours",
     "status_completed": "Terminé",
-    "status_cancelled": "Annulé"
+    "status_cancelled": "Annulé",
+    "retailDelivery": "Livraison commerce",
+    "retailDeliveryDesc": "Livraison magasin/entreprise",
+    "requestRetailDelivery": "Demander une livraison commerce",
+    "storeId": "ID magasin",
+    "storeIdPlaceholder": "Entrez la référence du magasin ou de la commande",
+    "orderValue": "Valeur de la commande ($)",
+    "orderValuePlaceholder": "Valeur de la commande en dollars",
+    "signatureRequired": "Signature requise",
+    "signatureRequiredDesc": "Le destinataire doit signer à la livraison",
+    "businessAccountRequired": "Compte entreprise requis pour la livraison commerce.",
+    "retailProofNote": "Une photo de preuve est requise avant de terminer la livraison."
   },
   "rating": {
     "rateYourRide": "Évaluez votre trajet",
@@ -323,6 +334,11 @@
     "rideAccepted": "Trajet accepté !",
     "markedCollected": "Marqué comme perçu !",
     "proofPhotoUploaded": "Photo de preuve téléchargée !",
-    "rideStatusUpdate": "Trajet {{status}} !"
+    "rideStatusUpdate": "Trajet {{status}} !",
+    "retailDeliveryBadge": "Livraison commerce",
+    "retail": "Commerce",
+    "signatureRequired": "Signature requise",
+    "storeId": "Magasin",
+    "orderValue": "Valeur commande"
   }
 }

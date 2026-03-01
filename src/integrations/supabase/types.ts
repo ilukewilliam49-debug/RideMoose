@@ -614,6 +614,7 @@ export type Database = {
           meter_ended_at: string | null
           meter_started_at: string | null
           meter_status: string
+          order_value_cents: number | null
           organization_id: string | null
           outstanding_amount_cents: number | null
           outstanding_reason: string | null
@@ -638,9 +639,11 @@ export type Database = {
           scheduled_at: string | null
           service_fee_cents: number
           service_type: Database["public"]["Enums"]["service_type"]
+          signature_required: boolean
           stairs_involved: boolean
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
+          store_id: string | null
           stripe_fee_cents: number
           stripe_payment_intent_id: string | null
           updated_at: string
@@ -676,6 +679,7 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          order_value_cents?: number | null
           organization_id?: string | null
           outstanding_amount_cents?: number | null
           outstanding_reason?: string | null
@@ -700,9 +704,11 @@ export type Database = {
           scheduled_at?: string | null
           service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
+          signature_required?: boolean
           stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          store_id?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string
@@ -738,6 +744,7 @@ export type Database = {
           meter_ended_at?: string | null
           meter_started_at?: string | null
           meter_status?: string
+          order_value_cents?: number | null
           organization_id?: string | null
           outstanding_amount_cents?: number | null
           outstanding_reason?: string | null
@@ -762,9 +769,11 @@ export type Database = {
           scheduled_at?: string | null
           service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
+          signature_required?: boolean
           stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          store_id?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string

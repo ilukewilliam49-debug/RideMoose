@@ -232,7 +232,18 @@
     "status_accepted": "Accepted",
     "status_in_progress": "In Progress",
     "status_completed": "Completed",
-    "status_cancelled": "Cancelled"
+    "status_cancelled": "Cancelled",
+    "retailDelivery": "Retail Delivery",
+    "retailDeliveryDesc": "Store/business delivery",
+    "requestRetailDelivery": "Request Retail Delivery",
+    "storeId": "Store ID",
+    "storeIdPlaceholder": "Enter store or order reference",
+    "orderValue": "Order Value ($)",
+    "orderValuePlaceholder": "Value of the order in dollars",
+    "signatureRequired": "Signature Required",
+    "signatureRequiredDesc": "Recipient must sign on delivery",
+    "businessAccountRequired": "Business account required for retail delivery.",
+    "retailProofNote": "Proof photo is required before completing delivery."
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
@@ -323,6 +334,11 @@
     "rideAccepted": "Ride accepted!",
     "markedCollected": "Marked as collected!",
     "proofPhotoUploaded": "Proof photo uploaded!",
-    "rideStatusUpdate": "Ride {{status}}!"
+    "rideStatusUpdate": "Ride {{status}}!",
+    "retailDeliveryBadge": "Retail Delivery",
+    "retail": "Retail",
+    "signatureRequired": "Signature required",
+    "storeId": "Store",
+    "orderValue": "Order value"
   }
 }
