@@ -407,12 +407,13 @@ const RiderDashboard = () => {
         },
       });
       if (error) return null;
-      return data as { polyline: string | null };
+      return data as { polyline: string | null; distance_km: number; duration_text: string; duration_in_traffic_text: string; duration_in_traffic_sec: number; duration_sec: number };
     },
     enabled: !!activeRide?.pickup_lat && !!activeRide?.dropoff_lat,
     staleTime: 300_000,
   });
   const activeRoutePolyline = activeRideDirections?.polyline ?? null;
+  const activeTrafficDelayMin = activeRideDirections ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0) : 0;
 
   const { data: rides, refetch } = useQuery({
     queryKey: ["my-rides", profile?.id],
@@ -844,6 +845,24 @@ const RiderDashboard = () => {
       {showActiveMap && (activeRide as any)?.service_type !== "pet_transport" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />
+          {activeRideDirections && (
+            <div className="glass-surface rounded-lg p-3 mt-2 flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <MapPinned className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">{activeRideDirections.distance_km.toFixed(1)} km</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">{activeRideDirections.duration_in_traffic_text || activeRideDirections.duration_text}</span>
+              </div>
+              {activeTrafficDelayMin > 2 && (
+                <div className="flex items-center gap-1.5 text-amber-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-xs font-medium">+{Math.round(activeTrafficDelayMin)} min traffic</span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="glass-surface rounded-lg p-4 mt-3 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
