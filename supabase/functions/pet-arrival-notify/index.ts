@@ -77,7 +77,7 @@ serve(async (req) => {
       .select("*")
       .eq("user_id", ride.rider_id);
 
-    let sent = 0;
+    let pushSent = 0;
     if (subscriptions?.length && vapidPrivateKey && vapidPublicKey) {
       const pushPayload = JSON.stringify({
         title,
@@ -92,14 +92,57 @@ serve(async (req) => {
             headers: { "Content-Type": "application/json", TTL: "86400" },
             body: pushPayload,
           });
-          if (resp.ok) sent++;
+          if (resp.ok) pushSent++;
         } catch {
           // Individual push failure is non-fatal
         }
       }
     }
 
-    return new Response(JSON.stringify({ sent, notification: "created" }), {
+    // SMS fallback: send via Twilio if no push was delivered
+    let smsSent = false;
+    if (pushSent === 0) {
+      const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+      const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
+      const twilioFrom = Deno.env.get("TWILIO_PHONE_NUMBER");
+
+      if (twilioSid && twilioAuth && twilioFrom) {
+        // Get rider's phone number
+        const { data: riderProfile } = await supabase
+          .from("profiles")
+          .select("phone")
+          .eq("id", ride.rider_id)
+          .single();
+
+        const riderPhone = riderProfile?.phone;
+        if (riderPhone && riderPhone.length >= 7) {
+          try {
+            const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+            const smsBody = `${title}\n${body}`;
+            const params = new URLSearchParams({
+              To: riderPhone,
+              From: twilioFrom,
+              Body: smsBody,
+            });
+
+            const resp = await fetch(twilioUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                Authorization: `Basic ${btoa(`${twilioSid}:${twilioAuth}`)}`,
+              },
+              body: params.toString(),
+            });
+            if (resp.ok) smsSent = true;
+            else await resp.text(); // consume body
+          } catch (err) {
+            console.error("Twilio SMS failed:", err);
+          }
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({ push_sent: pushSent, sms_sent: smsSent, notification: "created" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
