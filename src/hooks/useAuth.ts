@@ -17,6 +17,7 @@ export interface Profile {
   can_shuttle: boolean;
   can_courier: boolean;
   can_food_delivery: boolean;
+  pet_approved: boolean;
   vehicle_type: string | null;
   seat_capacity: number | null;
   driver_balance_cents: number;

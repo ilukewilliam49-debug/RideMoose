@@ -57,6 +57,8 @@
     "personalShopperDesc": "Achats personnels dans tout magasin local",
     "delivery": "Envoyer colis",
     "deliveryDesc": "Envoyez colis, gros articles et plus",
+    "petTransport": "Transport animal",
+    "petTransportDesc": "Transport sécuritaire pour vos animaux",
     "totalRides": "Total trajets",
     "totalSpent": "Total dépensé",
     "avgWait": "Attente moy.",
