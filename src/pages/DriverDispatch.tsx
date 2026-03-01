@@ -271,6 +271,27 @@ const DriverDispatch = () => {
       ]
     : [];
 
+  // Fetch route polyline for active ride
+  const { data: activeRideDirections } = useQuery({
+    queryKey: ["driver-active-directions", activeRide?.id],
+    queryFn: async () => {
+      if (!activeRide?.pickup_lat || !activeRide?.pickup_lng || !activeRide?.dropoff_lat || !activeRide?.dropoff_lng) return null;
+      const { data, error } = await supabase.functions.invoke("directions", {
+        body: {
+          origin_lat: activeRide.pickup_lat,
+          origin_lng: activeRide.pickup_lng,
+          dest_lat: activeRide.dropoff_lat,
+          dest_lng: activeRide.dropoff_lng,
+        },
+      });
+      if (error) return null;
+      return data as { polyline: string | null };
+    },
+    enabled: !!activeRide?.pickup_lat && !!activeRide?.dropoff_lat,
+    staleTime: 300_000,
+  });
+  const activeRoutePolyline = activeRideDirections?.polyline ?? null;
+
   const pendingMarkers: MapMarker[] = (pendingRides || [])
     .filter((r) => r.pickup_lat && r.pickup_lng)
     .map((r) => ({
@@ -303,7 +324,7 @@ const DriverDispatch = () => {
       {/* Active ride with map */}
       {activeRide && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-          {activeMarkers.length > 0 && <RideMap markers={activeMarkers} />}
+          {activeMarkers.length > 0 && <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />}
           <div className="glass-surface rounded-lg p-5 border border-primary/30">
             <div className="flex items-center gap-2 mb-3">
               <h2 className="text-sm font-semibold text-primary">{t('dispatch.activeRide')}</h2>
