@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Save, Car, Briefcase, Bus, Gauge, Percent, Settings } from "lucide-react";
+import { Save, Car, Briefcase, Bus, Gauge, Percent, Settings, PawPrint } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -294,6 +294,60 @@ const AdminPricing = () => {
         ) : (
           <p className="text-sm text-muted-foreground">{t("pricing.noTaxiRate")}</p>
         )}
+      </div>
+
+      {/* Pet Transport Rates */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <PawPrint className="h-5 w-5 text-primary" /> {t("pricing.petTransportRates")}
+        </h2>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {(["pet_surcharge_cents", "pet_only_base_cents", "pet_only_per_km_cents", "pet_only_minimum_cents"] as const).map((key) => {
+                  const labelMap: Record<string, string> = {
+                    pet_surcharge_cents: t("pricing.petSurcharge"),
+                    pet_only_base_cents: t("pricing.petOnlyBase"),
+                    pet_only_per_km_cents: t("pricing.petOnlyPerKm"),
+                    pet_only_minimum_cents: t("pricing.petOnlyMinimum"),
+                  };
+                  const row = allPlatformConfig?.find((r) => r.key === key);
+                  const val = configEdits[key] ?? (row ? Number(row.value) : 0);
+                  return (
+                    <CentsField
+                      key={key}
+                      label={labelMap[key]}
+                      cents={val}
+                      onChange={(v) => {
+                        setConfigEdits((p) => ({ ...p, [key]: v }));
+                        setConfigDirty((p) => ({ ...p, [key]: true }));
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <Button
+                className="mt-4"
+                size="sm"
+                disabled={
+                  !(configDirty["pet_surcharge_cents"] || configDirty["pet_only_base_cents"] || configDirty["pet_only_per_km_cents"] || configDirty["pet_only_minimum_cents"]) ||
+                  configMutation.isPending
+                }
+                onClick={() => {
+                  const petKeys = ["pet_surcharge_cents", "pet_only_base_cents", "pet_only_per_km_cents", "pet_only_minimum_cents"];
+                  petKeys.forEach((key) => {
+                    if (configDirty[key]) {
+                      configMutation.mutate({ key, value: configEdits[key] ?? 0 });
+                    }
+                  });
+                }}
+              >
+                <Save className="h-4 w-4 mr-2" /> {t("pricing.savePetRates")}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Service Pricing Cards */}

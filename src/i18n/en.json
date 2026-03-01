@@ -123,7 +123,14 @@
     "loading": "Loading pricing…",
     "settingUpdated": "Setting updated!",
     "pricingUpdated": "Pricing updated!",
-    "meterRatesUpdated": "Taxi meter rates updated!"
+    "meterRatesUpdated": "Taxi meter rates updated!",
+    "petTransportRates": "Pet Transport Rates",
+    "petSurcharge": "Pet With Owner Surcharge",
+    "petOnlyBase": "Pet-Only Base Fare",
+    "petOnlyPerKm": "Pet-Only Per Km",
+    "petOnlyMinimum": "Pet-Only Minimum Fare",
+    "savePetRates": "Save Pet Rates",
+    "petRatesUpdated": "Pet transport rates updated!"
   },
   "rider": {
     "rideInProgress": "Ride in Progress",
