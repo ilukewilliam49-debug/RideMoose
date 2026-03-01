@@ -628,7 +628,13 @@ const RiderDashboard = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-bold">
-          {activeRide ? t("rider.rideInProgress") : t("rider.requestARide")}
+          {activeRide
+            ? t("rider.rideInProgress")
+            : mode === "delivery"
+              ? t("rider.requestDelivery")
+              : mode === "personal_shopper"
+                ? t("rider.requestPersonalShopper")
+                : t("rider.requestARide")}
         </h1>
       </div>
 

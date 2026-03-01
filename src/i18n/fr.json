@@ -127,6 +127,7 @@
   "rider": {
     "rideInProgress": "Trajet en cours",
     "requestARide": "Demander un trajet",
+    "requestDelivery": "Demander une livraison",
     "serviceType": "Type de service",
     "taxi": "Taxi",
     "privateHire": "Location privée",

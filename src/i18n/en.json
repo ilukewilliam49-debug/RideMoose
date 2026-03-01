@@ -126,6 +126,7 @@
   "rider": {
     "rideInProgress": "Ride in Progress",
     "requestARide": "Request a Ride",
+    "requestDelivery": "Request a Delivery",
     "serviceType": "Service Type",
     "taxi": "Taxi",
     "privateHire": "Private Hire",
