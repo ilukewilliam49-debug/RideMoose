@@ -17,6 +17,7 @@ import { detectGeoZone } from "@/lib/geofence";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
+import LivePetTracker from "@/components/LivePetTracker";
 
 type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
 
@@ -719,42 +720,60 @@ const RiderDashboard = () => {
         )}
       </div>
 
-      {/* Active ride tracking map */}
-      {showActiveMap && (
+      {/* Active ride tracking — pet transport gets enhanced live tracker */}
+      {activeRide && (activeRide as any).service_type === "pet_transport" && (
+        <div className="space-y-3">
+          <LivePetTracker ride={activeRide as any} />
+          {(activeRide.status === "requested" || activeRide.status === "accepted") && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full"
+              disabled={cancellingRide}
+              onClick={cancelRide}
+            >
+              {cancellingRide ? t("rider.cancelling") : t("rider.cancelRide")}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Active ride tracking map (non-pet) */}
+      {showActiveMap && (activeRide as any)?.service_type !== "pet_transport" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <RideMap markers={activeMarkers} />
           <div className="glass-surface rounded-lg p-4 mt-3 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
-                {activeRide.service_type === "private_hire" ? t("rider.privateHireFlatRate") : activeRide.service_type}
+                {activeRide!.service_type === "private_hire" ? t("rider.privateHireFlatRate") : activeRide!.service_type}
               </span>
-              <p className="text-sm font-medium">{activeRide.pickup_address} → {activeRide.dropoff_address}</p>
+              <p className="text-sm font-medium">{activeRide!.pickup_address} → {activeRide!.dropoff_address}</p>
             </div>
-            <p className={`text-xs font-mono uppercase ${statusColor[activeRide.status]}`}>
-              {t(`rider.status_${activeRide.status}`)}
+            <p className={`text-xs font-mono uppercase ${statusColor[activeRide!.status]}`}>
+              {t(`rider.status_${activeRide!.status}`)}
             </p>
             {driverProfile && (
               <p className="text-xs text-muted-foreground">{t("rider.driver")}: {driverProfile.full_name}</p>
             )}
             {/* Payment hold indicator for large delivery */}
-            {activeRide.service_type === "large_delivery" && activeRide.payment_status === "authorized" && activeRide.authorized_amount_cents > 0 && (
+            {activeRide!.service_type === "large_delivery" && activeRide!.payment_status === "authorized" && (activeRide!.authorized_amount_cents ?? 0) > 0 && (
               <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
                 <CreditCard className="h-4 w-4 text-primary shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-primary">{t("rider.paymentAuthorizedLabel")}</p>
                   <p className="text-[10px] text-muted-foreground font-mono">
-                    {t("rider.heldCaptured", { amount: (activeRide.authorized_amount_cents / 100).toFixed(2) })}
+                    {t("rider.heldCaptured", { amount: ((activeRide!.authorized_amount_cents ?? 0) / 100).toFixed(2) })}
                   </p>
                 </div>
               </div>
             )}
             {/* Large delivery bids panel */}
-            {activeRide.service_type === "large_delivery" && activeRide.status === "requested" && (
+            {activeRide!.service_type === "large_delivery" && activeRide!.status === "requested" && (
               <div className="mt-3">
-                <DeliveryBidsList rideId={activeRide.id} />
+                <DeliveryBidsList rideId={activeRide!.id} />
               </div>
             )}
-            {(activeRide.status === "requested" || activeRide.status === "accepted") && (
+            {(activeRide!.status === "requested" || activeRide!.status === "accepted") && (
               <Button
                 variant="destructive"
                 size="sm"
