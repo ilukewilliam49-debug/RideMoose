@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt, Store, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { Check, MapPin, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt, Store, ShoppingCart, UtensilsCrossed, PawPrint } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -27,14 +27,15 @@ const DriverDispatch = () => {
 
   // Only fetch rides matching driver's capabilities
   const { data: pendingRides } = useQuery({
-    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier, profile?.can_food_delivery, profile?.vehicle_type],
+    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier, profile?.can_food_delivery, profile?.pet_approved, profile?.vehicle_type],
     queryFn: async () => {
-      const serviceTypes: ("taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "food_delivery")[] = [];
+      const serviceTypes: string[] = [];
       if (profile?.can_taxi) serviceTypes.push("taxi");
       if (profile?.can_private_hire) serviceTypes.push("private_hire");
       if (profile?.can_shuttle) serviceTypes.push("shuttle");
       if (profile?.can_courier) { serviceTypes.push("courier"); serviceTypes.push("retail_delivery"); serviceTypes.push("personal_shopper"); }
       if (profile?.can_food_delivery) serviceTypes.push("food_delivery");
+      if (profile?.pet_approved) serviceTypes.push("pet_transport");
       // large_delivery eligibility is based on vehicle_type
       if (profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type)) serviceTypes.push("large_delivery");
       if (serviceTypes.length === 0) return [];
@@ -43,7 +44,7 @@ const DriverDispatch = () => {
         .from("rides")
         .select("*")
         .in("status", ["requested", "dispatched"])
-        .in("service_type", serviceTypes)
+        .in("service_type", serviceTypes as any)
         .order("created_at", { ascending: true })
         .limit(20);
       if (error) throw error;
@@ -117,7 +118,7 @@ const DriverDispatch = () => {
         .select("*")
         .eq("driver_id", profile.id)
         .eq("status", "completed")
-        .in("service_type", ["large_delivery", "courier", "retail_delivery", "personal_shopper", "food_delivery"])
+        .in("service_type", ["large_delivery", "courier", "retail_delivery", "personal_shopper", "food_delivery", "pet_transport"] as any)
         .order("completed_at", { ascending: false })
         .limit(10);
       if (error) throw error;
@@ -276,7 +277,7 @@ const DriverDispatch = () => {
     }));
 
   const ServiceIcon = ({ type }: { type: string }) =>
-    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : type === "large_delivery" ? <Truck className="h-3.5 w-3.5" /> : type === "retail_delivery" ? <Store className="h-3.5 w-3.5" /> : type === "personal_shopper" ? <ShoppingCart className="h-3.5 w-3.5" /> : type === "food_delivery" ? <UtensilsCrossed className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
+    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : type === "large_delivery" ? <Truck className="h-3.5 w-3.5" /> : type === "retail_delivery" ? <Store className="h-3.5 w-3.5" /> : type === "personal_shopper" ? <ShoppingCart className="h-3.5 w-3.5" /> : type === "food_delivery" ? <UtensilsCrossed className="h-3.5 w-3.5" /> : type === "pet_transport" ? <PawPrint className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
 
   return (
     <div className="space-y-6 pt-4">
@@ -290,6 +291,7 @@ const DriverDispatch = () => {
           {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Store className="h-3 w-3" /> {t('dispatch.retail')}</span>}
            {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><ShoppingCart className="h-3 w-3" /> {t('dispatch.personalShopper')}</span>}
            {profile?.can_food_delivery && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><UtensilsCrossed className="h-3 w-3" /> {t('dispatch.foodDelivery')}</span>}
+           {profile?.pet_approved && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><PawPrint className="h-3 w-3" /> {t('dispatch.petTransport')}</span>}
           {profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type) && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Truck className="h-3 w-3" /> {t('dispatch.large')}</span>}
         </div>
       </div>
@@ -546,10 +548,21 @@ const DriverDispatch = () => {
                     )}
                   </div>
                 )}
+                {/* Pet Transport: show pet details */}
+                {(activeRide.service_type as string) === "pet_transport" && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">🐾 {t('dispatch.petMode')}: <span className="font-medium text-foreground capitalize">{(activeRide as any).pet_mode?.replace('_', ' ')}</span></p>
+                    <p className="text-xs text-muted-foreground">{t('dispatch.petType')}: <span className="font-medium text-foreground capitalize">{(activeRide as any).pet_type}</span></p>
+                    {(activeRide as any).pet_weight_estimate && <p className="text-xs text-muted-foreground">{t('dispatch.petWeight')}: ~{(activeRide as any).pet_weight_estimate} kg</p>}
+                    <p className="text-xs text-muted-foreground">{t('dispatch.destinationType')}: <span className="font-medium text-foreground capitalize">{(activeRide as any).destination_type}</span></p>
+                    <p className="text-xs text-muted-foreground">{t('dispatch.emergencyContact')}: <span className="font-medium text-foreground">{(activeRide as any).emergency_contact_phone}</span></p>
+                    {(activeRide as any).crate_confirmed && <p className="text-xs text-green-500">✓ {t('dispatch.crateConfirmed')}</p>}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   {activeRide.status === "accepted" && (
                     <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" || activeRide.service_type === "personal_shopper" || activeRide.service_type === "food_delivery" ? t('dispatch.startDelivery') : t('dispatch.startTrip')}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" || activeRide.service_type === "personal_shopper" || activeRide.service_type === "food_delivery" || (activeRide.service_type as string) === "pet_transport" ? t('dispatch.startDelivery') : t('dispatch.startTrip')}
                     </Button>
                   )}
                   {activeRide.status === "in_progress" && (
@@ -561,7 +574,7 @@ const DriverDispatch = () => {
                       }
                       onClick={() => updateRideStatus(activeRide.id, "completed")}
                     >
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" || activeRide.service_type === "personal_shopper" || activeRide.service_type === "food_delivery" ? t('dispatch.completeDelivery') : t('dispatch.completeTrip')}
+                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" || activeRide.service_type === "personal_shopper" || activeRide.service_type === "food_delivery" || (activeRide.service_type as string) === "pet_transport" ? t('dispatch.completeDelivery') : t('dispatch.completeTrip')}
                     </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
@@ -632,7 +645,7 @@ const DriverDispatch = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${ride.service_type === 'courier' ? 'bg-accent text-accent-foreground' : ride.service_type === 'retail_delivery' ? 'bg-secondary text-secondary-foreground' : ride.service_type === 'personal_shopper' ? 'bg-primary/10 text-primary' : 'bg-primary/10 text-primary'}`}>
-                        {ride.service_type === 'courier' ? t('dispatch.courierBadge') : ride.service_type === 'retail_delivery' ? t('dispatch.retailDeliveryBadge') : ride.service_type === 'personal_shopper' ? t('dispatch.personalShopperBadge') : ride.service_type === 'food_delivery' ? t('dispatch.foodDeliveryBadge') : t('dispatch.largeDeliveryBadge')}
+                        {ride.service_type === 'courier' ? t('dispatch.courierBadge') : ride.service_type === 'retail_delivery' ? t('dispatch.retailDeliveryBadge') : ride.service_type === 'personal_shopper' ? t('dispatch.personalShopperBadge') : ride.service_type === 'food_delivery' ? t('dispatch.foodDeliveryBadge') : (ride.service_type as string) === 'pet_transport' ? t('dispatch.petTransportBadge') : t('dispatch.largeDeliveryBadge')}
                       </span>
                       <p className="text-sm font-medium truncate min-w-0">
                         {ride.pickup_address} → {ride.dropoff_address}

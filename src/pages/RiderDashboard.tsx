@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -18,14 +18,14 @@ import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
 
-type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
+type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const serviceParam = searchParams.get("service");
-  const mode = serviceParam === "courier" ? "delivery" : serviceParam === "personal_shopper" ? "personal_shopper" : "rides";
+  const mode = serviceParam === "courier" ? "delivery" : serviceParam === "personal_shopper" ? "personal_shopper" : serviceParam === "pet_transport" ? "pet_transport" : "rides";
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [pickup, setPickup] = useState("");
@@ -33,7 +33,7 @@ const RiderDashboard = () => {
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [serviceType, setServiceType] = useState<ServiceType>(mode === "delivery" ? "courier" : mode === "personal_shopper" ? "personal_shopper" : "taxi");
+  const [serviceType, setServiceType] = useState<ServiceType>(mode === "delivery" ? "courier" : mode === "personal_shopper" ? "personal_shopper" : mode === "pet_transport" ? "pet_transport" : "taxi");
   const [paymentOption, setPaymentOption] = useState<"in_app" | "pay_driver">("in_app");
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
@@ -56,6 +56,13 @@ const RiderDashboard = () => {
   const [storeName, setStoreName] = useState("");
   const [quantity, setQuantity] = useState<number | "">(1);
   const [estimatedItemCostCents, setEstimatedItemCostCents] = useState<number | "">(0);
+  // Pet transport state
+  const [petMode, setPetMode] = useState<"pet_with_owner" | "pet_only_transport">("pet_with_owner");
+  const [petType, setPetType] = useState<"dog" | "cat" | "other">("dog");
+  const [petWeightEstimate, setPetWeightEstimate] = useState<number | "">("");
+  const [crateConfirmed, setCrateConfirmed] = useState(false);
+  const [destinationType, setDestinationType] = useState<"vet" | "grooming" | "boarding" | "airport">("vet");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
 
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
@@ -135,7 +142,7 @@ const RiderDashboard = () => {
         duration_in_traffic_text: string;
       };
     },
-    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery" || serviceType === "retail_delivery" || serviceType === "personal_shopper"),
+    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery" || serviceType === "retail_delivery" || serviceType === "personal_shopper" || serviceType === "pet_transport"),
     staleTime: 60_000,
   });
 
@@ -262,6 +269,23 @@ const RiderDashboard = () => {
       const totalCents = deliveryFeeCents + shopperFeeCents + Number(estimatedItemCostCents || 0);
       return (totalCents / 100).toFixed(2);
     }
+    // Pet Transport pricing
+    if (serviceType === "pet_transport") {
+      const routeKm = directionsData?.distance_km ?? distanceKm;
+      if (!routeKm) return null;
+      if (petMode === "pet_with_owner") {
+        // Use taxi estimate + surcharge
+        if (!taxiRates) return null;
+        const fareCents = taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents + 500;
+        return (fareCents / 100).toFixed(2);
+      } else {
+        // pet_only_transport
+        const baseCents = 2000;
+        const distFeeCents = Math.round(routeKm * 200);
+        const totalCents = Math.max(2500, baseCents + distFeeCents);
+        return (totalCents / 100).toFixed(2);
+      }
+    }
     // Taxi: use taxi_rates with route distance from Directions API when available
     if (serviceType === "taxi") {
       const routeKm = directionsData?.distance_km ?? distanceKm;
@@ -277,7 +301,7 @@ const RiderDashboard = () => {
     }
     price *= Number(currentPricing.surge_multiplier);
     return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
-  }, [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone, directionsData]);
+  }, [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone, directionsData, petMode]);
 
   const mapMarkers: MapMarker[] = [
     ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: t("rider.pickup") }] : []),
@@ -537,6 +561,15 @@ const RiderDashboard = () => {
           proof_photo_required: true,
           payment_option: "in_app",
         } : {}),
+        ...(serviceType === "pet_transport" ? {
+          pet_mode: petMode,
+          pet_type: petType,
+          pet_weight_estimate: petWeightEstimate || null,
+          crate_confirmed: crateConfirmed,
+          destination_type: destinationType,
+          emergency_contact_phone: emergencyContactPhone,
+          payment_option: "in_app",
+        } : {}),
       } as any).select("id").single();
       if (error) throw error;
 
@@ -550,6 +583,23 @@ const RiderDashboard = () => {
         const { data: piData, error: piError } = await supabase.functions.invoke(
           "create-payment-intent",
           { body: { ride_id: rideData.id, estimated_fare_cents: authorizeCents } }
+        );
+        if (piError) {
+          await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
+          throw new Error(piError.message || "Payment authorization failed");
+        }
+        setPaymentClientSecret(piData.clientSecret);
+        setAuthorizedAmountCents(piData.authorized_amount_cents);
+        setPendingRideId(rideData.id);
+        setLoading(false);
+        return;
+      }
+
+      // Pet transport: upfront Stripe capture
+      if (serviceType === "pet_transport" && rideData) {
+        const { data: piData, error: piError } = await supabase.functions.invoke(
+          "create-payment-intent",
+          { body: { ride_id: rideData.id, estimated_fare_cents: estCents } }
         );
         if (piError) {
           await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
@@ -634,7 +684,9 @@ const RiderDashboard = () => {
               ? t("rider.requestDelivery")
               : mode === "personal_shopper"
                 ? t("rider.requestPersonalShopper")
-                : t("rider.requestARide")}
+                : mode === "pet_transport"
+                  ? t("rider.requestPetTransport")
+                  : t("rider.requestARide")}
         </h1>
       </div>
 
@@ -1029,6 +1081,99 @@ const RiderDashboard = () => {
             </div>
           )}
 
+          {/* Pet Transport fields */}
+          {serviceType === "pet_transport" && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>{t("rider.petMode")}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { key: "pet_with_owner" as const, label: t("rider.petWithOwner"), desc: t("rider.petWithOwnerDesc") },
+                    { key: "pet_only_transport" as const, label: t("rider.petOnlyTransport"), desc: t("rider.petOnlyTransportDesc") },
+                  ]).map(({ key, label, desc }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPetMode(key)}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-all ${
+                        petMode === key ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"
+                      }`}
+                    >
+                      <p className="text-xs font-semibold">{label}</p>
+                      <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.petType")}</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["dog", "cat", "other"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setPetType(type)}
+                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${
+                        petType === type ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"
+                      }`}
+                    >
+                      {t(`rider.pet${type.charAt(0).toUpperCase() + type.slice(1)}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.petWeightEstimate")}</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={petWeightEstimate}
+                  onChange={(e) => setPetWeightEstimate(e.target.value ? parseInt(e.target.value) : "")}
+                  placeholder={t("rider.petWeightPlaceholder")}
+                  className="bg-secondary w-32"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.destinationType")}</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["vet", "grooming", "boarding", "airport"] as const).map((dest) => (
+                    <button
+                      key={dest}
+                      type="button"
+                      onClick={() => setDestinationType(dest)}
+                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${
+                        destinationType === dest ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"
+                      }`}
+                    >
+                      {t(`rider.dest${dest.charAt(0).toUpperCase() + dest.slice(1)}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.emergencyContact")}</Label>
+                <Input
+                  type="tel"
+                  value={emergencyContactPhone}
+                  onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                  placeholder={t("rider.emergencyContactPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
+                <div>
+                  <p className="text-sm font-medium">{t("rider.crateConfirmed")}</p>
+                  <p className="text-[10px] text-muted-foreground">{t("rider.crateConfirmedDesc")}</p>
+                </div>
+                <Switch checked={crateConfirmed} onCheckedChange={setCrateConfirmed} />
+              </div>
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <PawPrint className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">{t("rider.petApprovedNote")}</p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>{t("rider.pickupLocation")}</Label>
             <AddressAutocomplete
@@ -1274,8 +1419,8 @@ const RiderDashboard = () => {
           )}
 
           {!paymentClientSecret && (
-            <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords || (serviceType === "retail_delivery" && !riderOrgMembership)} className="w-full">
-              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : serviceType === "retail_delivery" ? t("rider.requestRetailDelivery") : serviceType === "personal_shopper" ? t("rider.requestPersonalShopper") : t("rider.requestShuttle")}
+            <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords || (serviceType === "retail_delivery" && !riderOrgMembership) || (serviceType === "pet_transport" && (!crateConfirmed || !emergencyContactPhone))} className="w-full">
+              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : serviceType === "retail_delivery" ? t("rider.requestRetailDelivery") : serviceType === "personal_shopper" ? t("rider.requestPersonalShopper") : serviceType === "pet_transport" ? t("rider.requestPetTransport") : t("rider.requestShuttle")}
             </Button>
           )}
         </motion.div>
