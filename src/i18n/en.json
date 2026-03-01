@@ -364,7 +364,11 @@
     "receiptRequired": "Receipt photo required before completing",
     "uploadReceiptPhoto": "Upload Receipt Photo",
     "receiptUploaded": "Receipt photo uploaded",
-    "receiptPhotoUploaded": "Receipt photo uploaded!"
+    "receiptPhotoUploaded": "Receipt photo uploaded!",
+    "foodDelivery": "Food",
+    "foodDeliveryBadge": "Food Delivery",
+    "restaurant": "Restaurant",
+    "restaurantOrder": "Restaurant Order"
   },
   "food": {
     "restaurants": "Restaurants",
