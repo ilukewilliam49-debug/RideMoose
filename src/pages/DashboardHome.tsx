@@ -13,9 +13,11 @@ const DashboardHome = () => {
   const { t } = useTranslation();
 
   const firstName = profile?.full_name?.split(" ")[0] || "";
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 12 ? t("dashboard.goodMorning") : hour < 18 ? t("dashboard.goodAfternoon") : t("dashboard.goodEvening");
   const greeting = firstName
-    ? t("dashboard.welcome", { name: firstName })
-    : t("dashboard.welcomeDefault");
+    ? `${timeGreeting}, ${firstName}`
+    : timeGreeting;
 
   const { data: rideStats } = useQuery({
     queryKey: ["rider-stats", profile?.id],

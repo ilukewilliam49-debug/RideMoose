@@ -69,7 +69,10 @@
     "onlineDrivers": "Chauffeurs en ligne",
     "revenueToday": "Revenus aujourd'hui",
     "quickActions": "Actions rapides",
-    "afterFirstRide": "Après le premier trajet"
+    "afterFirstRide": "Après le premier trajet",
+    "goodMorning": "Bonjour",
+    "goodAfternoon": "Bon après-midi",
+    "goodEvening": "Bonsoir"
   },
   "earnings": {
     "title": "Résumé des revenus",
