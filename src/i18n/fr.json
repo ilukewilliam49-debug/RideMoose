@@ -3,6 +3,7 @@
     "navigation": "Navigation",
     "dashboard": "Tableau de bord",
     "myRides": "Mes Trajets",
+    "foodDelivery": "Nourriture",
     "corporate": "Entreprise",
     "dispatch": "Répartition",
     "verifications": "Vérifications",
@@ -364,5 +365,22 @@
     "uploadReceiptPhoto": "Télécharger la photo du reçu",
     "receiptUploaded": "Photo du reçu téléchargée",
     "receiptPhotoUploaded": "Photo du reçu téléchargée !"
+  },
+  "food": {
+    "restaurants": "Restaurants",
+    "browseRestaurants": "Parcourir les restaurants près de chez vous",
+    "searchPlaceholder": "Rechercher restaurants ou cuisines...",
+    "noRestaurants": "Aucun restaurant trouvé",
+    "all": "Tout",
+    "noItems": "Aucun article disponible",
+    "add": "Ajouter",
+    "viewCart": "Voir le panier",
+    "yourOrder": "Votre commande",
+    "deliveryAddress": "Adresse de livraison",
+    "enterDeliveryAddress": "Entrez votre adresse de livraison...",
+    "subtotal": "Sous-total",
+    "placeOrder": "Passer la commande",
+    "placing": "En cours...",
+    "orderPlaced": "Commande passée ! Recherche d'un livreur..."
   }
 }

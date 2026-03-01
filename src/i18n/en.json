@@ -3,6 +3,7 @@
     "navigation": "Navigation",
     "dashboard": "Dashboard",
     "myRides": "My Rides",
+    "foodDelivery": "Food",
     "corporate": "Corporate",
     "dispatch": "Dispatch",
     "verifications": "Verifications",
@@ -363,5 +364,22 @@
     "uploadReceiptPhoto": "Upload Receipt Photo",
     "receiptUploaded": "Receipt photo uploaded",
     "receiptPhotoUploaded": "Receipt photo uploaded!"
+  },
+  "food": {
+    "restaurants": "Restaurants",
+    "browseRestaurants": "Browse restaurants near you",
+    "searchPlaceholder": "Search restaurants or cuisines...",
+    "noRestaurants": "No restaurants found",
+    "all": "All",
+    "noItems": "No menu items available",
+    "add": "Add",
+    "viewCart": "View Cart",
+    "yourOrder": "Your Order",
+    "deliveryAddress": "Delivery Address",
+    "enterDeliveryAddress": "Enter your delivery address...",
+    "subtotal": "Subtotal",
+    "placeOrder": "Place Order",
+    "placing": "Placing...",
+    "orderPlaced": "Order placed! Looking for a driver..."
   }
 }
