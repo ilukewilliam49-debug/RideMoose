@@ -293,7 +293,8 @@
     "petApprovedNote": "Only pet-approved drivers will be matched.",
     "requestPetTransport": "Request Pet Transport",
     "petSurcharge": "Pet surcharge",
-    "petTransportFee": "Pet transport fee"
+    "petTransportFee": "Pet transport fee",
+    "changeService": "Change service"
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
