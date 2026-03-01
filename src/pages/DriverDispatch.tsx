@@ -13,6 +13,7 @@ import { useDriverLocation } from "@/hooks/useDriverLocation";
 import { usePetArrivalCheck } from "@/hooks/usePetArrivalCheck";
 import TaxiMeter from "@/components/TaxiMeter";
 import DriverBidForm from "@/components/DriverBidForm";
+import TurnByTurnNav, { type NavStep } from "@/components/TurnByTurnNav";
 
 const DriverDispatch = () => {
   const { profile } = useAuth();
@@ -307,7 +308,7 @@ const DriverDispatch = () => {
         body: { origin_lat: myLat, origin_lng: myLng, dest_lat: driverDestLat, dest_lng: driverDestLng },
       });
       if (error) return null;
-      return data as { distance_km: number; duration_text: string; duration_in_traffic_text: string; duration_in_traffic_sec: number; duration_sec: number };
+      return data as { distance_km: number; duration_text: string; duration_in_traffic_text: string; duration_in_traffic_sec: number; duration_sec: number; steps?: NavStep[] };
     },
     enabled: !!myLat && !!myLng && !!driverDestLat && !!driverDestLng && !!activeRide,
     staleTime: 25_000,
@@ -367,6 +368,11 @@ const DriverDispatch = () => {
                   <span className="text-xs font-medium">+{Math.round(activeTrafficDelayMin)} min traffic</span>
                 </div>
               )}
+            </div>
+          )}
+          {liveEta?.steps && liveEta.steps.length > 0 && (
+            <div className="mt-2">
+              <TurnByTurnNav steps={liveEta.steps} driverLat={profile?.latitude} driverLng={profile?.longitude} />
             </div>
           )}
           <div className="glass-surface rounded-lg p-5 border border-primary/30">
