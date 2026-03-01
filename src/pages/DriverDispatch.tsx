@@ -291,7 +291,30 @@ const DriverDispatch = () => {
     staleTime: 300_000,
   });
   const activeRoutePolyline = activeRideDirections?.polyline ?? null;
-  const activeTrafficDelayMin = activeRideDirections ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0) : 0;
+
+  // Live ETA: from driver's current position to next destination
+  const roundCoord = (v: number) => Math.round(v * 1000) / 1000;
+  const myLat = profile?.latitude ? roundCoord(profile.latitude) : null;
+  const myLng = profile?.longitude ? roundCoord(profile.longitude) : null;
+  const driverDestLat = activeRide?.status === "in_progress" ? activeRide.dropoff_lat : activeRide?.pickup_lat;
+  const driverDestLng = activeRide?.status === "in_progress" ? activeRide.dropoff_lng : activeRide?.pickup_lng;
+
+  const { data: liveEta } = useQuery({
+    queryKey: ["driver-live-eta", activeRide?.id, myLat, myLng, driverDestLat, driverDestLng],
+    queryFn: async () => {
+      if (!myLat || !myLng || !driverDestLat || !driverDestLng) return null;
+      const { data, error } = await supabase.functions.invoke("directions", {
+        body: { origin_lat: myLat, origin_lng: myLng, dest_lat: driverDestLat, dest_lng: driverDestLng },
+      });
+      if (error) return null;
+      return data as { distance_km: number; duration_text: string; duration_in_traffic_text: string; duration_in_traffic_sec: number; duration_sec: number };
+    },
+    enabled: !!myLat && !!myLng && !!driverDestLat && !!driverDestLng && !!activeRide,
+    staleTime: 25_000,
+    refetchInterval: 30_000,
+  });
+  const liveTrafficDelayMin = liveEta ? Math.max((liveEta.duration_in_traffic_sec - liveEta.duration_sec) / 60, 0) : 0;
+  const activeTrafficDelayMin = liveEta ? liveTrafficDelayMin : (activeRideDirections ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0) : 0);
 
   const pendingMarkers: MapMarker[] = (pendingRides || [])
     .filter((r) => r.pickup_lat && r.pickup_lng)
@@ -326,15 +349,17 @@ const DriverDispatch = () => {
       {activeRide && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
           {activeMarkers.length > 0 && <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />}
-          {activeRideDirections && (
+          {(liveEta || activeRideDirections) && (
             <div className="glass-surface rounded-lg p-3 mt-2 flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <MapPinned className="h-4 w-4 text-primary" />
-                <span className="font-medium text-foreground">{activeRideDirections.distance_km.toFixed(1)} km</span>
+                <span className="font-medium text-foreground">{(liveEta?.distance_km ?? activeRideDirections?.distance_km ?? 0).toFixed(1)} km</span>
+                {liveEta && <span className="text-[10px] text-muted-foreground">({activeRide.status === "in_progress" ? t("rider.toDropoff") : t("rider.toPickup")})</span>}
               </div>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Clock className="h-4 w-4 text-primary" />
-                <span className="font-medium text-foreground">{activeRideDirections.duration_in_traffic_text || activeRideDirections.duration_text}</span>
+                <span className="font-medium text-foreground">{liveEta ? (liveEta.duration_in_traffic_text || liveEta.duration_text) : (activeRideDirections?.duration_in_traffic_text || activeRideDirections?.duration_text)}</span>
+                {liveEta && <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>}
               </div>
               {activeTrafficDelayMin > 2 && (
                 <div className="flex items-center gap-1.5 text-amber-500">
