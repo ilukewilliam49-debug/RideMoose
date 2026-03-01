@@ -365,7 +365,11 @@
     "receiptRequired": "Photo du reçu requise avant de terminer",
     "uploadReceiptPhoto": "Télécharger la photo du reçu",
     "receiptUploaded": "Photo du reçu téléchargée",
-    "receiptPhotoUploaded": "Photo du reçu téléchargée !"
+    "receiptPhotoUploaded": "Photo du reçu téléchargée !",
+    "foodDelivery": "Nourriture",
+    "foodDeliveryBadge": "Livraison repas",
+    "restaurant": "Restaurant",
+    "restaurantOrder": "Commande restaurant"
   },
   "food": {
     "restaurants": "Restaurants",

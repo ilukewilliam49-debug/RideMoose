@@ -16,6 +16,7 @@ export interface Profile {
   can_private_hire: boolean;
   can_shuttle: boolean;
   can_courier: boolean;
+  can_food_delivery: boolean;
   vehicle_type: string | null;
   seat_capacity: number | null;
   driver_balance_cents: number;
