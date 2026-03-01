@@ -68,7 +68,10 @@
     "onlineDrivers": "Online Drivers",
     "revenueToday": "Revenue Today",
     "quickActions": "Quick Actions",
-    "afterFirstRide": "After first ride"
+    "afterFirstRide": "After first ride",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening"
   },
   "earnings": {
     "title": "Earnings Summary",
