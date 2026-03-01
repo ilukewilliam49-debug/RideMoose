@@ -56,6 +56,54 @@ export type Database = {
           },
         ]
       }
+      food_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_name: string
+          menu_item_id: string
+          quantity: number
+          ride_id: string
+          special_instructions: string | null
+          unit_price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_name: string
+          menu_item_id: string
+          quantity?: number
+          ride_id: string
+          special_instructions?: string | null
+          unit_price_cents: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_name?: string
+          menu_item_id?: string
+          quantity?: number
+          ride_id?: string
+          special_instructions?: string | null
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_order_items_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_zones: {
         Row: {
           color: string
@@ -132,6 +180,98 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          restaurant_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          restaurant_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          restaurant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_categories_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          category_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean
+          name: string
+          price_cents: number
+          restaurant_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name: string
+          price_cents: number
+          restaurant_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name?: string
+          price_cents?: number
+          restaurant_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -409,6 +549,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           can_courier: boolean
+          can_food_delivery: boolean
           can_private_hire: boolean
           can_shuttle: boolean
           can_taxi: boolean
@@ -436,6 +577,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           can_courier?: boolean
+          can_food_delivery?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
@@ -463,6 +605,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           can_courier?: boolean
+          can_food_delivery?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
@@ -531,6 +674,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restaurants: {
+        Row: {
+          address: string
+          created_at: string
+          cuisine_type: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          opening_hours: Json | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          cuisine_type?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          opening_hours?: Json | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          cuisine_type?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          opening_hours?: Json | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       ride_ratings: {
         Row: {
@@ -640,6 +831,7 @@ export type Database = {
           quantity: number | null
           receipt_photo_url: string | null
           requires_loading_help: boolean
+          restaurant_id: string | null
           rider_id: string
           scheduled_at: string | null
           service_fee_cents: number
@@ -712,6 +904,7 @@ export type Database = {
           quantity?: number | null
           receipt_photo_url?: string | null
           requires_loading_help?: boolean
+          restaurant_id?: string | null
           rider_id: string
           scheduled_at?: string | null
           service_fee_cents?: number
@@ -784,6 +977,7 @@ export type Database = {
           quantity?: number | null
           receipt_photo_url?: string | null
           requires_loading_help?: boolean
+          restaurant_id?: string | null
           rider_id?: string
           scheduled_at?: string | null
           service_fee_cents?: number
@@ -821,6 +1015,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rides_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
           {
@@ -1038,6 +1239,7 @@ export type Database = {
         | "large_delivery"
         | "retail_delivery"
         | "personal_shopper"
+        | "food_delivery"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -1183,6 +1385,7 @@ export const Constants = {
         "large_delivery",
         "retail_delivery",
         "personal_shopper",
+        "food_delivery",
       ],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
