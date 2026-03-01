@@ -82,9 +82,11 @@ serve(async (req) => {
     let effectiveCommissionRate = cfg.commission_rate ? cfg.commission_rate / 100 : 0.049;
     let inPromo = false;
 
-    // Courier rides use a fixed 6% commission, no ramp
+    // Fixed commission rates per service type (no ramp)
     if (ride.service_type === "courier") {
       effectiveCommissionRate = 0.06;
+    } else if (ride.service_type === "pet_transport") {
+      effectiveCommissionRate = 0.07;
     } else if (ride.service_type === "personal_shopper") {
       effectiveCommissionRate = 0.10;
     } else if (ride.driver_id) {
