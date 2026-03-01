@@ -661,7 +661,7 @@ const DriverDispatch = () => {
                       <span>${(bidAmount / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                     <span>{t('earnings.platformCommission', { rate: ride.service_type === 'courier' ? '6' : ride.service_type === 'retail_delivery' ? '7' : ride.service_type === 'personal_shopper' ? '10' : '8' })}</span>
+                     <span>{t('earnings.platformCommission', { rate: ride.service_type === 'courier' ? '6' : ride.service_type === 'pet_transport' ? '7' : ride.service_type === 'retail_delivery' ? '7' : ride.service_type === 'personal_shopper' ? '10' : '8' })}</span>
                       <span className="text-destructive">-${(commission / 100).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
@@ -774,6 +774,20 @@ const DriverDispatch = () => {
                     )}
                     {(ride as any).order_value_cents && (
                       <span className="text-muted-foreground">${((ride as any).order_value_cents / 100).toFixed(2)}</span>
+                    )}
+                  </div>
+                )}
+                {/* Pet transport details in request list */}
+                {(ride.service_type as string) === "pet_transport" && (
+                  <div className="flex flex-wrap gap-2 text-[10px]">
+                    <span className="text-muted-foreground">🐾 {(ride as any).pet_type}</span>
+                    <span className="text-muted-foreground capitalize">{(ride as any).pet_mode?.replace('_', ' ')}</span>
+                    {(ride as any).pet_weight_estimate && (
+                      <span className="text-muted-foreground">~{(ride as any).pet_weight_estimate} kg</span>
+                    )}
+                    <span className="text-muted-foreground capitalize">→ {(ride as any).destination_type}</span>
+                    {(ride as any).crate_confirmed && (
+                      <span className="text-green-500">✓ {t('dispatch.crateConfirmed')}</span>
                     )}
                   </div>
                 )}
