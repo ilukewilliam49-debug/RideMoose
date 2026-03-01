@@ -24,7 +24,8 @@ const RiderDashboard = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const mode = searchParams.get("service") === "courier" ? "delivery" : "rides";
+  const serviceParam = searchParams.get("service");
+  const mode = serviceParam === "courier" ? "delivery" : serviceParam === "personal_shopper" ? "personal_shopper" : "rides";
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [pickup, setPickup] = useState("");
@@ -32,7 +33,7 @@ const RiderDashboard = () => {
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [serviceType, setServiceType] = useState<ServiceType>(mode === "delivery" ? "courier" : "taxi");
+  const [serviceType, setServiceType] = useState<ServiceType>(mode === "delivery" ? "courier" : mode === "personal_shopper" ? "personal_shopper" : "taxi");
   const [paymentOption, setPaymentOption] = useState<"in_app" | "pay_driver">("in_app");
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
@@ -689,6 +690,7 @@ const RiderDashboard = () => {
           className="glass-surface rounded-lg p-6 space-y-4 overflow-visible"
         >
           {/* Service Type Toggle */}
+          {mode !== "personal_shopper" && (
           <div className="space-y-2">
             <Label>{t("rider.serviceType")}</Label>
             <div className="grid grid-cols-3 gap-2">
@@ -701,7 +703,6 @@ const RiderDashboard = () => {
                   { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
                   { key: "large_delivery" as ServiceType, icon: Truck, label: t("rider.largeItem"), desc: t("rider.heavyBulkyItems") },
                   { key: "retail_delivery" as ServiceType, icon: Store, label: t("rider.retailDelivery"), desc: t("rider.retailDeliveryDesc") },
-                  { key: "personal_shopper" as ServiceType, icon: ShoppingCart, label: t("rider.personalShopper"), desc: t("rider.personalShopperDesc") },
                 ]),
               ]).map(({ key, icon: Icon, label, desc }) => (
                 <button
@@ -721,6 +722,7 @@ const RiderDashboard = () => {
               ))}
             </div>
           </div>
+          )}
 
           {/* Passenger count for shuttle */}
           {serviceType === "shuttle" && (

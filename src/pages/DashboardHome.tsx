@@ -26,9 +26,9 @@ const DashboardHome = () => {
     },
     {
       icon: ShoppingCart,
-      label: t("dashboard.groceries"),
-      desc: t("dashboard.groceriesDesc"),
-      path: "/rider/rides",
+      label: t("dashboard.personalShopper"),
+      desc: t("dashboard.personalShopperDesc"),
+      path: "/rider/rides?service=personal_shopper",
       gradient: "from-emerald-500/20 to-emerald-500/5",
     },
     {
