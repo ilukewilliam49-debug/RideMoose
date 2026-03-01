@@ -135,6 +135,7 @@
     "petOnlyPerKm": "Pet-Only Per Km",
     "petOnlyMinimum": "Pet-Only Minimum Fare",
     "savePetRates": "Save Pet Rates",
+    "petCommission": "Pet Commission Rate",
     "petRatesUpdated": "Pet transport rates updated!"
   },
   "rider": {

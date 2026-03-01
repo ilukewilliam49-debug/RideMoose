@@ -326,16 +326,41 @@ const AdminPricing = () => {
                     />
                   );
                 })}
+                {/* Pet commission rate (percent) */}
+                {(() => {
+                  const key = "pet_transport_commission_percent";
+                  const row = allPlatformConfig?.find((r) => r.key === key);
+                  const val = configEdits[key] ?? (row ? Number(row.value) : 7);
+                  return (
+                    <div className="space-y-1" key={key}>
+                      <Label className="text-xs text-muted-foreground">{t("pricing.petCommission")}</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          value={val}
+                          onChange={(e) => {
+                            setConfigEdits((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }));
+                            setConfigDirty((p) => ({ ...p, [key]: true }));
+                          }}
+                        />
+                        <Percent className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
               <Button
                 className="mt-4"
                 size="sm"
                 disabled={
-                  !(configDirty["pet_surcharge_cents"] || configDirty["pet_only_base_cents"] || configDirty["pet_only_per_km_cents"] || configDirty["pet_only_minimum_cents"]) ||
+                  !(configDirty["pet_surcharge_cents"] || configDirty["pet_only_base_cents"] || configDirty["pet_only_per_km_cents"] || configDirty["pet_only_minimum_cents"] || configDirty["pet_transport_commission_percent"]) ||
                   configMutation.isPending
                 }
                 onClick={() => {
-                  const petKeys = ["pet_surcharge_cents", "pet_only_base_cents", "pet_only_per_km_cents", "pet_only_minimum_cents"];
+                  const petKeys = ["pet_surcharge_cents", "pet_only_base_cents", "pet_only_per_km_cents", "pet_only_minimum_cents", "pet_transport_commission_percent"];
                   petKeys.forEach((key) => {
                     if (configDirty[key]) {
                       configMutation.mutate({ key, value: configEdits[key] ?? 0 });
