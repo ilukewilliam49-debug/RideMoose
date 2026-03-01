@@ -1351,6 +1351,25 @@ const RiderDashboard = () => {
 
           {showBookingMap && <RideMap markers={mapMarkers} polyline={routePolyline} />}
 
+          {directionsData && pickupCoords && dropoffCoords && (
+            <div className="glass-surface rounded-lg p-3 mt-2 flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <MapPinned className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">{directionsData.distance_km.toFixed(1)} km</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">{directionsData.duration_in_traffic_text || directionsData.duration_text}</span>
+              </div>
+              {trafficDelayMin > 2 && (
+                <div className="flex items-center gap-1.5 text-amber-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-xs font-medium">+{Math.round(trafficDelayMin)} min traffic</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {estimatedPrice && serviceType === "private_hire" && (
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
               <div className="flex items-center gap-2">
