@@ -570,6 +570,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           role_in_org: string | null
           seat_capacity: number | null
+          sms_notifications_enabled: boolean
           standard_commission_rate: number
           updated_at: string
           user_id: string
@@ -599,6 +600,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null
+          sms_notifications_enabled?: boolean
           standard_commission_rate?: number
           updated_at?: string
           user_id: string
@@ -628,6 +630,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null
+          sms_notifications_enabled?: boolean
           standard_commission_rate?: number
           updated_at?: string
           user_id?: string

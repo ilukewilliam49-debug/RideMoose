@@ -99,7 +99,7 @@ serve(async (req) => {
       }
     }
 
-    // SMS fallback: send via Twilio if no push was delivered
+    // SMS fallback: send via Twilio if no push was delivered and rider opted in
     let smsSent = false;
     if (pushSent === 0) {
       const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
@@ -107,15 +107,16 @@ serve(async (req) => {
       const twilioFrom = Deno.env.get("TWILIO_PHONE_NUMBER");
 
       if (twilioSid && twilioAuth && twilioFrom) {
-        // Get rider's phone number
+        // Get rider's phone number and SMS preference
         const { data: riderProfile } = await supabase
           .from("profiles")
-          .select("phone")
+          .select("phone, sms_notifications_enabled")
           .eq("id", ride.rider_id)
           .single();
 
         const riderPhone = riderProfile?.phone;
-        if (riderPhone && riderPhone.length >= 7) {
+        const smsEnabled = riderProfile?.sms_notifications_enabled !== false;
+        if (smsEnabled && riderPhone && riderPhone.length >= 7) {
           try {
             const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
             const smsBody = `${title}\n${body}`;

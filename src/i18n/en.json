@@ -312,6 +312,10 @@
     "addPhoneDesc": "Receive SMS alerts when push notifications aren't available (e.g. pet arrival updates).",
     "phoneSaved": "Phone number saved!",
     "smsEnabled": "SMS notifications",
+    "smsOn": "On",
+    "smsOff": "Off",
+    "smsTurnedOn": "SMS notifications enabled",
+    "smsTurnedOff": "SMS notifications disabled",
     "edit": "Edit"
   },
   "rating": {
