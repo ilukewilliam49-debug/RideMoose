@@ -563,6 +563,7 @@ export type Database = {
           launch_start_date: string | null
           longitude: number | null
           organization_id: string | null
+          pet_approved: boolean
           phone: string | null
           promo_commission_rate: number
           promo_end_date: string | null
@@ -591,6 +592,7 @@ export type Database = {
           launch_start_date?: string | null
           longitude?: number | null
           organization_id?: string | null
+          pet_approved?: boolean
           phone?: string | null
           promo_commission_rate?: number
           promo_end_date?: string | null
@@ -619,6 +621,7 @@ export type Database = {
           launch_start_date?: string | null
           longitude?: number | null
           organization_id?: string | null
+          pet_approved?: boolean
           phone?: string | null
           promo_commission_rate?: number
           promo_end_date?: string | null
