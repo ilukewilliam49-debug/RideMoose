@@ -1006,6 +1006,7 @@ export type Database = {
         | "private_hire"
         | "courier"
         | "large_delivery"
+        | "retail_delivery"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -1149,6 +1150,7 @@ export const Constants = {
         "private_hire",
         "courier",
         "large_delivery",
+        "retail_delivery",
       ],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
