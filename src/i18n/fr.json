@@ -124,7 +124,14 @@
     "loading": "Chargement de la tarification…",
     "settingUpdated": "Paramètre mis à jour !",
     "pricingUpdated": "Tarification mise à jour !",
-    "meterRatesUpdated": "Tarifs du taximètre mis à jour !"
+    "meterRatesUpdated": "Tarifs du taximètre mis à jour !",
+    "petTransportRates": "Tarifs Transport Animaux",
+    "petSurcharge": "Supplément animal avec propriétaire",
+    "petOnlyBase": "Tarif de base animal seul",
+    "petOnlyPerKm": "Par KM animal seul",
+    "petOnlyMinimum": "Tarif minimum animal seul",
+    "savePetRates": "Enregistrer tarifs animaux",
+    "petRatesUpdated": "Tarifs transport animaux mis à jour !"
   },
   "rider": {
     "rideInProgress": "Trajet en cours",
