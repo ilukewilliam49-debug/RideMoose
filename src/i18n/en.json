@@ -66,7 +66,9 @@
     "hoursOnline": "Hours Online",
     "activeRides": "Active Rides",
     "onlineDrivers": "Online Drivers",
-    "revenueToday": "Revenue Today"
+    "revenueToday": "Revenue Today",
+    "quickActions": "Quick Actions",
+    "afterFirstRide": "After first ride"
   },
   "earnings": {
     "title": "Earnings Summary",
