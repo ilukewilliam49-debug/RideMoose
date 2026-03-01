@@ -29,6 +29,7 @@ interface ProfileRow {
   role: "rider" | "driver" | "admin";
   is_available: boolean | null;
   can_courier: boolean;
+  pet_approved: boolean;
   vehicle_type: string | null;
 }
 
@@ -51,7 +52,7 @@ const AdminUsers = () => {
   const fetchProfiles = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, role, is_available, can_courier, vehicle_type")
+      .select("id, user_id, full_name, role, is_available, can_courier, pet_approved, vehicle_type")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -80,6 +81,23 @@ const AdminUsers = () => {
         prev.map((p) => (p.id === profileId ? { ...p, can_courier: enabled } : p))
       );
       toast({ title: enabled ? "Courier enabled" : "Courier disabled" });
+    }
+    setSaving(null);
+  };
+  const handlePetApprovedToggle = async (profileId: string, enabled: boolean) => {
+    setSaving(profileId);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ pet_approved: enabled })
+      .eq("id", profileId);
+
+    if (error) {
+      toast({ title: "Failed to update pet approval", description: error.message, variant: "destructive" });
+    } else {
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === profileId ? { ...p, pet_approved: enabled } : p))
+      );
+      toast({ title: enabled ? "Pet transport enabled" : "Pet transport disabled" });
     }
     setSaving(null);
   };
@@ -146,6 +164,7 @@ const AdminUsers = () => {
                 <TableHead>Role</TableHead>
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Courier</TableHead>
+                <TableHead>Pet</TableHead>
                 <TableHead>Active</TableHead>
               </TableRow>
             </TableHeader>
@@ -207,12 +226,23 @@ const AdminUsers = () => {
                       <span className="text-muted-foreground text-xs">—</span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    {p.role === "driver" ? (
+                      <Switch
+                        checked={p.pet_approved}
+                        onCheckedChange={(checked) => handlePetApprovedToggle(p.id, checked)}
+                        disabled={saving === p.id}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>{p.is_available ? "Yes" : "No"}</TableCell>
                 </TableRow>
               ))}
               {profiles.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No users found
                   </TableCell>
                 </TableRow>
