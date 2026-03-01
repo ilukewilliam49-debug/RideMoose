@@ -1243,6 +1243,7 @@ export type Database = {
         | "retail_delivery"
         | "personal_shopper"
         | "food_delivery"
+        | "pet_transport"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -1389,6 +1390,7 @@ export const Constants = {
         "retail_delivery",
         "personal_shopper",
         "food_delivery",
+        "pet_transport",
       ],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],

@@ -97,7 +97,12 @@
     "paidInApp": "Paid in app",
     "due": "Due",
     "fareExceeded": "Fare exceeded pre-authorization",
-    "markCollected": "Mark Remaining Collected"
+    "markCollected": "Mark Remaining Collected",
+    "petTransportTitle": "Pet Transport Earnings",
+    "petGrossFares": "Pet Gross Fares",
+    "petCommission": "Pet Commission",
+    "petProcessingFees": "Pet Processing Fees",
+    "petNetEarnings": "Pet Net Earnings"
   },
   "pricing": {
     "title": "Service Pricing",

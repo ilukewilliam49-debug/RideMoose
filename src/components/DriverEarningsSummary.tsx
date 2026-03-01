@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, CreditCard, CalendarIcon, Percent, Gift } from "lucide-react";
+import { DollarSign, TrendingUp, CreditCard, CalendarIcon, Percent, Gift, PawPrint } from "lucide-react";
 import { motion } from "framer-motion";
-import { format, startOfMonth, startOfWeek, subDays, differenceInDays } from "date-fns";
+import { format, startOfMonth, startOfWeek, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import type { DateRange } from "react-day-picker";
@@ -37,7 +37,7 @@ const DriverEarningsSummary = () => {
 
       let query = supabase
         .from("rides")
-        .select("driver_earnings_cents, commission_cents, service_fee_cents, stripe_fee_cents, final_fare_cents, status, completed_at")
+        .select("driver_earnings_cents, commission_cents, service_fee_cents, stripe_fee_cents, final_fare_cents, status, completed_at, service_type")
         .eq("driver_id", profile.id)
         .eq("status", "completed");
 
@@ -53,13 +53,24 @@ const DriverEarningsSummary = () => {
       const { data: rides, error } = await query;
       if (error) throw error;
 
-      const totalEarnings = (rides || []).reduce((sum, r) => sum + (r.driver_earnings_cents || 0), 0);
-      const totalStripeFees = (rides || []).reduce((sum, r) => sum + (r.stripe_fee_cents || 0), 0);
-      const totalCommission = (rides || []).reduce((sum, r) => sum + (r.commission_cents || 0), 0);
-      const totalGross = (rides || []).reduce((sum, r) => sum + (r.final_fare_cents || 0), 0);
-      const tripCount = rides?.length || 0;
+      const all = rides || [];
+      const totalEarnings = all.reduce((sum, r) => sum + (r.driver_earnings_cents || 0), 0);
+      const totalStripeFees = all.reduce((sum, r) => sum + (r.stripe_fee_cents || 0), 0);
+      const totalCommission = all.reduce((sum, r) => sum + (r.commission_cents || 0), 0);
+      const totalGross = all.reduce((sum, r) => sum + (r.final_fare_cents || 0), 0);
+      const tripCount = all.length;
 
-      return { totalEarnings, totalStripeFees, totalCommission, totalGross, tripCount };
+      // Pet transport breakdown
+      const petRides = all.filter((r) => r.service_type === "pet_transport");
+      const pet = {
+        tripCount: petRides.length,
+        gross: petRides.reduce((s, r) => s + (r.final_fare_cents || 0), 0),
+        commission: petRides.reduce((s, r) => s + (r.commission_cents || 0), 0),
+        stripeFees: petRides.reduce((s, r) => s + (r.stripe_fee_cents || 0), 0),
+        earnings: petRides.reduce((s, r) => s + (r.driver_earnings_cents || 0), 0),
+      };
+
+      return { totalEarnings, totalStripeFees, totalCommission, totalGross, tripCount, pet };
     },
     enabled: !!profile?.id,
   });
@@ -194,6 +205,41 @@ const DriverEarningsSummary = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pet Transport Earnings Breakdown */}
+      {stats && stats.pet.tripCount > 0 && (
+        <Card className="border-violet-500/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <PawPrint className="h-4 w-4 text-violet-500" />
+              {t("earnings.petTransportTitle")}
+              <Badge variant="secondary" className="text-xs bg-violet-500/10 text-violet-500">
+                {stats.pet.tripCount} {t("earnings.trips")}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-0.5">
+                <span className="text-xs text-muted-foreground">{t("earnings.petGrossFares")}</span>
+                <p className="text-lg font-bold font-mono text-primary">{fmt(stats.pet.gross)}</p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-xs text-muted-foreground">{t("earnings.petCommission")}</span>
+                <p className="text-lg font-bold font-mono text-muted-foreground">{fmt(stats.pet.commission)}</p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-xs text-muted-foreground">{t("earnings.petProcessingFees")}</span>
+                <p className="text-lg font-bold font-mono text-muted-foreground">{fmt(stats.pet.stripeFees)}</p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-xs text-muted-foreground">{t("earnings.petNetEarnings")}</span>
+                <p className="text-lg font-bold font-mono text-green-500">{fmt(stats.pet.earnings)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
