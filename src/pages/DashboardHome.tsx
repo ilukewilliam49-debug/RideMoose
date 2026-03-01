@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, MapPin, DollarSign, Clock, UtensilsCrossed, ShoppingCart } from "lucide-react";
+import { Car, MapPin, DollarSign, Clock, UtensilsCrossed, ShoppingCart, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -30,6 +30,13 @@ const DashboardHome = () => {
       desc: t("dashboard.groceriesDesc"),
       path: "/rider/rides",
       gradient: "from-emerald-500/20 to-emerald-500/5",
+    },
+    {
+      icon: Package,
+      label: t("dashboard.delivery"),
+      desc: t("dashboard.deliveryDesc"),
+      path: "/rider/rides?service=courier",
+      gradient: "from-amber-500/20 to-amber-500/5",
     },
   ];
 
