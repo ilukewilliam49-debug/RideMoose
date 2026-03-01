@@ -136,6 +136,7 @@
     "petOnlyPerKm": "Par KM animal seul",
     "petOnlyMinimum": "Tarif minimum animal seul",
     "savePetRates": "Enregistrer tarifs animaux",
+    "petCommission": "Taux commission animaux",
     "petRatesUpdated": "Tarifs transport animaux mis à jour !"
   },
   "rider": {
