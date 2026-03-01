@@ -219,6 +219,8 @@
     "cancelling": "Cancelling...",
     "cancelRide": "Cancel Ride",
     "driver": "Driver",
+    "toDropoff": "to dropoff",
+    "toPickup": "to pickup",
     "rideRequested": "Ride requested! Looking for a driver...",
     "rideRequestedOrg": "Ride requested! Will be billed to your organization.",
     "paymentAuthorized": "Payment authorized! Looking for a driver...",

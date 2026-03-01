@@ -220,6 +220,8 @@
     "cancelling": "Annulation...",
     "cancelRide": "Annuler le trajet",
     "driver": "Chauffeur",
+    "toDropoff": "vers la destination",
+    "toPickup": "vers le point de départ",
     "rideRequested": "Trajet demandé ! Recherche d'un chauffeur...",
     "rideRequestedOrg": "Trajet demandé ! Sera facturé à votre organisation.",
     "paymentAuthorized": "Paiement autorisé ! Recherche d'un chauffeur...",
