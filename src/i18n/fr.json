@@ -243,7 +243,19 @@
     "signatureRequired": "Signature requise",
     "signatureRequiredDesc": "Le destinataire doit signer à la livraison",
     "businessAccountRequired": "Compte entreprise requis pour la livraison commerce.",
-    "retailProofNote": "Une photo de preuve est requise avant de terminer la livraison."
+    "retailProofNote": "Une photo de preuve est requise avant de terminer la livraison.",
+    "personalShopper": "Acheteur personnel",
+    "personalShopperDesc": "Quelqu'un fait vos courses",
+    "requestPersonalShopper": "Demander un acheteur personnel",
+    "storeName": "Nom du magasin",
+    "storeNamePlaceholder": "ex. Walmart, Costco...",
+    "quantity": "Quantité",
+    "quantityPlaceholder": "Nombre d'articles",
+    "estimatedItemCost": "Coût estimé des articles ($)",
+    "estimatedItemCostPlaceholder": "Coût estimé des articles en dollars",
+    "shopperFeeNote": "Des frais d'acheteur de 10% sont ajoutés au coût estimé des articles.",
+    "receiptRequired": "Photo du reçu requise avant la fin.",
+    "personalShopperNote": "L'acheteur achètera les articles et les livrera chez vous. Reçu requis."
   },
   "rating": {
     "rateYourRide": "Évaluez votre trajet",
@@ -339,6 +351,15 @@
     "retail": "Commerce",
     "signatureRequired": "Signature requise",
     "storeId": "Magasin",
-    "orderValue": "Valeur commande"
+    "orderValue": "Valeur commande",
+    "personalShopperBadge": "Acheteur personnel",
+    "personalShopper": "Acheteur",
+    "storeName": "Magasin",
+    "quantity": "Qté",
+    "estimatedItemCost": "Coût est. articles",
+    "receiptRequired": "Photo du reçu requise avant de terminer",
+    "uploadReceiptPhoto": "Télécharger la photo du reçu",
+    "receiptUploaded": "Photo du reçu téléchargée",
+    "receiptPhotoUploaded": "Photo du reçu téléchargée !"
   }
 }

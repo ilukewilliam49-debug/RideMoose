@@ -243,7 +243,19 @@
     "signatureRequired": "Signature Required",
     "signatureRequiredDesc": "Recipient must sign on delivery",
     "businessAccountRequired": "Business account required for retail delivery.",
-    "retailProofNote": "Proof photo is required before completing delivery."
+    "retailProofNote": "Proof photo is required before completing delivery.",
+    "personalShopper": "Personal Shopper",
+    "personalShopperDesc": "Someone shops for you",
+    "requestPersonalShopper": "Request Personal Shopper",
+    "storeName": "Store Name",
+    "storeNamePlaceholder": "e.g. Walmart, Costco...",
+    "quantity": "Quantity",
+    "quantityPlaceholder": "Number of items",
+    "estimatedItemCost": "Estimated Item Cost ($)",
+    "estimatedItemCostPlaceholder": "Estimated cost of items in dollars",
+    "shopperFeeNote": "A 10% shopper fee is added to the estimated item cost.",
+    "receiptRequired": "Receipt photo required before completion.",
+    "personalShopperNote": "Shopper will purchase items and deliver to you. Receipt required."
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
@@ -339,6 +351,15 @@
     "retail": "Retail",
     "signatureRequired": "Signature required",
     "storeId": "Store",
-    "orderValue": "Order value"
+    "orderValue": "Order value",
+    "personalShopperBadge": "Personal Shopper",
+    "personalShopper": "Shopper",
+    "storeName": "Store",
+    "quantity": "Qty",
+    "estimatedItemCost": "Est. item cost",
+    "receiptRequired": "Receipt photo required before completing",
+    "uploadReceiptPhoto": "Upload Receipt Photo",
+    "receiptUploaded": "Receipt photo uploaded",
+    "receiptPhotoUploaded": "Receipt photo uploaded!"
   }
 }

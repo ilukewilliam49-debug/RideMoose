@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -18,7 +18,7 @@ import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
 
-type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery";
+type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
@@ -50,6 +50,9 @@ const RiderDashboard = () => {
   const [storeId, setStoreId] = useState("");
   const [orderValueCents, setOrderValueCents] = useState<number | "">("");
   const [signatureRequired, setSignatureRequired] = useState(false);
+  const [storeName, setStoreName] = useState("");
+  const [quantity, setQuantity] = useState<number | "">(1);
+  const [estimatedItemCostCents, setEstimatedItemCostCents] = useState<number | "">(0);
 
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
@@ -129,7 +132,7 @@ const RiderDashboard = () => {
         duration_in_traffic_text: string;
       };
     },
-    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery" || serviceType === "retail_delivery"),
+    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery" || serviceType === "retail_delivery" || serviceType === "personal_shopper"),
     staleTime: 60_000,
   });
 
@@ -245,6 +248,15 @@ const RiderDashboard = () => {
       const baseCents = 1000;
       const distFeeCents = Math.round(routeKm * 150);
       const totalCents = Math.max(1200, baseCents + distFeeCents);
+      return (totalCents / 100).toFixed(2);
+    }
+    // Personal Shopper: delivery_fee = base 1200 + distance, shopper_fee = 10% of item cost
+    if (serviceType === "personal_shopper") {
+      const routeKm = directionsData?.distance_km ?? distanceKm;
+      if (!routeKm) return null;
+      const deliveryFeeCents = Math.max(1200, 1200 + Math.round(routeKm * 150));
+      const shopperFeeCents = estimatedItemCostCents ? Math.round(Number(estimatedItemCostCents) * 0.10) : 0;
+      const totalCents = deliveryFeeCents + shopperFeeCents + Number(estimatedItemCostCents || 0);
       return (totalCents / 100).toFixed(2);
     }
     // Taxi: use taxi_rates with route distance from Directions API when available
@@ -474,7 +486,7 @@ const RiderDashboard = () => {
         distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
         service_type: serviceType,
         passenger_count: passengerCount,
-        pricing_model: serviceType === "private_hire" ? "flat_zone" : serviceType === "courier" ? "courier" : serviceType === "large_delivery" ? "large_delivery" : serviceType === "retail_delivery" ? "retail_delivery" : "metered",
+        pricing_model: serviceType === "private_hire" ? "flat_zone" : serviceType === "courier" ? "courier" : serviceType === "large_delivery" ? "large_delivery" : serviceType === "retail_delivery" ? "retail_delivery" : serviceType === "personal_shopper" ? "personal_shopper" : "metered",
         status: "requested",
         payment_option: isOrgBilling ? "pay_driver" : paymentOption,
         billed_to: isOrgBilling ? "organization" : "individual",
@@ -508,8 +520,44 @@ const RiderDashboard = () => {
           dropoff_notes: dropoffNotes || null,
           proof_photo_required: true,
         } : {}),
+        ...(serviceType === "personal_shopper" ? {
+          store_name: storeName || null,
+          item_description: itemDescription || null,
+          quantity: quantity || 1,
+          estimated_item_cost_cents: estimatedItemCostCents || null,
+          delivery_fee_cents: (() => {
+            const routeKm = directionsData?.distance_km ?? distanceKm ?? 0;
+            return Math.max(1200, 1200 + Math.round(routeKm * 150));
+          })(),
+          shopper_fee_cents: estimatedItemCostCents ? Math.round(Number(estimatedItemCostCents) * 0.10) : 0,
+          dropoff_notes: dropoffNotes || null,
+          proof_photo_required: true,
+          payment_option: "in_app",
+        } : {}),
       } as any).select("id").single();
       if (error) throw error;
+
+      // Personal shopper: authorize estimated_total * 1.15
+      if (serviceType === "personal_shopper" && rideData) {
+        const deliveryCents = Math.max(1200, 1200 + Math.round((directionsData?.distance_km ?? distanceKm ?? 0) * 150));
+        const shopperCents = estimatedItemCostCents ? Math.round(Number(estimatedItemCostCents) * 0.10) : 0;
+        const estimatedTotalCents = Number(estimatedItemCostCents || 0) + deliveryCents + shopperCents;
+        const authorizeCents = Math.round(estimatedTotalCents * 1.15);
+        
+        const { data: piData, error: piError } = await supabase.functions.invoke(
+          "create-payment-intent",
+          { body: { ride_id: rideData.id, estimated_fare_cents: authorizeCents } }
+        );
+        if (piError) {
+          await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
+          throw new Error(piError.message || "Payment authorization failed");
+        }
+        setPaymentClientSecret(piData.clientSecret);
+        setAuthorizedAmountCents(piData.authorized_amount_cents);
+        setPendingRideId(rideData.id);
+        setLoading(false);
+        return;
+      }
 
       // Skip Stripe for org-billed rides
       if (!isOrgBilling && paymentOption === "in_app" && serviceType === "taxi" && rideData) {
@@ -641,7 +689,7 @@ const RiderDashboard = () => {
           {/* Service Type Toggle */}
           <div className="space-y-2">
             <Label>{t("rider.serviceType")}</Label>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
               {([
                 { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
                 { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
@@ -649,6 +697,7 @@ const RiderDashboard = () => {
                 { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
                 { key: "large_delivery" as ServiceType, icon: Truck, label: t("rider.largeItem"), desc: t("rider.heavyBulkyItems") },
                 { key: "retail_delivery" as ServiceType, icon: Store, label: t("rider.retailDelivery"), desc: t("rider.retailDeliveryDesc") },
+                { key: "personal_shopper" as ServiceType, icon: ShoppingCart, label: t("rider.personalShopper"), desc: t("rider.personalShopperDesc") },
               ]).map(({ key, icon: Icon, label, desc }) => (
                 <button
                   key={key}
@@ -892,6 +941,68 @@ const RiderDashboard = () => {
                   placeholder={t("rider.pickupNotesPlaceholder")}
                   className="bg-secondary"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.dropoffNotes")}</Label>
+                <Input
+                  value={dropoffNotes}
+                  onChange={(e) => setDropoffNotes(e.target.value)}
+                  placeholder={t("rider.dropoffNotesPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Personal Shopper fields */}
+          {serviceType === "personal_shopper" && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>{t("rider.storeName")}</Label>
+                <Input
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder={t("rider.storeNamePlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.itemDescription")}</Label>
+                <Input
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  placeholder={t("rider.describeItem")}
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.quantity")}</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value ? parseInt(e.target.value) : "")}
+                  placeholder={t("rider.quantityPlaceholder")}
+                  className="bg-secondary w-24"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.estimatedItemCost")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={estimatedItemCostCents ? (Number(estimatedItemCostCents) / 100) : ""}
+                  onChange={(e) => setEstimatedItemCostCents(e.target.value ? Math.round(parseFloat(e.target.value) * 100) : "")}
+                  placeholder={t("rider.estimatedItemCostPlaceholder")}
+                  className="bg-secondary w-40"
+                />
+              </div>
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <ShoppingCart className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">{t("rider.shopperFeeNote")}</p>
+                  <p className="text-xs text-muted-foreground">{t("rider.receiptRequired")}</p>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>{t("rider.dropoffNotes")}</Label>
@@ -1151,7 +1262,7 @@ const RiderDashboard = () => {
 
           {!paymentClientSecret && (
             <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords || (serviceType === "retail_delivery" && !riderOrgMembership)} className="w-full">
-              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : serviceType === "retail_delivery" ? t("rider.requestRetailDelivery") : t("rider.requestShuttle")}
+              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : serviceType === "retail_delivery" ? t("rider.requestRetailDelivery") : serviceType === "personal_shopper" ? t("rider.requestPersonalShopper") : t("rider.requestShuttle")}
             </Button>
           )}
         </motion.div>

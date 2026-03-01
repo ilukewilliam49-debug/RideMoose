@@ -53,7 +53,7 @@ serve(async (req) => {
     if (rideError || !ride) throw new Error("Ride not found");
 
     // Large delivery: commission/fees already set during bid authorization
-    if (ride.service_type === "large_delivery" && ride.payment_status === "authorized" && ride.stripe_payment_intent_id) {
+    if ((ride.service_type === "large_delivery" || ride.service_type === "personal_shopper") && ride.payment_status === "authorized" && ride.stripe_payment_intent_id) {
       const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
         apiVersion: "2025-08-27.basil",
       });
@@ -85,6 +85,8 @@ serve(async (req) => {
     // Courier rides use a fixed 6% commission, no ramp
     if (ride.service_type === "courier") {
       effectiveCommissionRate = 0.06;
+    } else if (ride.service_type === "personal_shopper") {
+      effectiveCommissionRate = 0.10;
     } else if (ride.driver_id) {
       const { data: driverProfile } = await serviceClient
         .from("profiles")
