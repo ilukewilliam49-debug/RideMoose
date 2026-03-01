@@ -23,7 +23,7 @@ const DashboardHome = () => {
       if (!profile?.id) return null;
       const { data, error } = await supabase
         .from("rides")
-        .select("id, final_fare_cents, started_at, completed_at, status")
+        .select("id, final_fare_cents, created_at, started_at, status")
         .eq("rider_id", profile.id)
         .eq("status", "completed");
       if (error) throw error;
@@ -31,13 +31,13 @@ const DashboardHome = () => {
       const count = data?.length ?? 0;
       const totalCents = data?.reduce((sum, r) => sum + (r.final_fare_cents ?? 0), 0) ?? 0;
 
-      // Avg wait = avg time between created_at proxy (started_at) and completed_at is not wait.
-      // Wait = time between ride request and driver starting. Use started_at - created_at approximation.
-      // But we only have started_at. Let's compute avg duration instead as a useful stat.
-      // Actually "avg wait" typically means time waiting for pickup. We don't have accepted_at.
-      // We'll leave it as "—" until we have proper data points, but show count & spent.
+      // Avg wait = time between ride creation and driver starting the trip
+      const waits = data
+        ?.filter((r) => r.created_at && r.started_at)
+        .map((r) => (new Date(r.started_at!).getTime() - new Date(r.created_at).getTime()) / 60000) ?? [];
+      const avgWaitMin = waits.length > 0 ? waits.reduce((a, b) => a + b, 0) / waits.length : null;
 
-      return { count, totalCents };
+      return { count, totalCents, avgWaitMin };
     },
     enabled: !!profile?.id,
   });
@@ -53,10 +53,14 @@ const DashboardHome = () => {
   const totalRides = rideStats?.count ?? 0;
   const totalSpent = rideStats ? `$${(rideStats.totalCents / 100).toFixed(2)}` : "$0.00";
 
+  const avgWait = rideStats?.avgWaitMin != null
+    ? `${Math.round(rideStats.avgWaitMin)} min`
+    : "—";
+
   const stats = [
     { icon: Car, label: t("dashboard.totalRides"), value: String(totalRides) },
     { icon: DollarSign, label: t("dashboard.totalSpent"), value: totalSpent },
-    { icon: Clock, label: t("dashboard.avgWait"), value: "—", helper: t("dashboard.afterFirstRide") },
+    { icon: Clock, label: t("dashboard.avgWait"), value: avgWait, helper: rideStats?.avgWaitMin == null ? t("dashboard.afterFirstRide") : undefined },
   ];
 
   return (
