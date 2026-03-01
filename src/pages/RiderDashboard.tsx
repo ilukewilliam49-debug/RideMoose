@@ -393,6 +393,27 @@ const RiderDashboard = () => {
       ]
     : [];
 
+  // Fetch route polyline for active ride
+  const { data: activeRideDirections } = useQuery({
+    queryKey: ["active-ride-directions", activeRide?.id, activeRide?.pickup_lat, activeRide?.dropoff_lat],
+    queryFn: async () => {
+      if (!activeRide?.pickup_lat || !activeRide?.pickup_lng || !activeRide?.dropoff_lat || !activeRide?.dropoff_lng) return null;
+      const { data, error } = await supabase.functions.invoke("directions", {
+        body: {
+          origin_lat: activeRide.pickup_lat,
+          origin_lng: activeRide.pickup_lng,
+          dest_lat: activeRide.dropoff_lat,
+          dest_lng: activeRide.dropoff_lng,
+        },
+      });
+      if (error) return null;
+      return data as { polyline: string | null };
+    },
+    enabled: !!activeRide?.pickup_lat && !!activeRide?.dropoff_lat,
+    staleTime: 300_000,
+  });
+  const activeRoutePolyline = activeRideDirections?.polyline ?? null;
+
   const { data: rides, refetch } = useQuery({
     queryKey: ["my-rides", profile?.id],
     queryFn: async () => {
@@ -822,7 +843,7 @@ const RiderDashboard = () => {
       {/* Active ride tracking map (non-pet) */}
       {showActiveMap && (activeRide as any)?.service_type !== "pet_transport" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <RideMap markers={activeMarkers} />
+          <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />
           <div className="glass-surface rounded-lg p-4 mt-3 space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
