@@ -98,7 +98,12 @@
     "paidInApp": "Payé dans l'appli",
     "due": "Dû",
     "fareExceeded": "Le tarif a dépassé la pré-autorisation",
-    "markCollected": "Marquer le solde perçu"
+    "markCollected": "Marquer le solde perçu",
+    "petTransportTitle": "Revenus transport animaux",
+    "petGrossFares": "Tarifs bruts animaux",
+    "petCommission": "Commission animaux",
+    "petProcessingFees": "Frais traitement animaux",
+    "petNetEarnings": "Revenus nets animaux"
   },
   "pricing": {
     "title": "Tarification des services",
