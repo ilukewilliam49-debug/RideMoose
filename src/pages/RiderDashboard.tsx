@@ -673,21 +673,33 @@ const RiderDashboard = () => {
 
   return (
     <div className="space-y-6 pt-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/rider")} className="shrink-0">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-2xl font-bold">
-          {activeRide
-            ? t("rider.rideInProgress")
-            : mode === "delivery"
-              ? t("rider.requestDelivery")
-              : mode === "personal_shopper"
-                ? t("rider.requestPersonalShopper")
-                : mode === "pet_transport"
-                  ? t("rider.requestPetTransport")
-                  : t("rider.requestARide")}
-        </h1>
+      <div className="space-y-1">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/rider")} className="shrink-0">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {activeRide
+              ? t("rider.rideInProgress")
+              : mode === "delivery"
+                ? t("rider.requestDelivery")
+                : mode === "personal_shopper"
+                  ? t("rider.requestPersonalShopper")
+                  : mode === "pet_transport"
+                    ? t("rider.requestPetTransport")
+                    : t("rider.requestARide")}
+          </h1>
+        </div>
+        {mode === "pet_transport" && !activeRide && (
+          <button
+            type="button"
+            onClick={() => navigate("/rider")}
+            className="ml-1 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            {t("rider.changeService")}
+          </button>
+        )}
       </div>
 
       {/* Active ride tracking map */}
@@ -748,7 +760,7 @@ const RiderDashboard = () => {
           className="glass-surface rounded-lg p-6 space-y-4 overflow-visible"
         >
           {/* Service Type Toggle */}
-          {mode !== "personal_shopper" && (
+          {mode !== "personal_shopper" && mode !== "pet_transport" && (
           <div className="space-y-2">
             <Label>{t("rider.serviceType")}</Label>
             <div className="grid grid-cols-3 gap-2">
