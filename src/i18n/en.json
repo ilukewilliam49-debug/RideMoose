@@ -307,7 +307,12 @@
     "driverArriving": "Driver arriving now!",
     "arrivedAtDropoff": "Arriving at destination!",
     "petArrivalPickup": "Driver arrived at pickup",
-    "petArrivalDropoff": "Arriving at destination"
+    "petArrivalDropoff": "Arriving at destination",
+    "addPhoneTitle": "Add your phone number",
+    "addPhoneDesc": "Receive SMS alerts when push notifications aren't available (e.g. pet arrival updates).",
+    "phoneSaved": "Phone number saved!",
+    "smsEnabled": "SMS notifications",
+    "edit": "Edit"
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
