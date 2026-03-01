@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -18,7 +18,7 @@ import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
 
-type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery";
+type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
@@ -47,6 +47,9 @@ const RiderDashboard = () => {
   const [requiresLoadingHelp, setRequiresLoadingHelp] = useState(false);
   const [stairsInvolved, setStairsInvolved] = useState(false);
   const [weightEstimateKg, setWeightEstimateKg] = useState<number | "">("");
+  const [storeId, setStoreId] = useState("");
+  const [orderValueCents, setOrderValueCents] = useState<number | "">("");
+  const [signatureRequired, setSignatureRequired] = useState(false);
 
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
@@ -126,7 +129,7 @@ const RiderDashboard = () => {
         duration_in_traffic_text: string;
       };
     },
-    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery"),
+    enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery" || serviceType === "retail_delivery"),
     staleTime: 60_000,
   });
 
@@ -233,6 +236,15 @@ const RiderDashboard = () => {
       const baseCents = 2500;
       const distFeeCents = Math.round(routeKm * 200);
       const totalCents = Math.max(3000, baseCents + distFeeCents);
+      return (totalCents / 100).toFixed(2);
+    }
+    // Retail Delivery: base 1000 + distance * 150, min 1200
+    if (serviceType === "retail_delivery") {
+      const routeKm = directionsData?.distance_km ?? distanceKm;
+      if (!routeKm) return null;
+      const baseCents = 1000;
+      const distFeeCents = Math.round(routeKm * 150);
+      const totalCents = Math.max(1200, baseCents + distFeeCents);
       return (totalCents / 100).toFixed(2);
     }
     // Taxi: use taxi_rates with route distance from Directions API when available
@@ -426,10 +438,15 @@ const RiderDashboard = () => {
 
   const requestRide = async () => {
     if (!profile?.id || !pickup || !dropoff || !pickupCoords || !dropoffCoords) return;
+    // Retail delivery requires business account
+    if (serviceType === "retail_delivery" && !riderOrgMembership) {
+      toast.error(t("rider.businessAccountRequired"));
+      return;
+    }
     setLoading(true);
     try {
       const estCents = Math.round(parseFloat(estimatedPrice || "0") * 100);
-      const isOrgBilling = billToOrg && riderOrgMembership;
+      const isOrgBilling = (billToOrg && riderOrgMembership) || (serviceType === "retail_delivery" && riderOrgMembership);
 
       // Credit limit + suspension check for org billing
       if (isOrgBilling && riderOrgMembership) {
@@ -457,11 +474,11 @@ const RiderDashboard = () => {
         distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
         service_type: serviceType,
         passenger_count: passengerCount,
-        pricing_model: serviceType === "private_hire" ? "flat_zone" : serviceType === "courier" ? "courier" : serviceType === "large_delivery" ? "large_delivery" : "metered",
+        pricing_model: serviceType === "private_hire" ? "flat_zone" : serviceType === "courier" ? "courier" : serviceType === "large_delivery" ? "large_delivery" : serviceType === "retail_delivery" ? "retail_delivery" : "metered",
         status: "requested",
         payment_option: isOrgBilling ? "pay_driver" : paymentOption,
         billed_to: isOrgBilling ? "organization" : "individual",
-        organization_id: isOrgBilling ? riderOrgMembership.organization_id : null,
+        organization_id: isOrgBilling ? riderOrgMembership!.organization_id : null,
         payment_status: isOrgBilling ? "invoiced_pending" : "unpaid",
         po_number: isOrgBilling && poNumber ? poNumber : null,
         cost_center: isOrgBilling && costCenter ? costCenter : null,
@@ -478,6 +495,15 @@ const RiderDashboard = () => {
           requires_loading_help: requiresLoadingHelp,
           stairs_involved: stairsInvolved,
           weight_estimate_kg: weightEstimateKg || null,
+          pickup_notes: pickupNotes || null,
+          dropoff_notes: dropoffNotes || null,
+          proof_photo_required: true,
+        } : {}),
+        ...(serviceType === "retail_delivery" ? {
+          store_id: storeId || null,
+          order_value_cents: orderValueCents || null,
+          package_size: packageSize,
+          signature_required: signatureRequired,
           pickup_notes: pickupNotes || null,
           dropoff_notes: dropoffNotes || null,
           proof_photo_required: true,
@@ -615,13 +641,14 @@ const RiderDashboard = () => {
           {/* Service Type Toggle */}
           <div className="space-y-2">
             <Label>{t("rider.serviceType")}</Label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {([
                 { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
                 { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
                 { key: "shuttle" as ServiceType, icon: Bus, label: t("rider.shuttle"), desc: t("rider.perSeatPricing") },
                 { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
                 { key: "large_delivery" as ServiceType, icon: Truck, label: t("rider.largeItem"), desc: t("rider.heavyBulkyItems") },
+                { key: "retail_delivery" as ServiceType, icon: Store, label: t("rider.retailDelivery"), desc: t("rider.retailDeliveryDesc") },
               ]).map(({ key, icon: Icon, label, desc }) => (
                 <button
                   key={key}
@@ -773,6 +800,89 @@ const RiderDashboard = () => {
               <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
                 <Truck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground">{t("rider.largeVehicleNote")}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.pickupNotes")}</Label>
+                <Input
+                  value={pickupNotes}
+                  onChange={(e) => setPickupNotes(e.target.value)}
+                  placeholder={t("rider.pickupNotesPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.dropoffNotes")}</Label>
+                <Input
+                  value={dropoffNotes}
+                  onChange={(e) => setDropoffNotes(e.target.value)}
+                  placeholder={t("rider.dropoffNotesPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Retail Delivery fields */}
+          {serviceType === "retail_delivery" && (
+            <div className="space-y-3">
+              {!riderOrgMembership && (
+                <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                  <p className="text-xs text-destructive">{t("rider.businessAccountRequired")}</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>{t("rider.storeId")}</Label>
+                <Input
+                  value={storeId}
+                  onChange={(e) => setStoreId(e.target.value)}
+                  placeholder={t("rider.storeIdPlaceholder")}
+                  className="bg-secondary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("rider.orderValue")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={orderValueCents ? (orderValueCents as number / 100) : ""}
+                  onChange={(e) => setOrderValueCents(e.target.value ? Math.round(parseFloat(e.target.value) * 100) : "")}
+                  placeholder={t("rider.orderValuePlaceholder")}
+                  className="bg-secondary w-40"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  {t("rider.packageSize")}
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["small", "medium", "large"] as const).map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setPackageSize(size)}
+                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${
+                        packageSize === size
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-secondary hover:bg-accent"
+                      }`}
+                    >
+                      {t(`rider.package_${size}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
+                <div>
+                  <p className="text-sm font-medium">{t("rider.signatureRequired")}</p>
+                  <p className="text-[10px] text-muted-foreground">{t("rider.signatureRequiredDesc")}</p>
+                </div>
+                <Switch checked={signatureRequired} onCheckedChange={setSignatureRequired} />
+              </div>
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <Store className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">{t("rider.retailProofNote")}</p>
               </div>
               <div className="space-y-2">
                 <Label>{t("rider.pickupNotes")}</Label>
@@ -1040,8 +1150,8 @@ const RiderDashboard = () => {
           )}
 
           {!paymentClientSecret && (
-            <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
-              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : t("rider.requestShuttle")}
+            <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords || (serviceType === "retail_delivery" && !riderOrgMembership)} className="w-full">
+              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : serviceType === "retail_delivery" ? t("rider.requestRetailDelivery") : t("rider.requestShuttle")}
             </Button>
           )}
         </motion.div>
