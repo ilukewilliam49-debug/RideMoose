@@ -86,7 +86,7 @@ serve(async (req) => {
     if (ride.service_type === "courier") {
       effectiveCommissionRate = 0.06;
     } else if (ride.service_type === "pet_transport") {
-      effectiveCommissionRate = 0.07;
+      effectiveCommissionRate = (cfg.pet_transport_commission_percent ?? 7) / 100;
     } else if (ride.service_type === "personal_shopper") {
       effectiveCommissionRate = 0.10;
     } else if (ride.driver_id) {
