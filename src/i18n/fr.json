@@ -348,7 +348,11 @@
   "common": {
     "language": "Langue",
     "english": "Anglais",
-    "french": "Français"
+    "french": "Français",
+    "smsOn": "Notifications SMS activées",
+    "smsOff": "Notifications SMS désactivées",
+    "smsTurnedOn": "Notifications SMS activées",
+    "smsTurnedOff": "Notifications SMS désactivées"
   },
   "dispatch": {
     "dispatchBoard": "Tableau de répartition",
