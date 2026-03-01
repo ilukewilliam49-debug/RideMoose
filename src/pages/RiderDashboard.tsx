@@ -150,6 +150,7 @@ const RiderDashboard = () => {
         duration_text: string;
         duration_in_traffic_sec: number;
         duration_in_traffic_text: string;
+        polyline: string | null;
       };
     },
     enabled: !!pickupCoords && !!dropoffCoords && (serviceType === "taxi" || serviceType === "courier" || serviceType === "large_delivery" || serviceType === "retail_delivery" || serviceType === "personal_shopper" || serviceType === "pet_transport"),
@@ -334,6 +335,7 @@ const RiderDashboard = () => {
     ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: t("rider.pickup") }] : []),
     ...(dropoffCoords ? [{ lat: dropoffCoords.lat, lng: dropoffCoords.lng, type: "dropoff" as const, label: t("rider.dropoff") }] : []),
   ];
+  const routePolyline = directionsData?.polyline ?? null;
 
   // Active ride
   const { data: activeRide } = useQuery({
@@ -1326,7 +1328,7 @@ const RiderDashboard = () => {
             />
           </div>
 
-          {showBookingMap && <RideMap markers={mapMarkers} />}
+          {showBookingMap && <RideMap markers={mapMarkers} polyline={routePolyline} />}
 
           {estimatedPrice && serviceType === "private_hire" && (
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">

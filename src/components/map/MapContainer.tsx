@@ -48,14 +48,32 @@ interface RideMapProps {
   markers: MapMarker[];
   center?: [number, number];
   className?: string;
+  polyline?: string | null;
 }
+
+/** Decode Google Maps encoded polyline string into [lat, lng] pairs */
+const decodePolyline = (encoded: string): [number, number][] => {
+  const points: [number, number][] = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+  return points;
+};
 
 const iconMap = { pickup: pickupIcon, dropoff: dropoffIcon, driver: driverIcon };
 
-const RideMap = ({ markers, center = [62.454, -114.372], className = "" }: RideMapProps) => {
+const RideMap = ({ markers, center = [62.454, -114.372], className = "", polyline }: RideMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const polylineRef = useRef<L.Polyline | null>(null);
 
   // Initialize map once
   useEffect(() => {
@@ -106,6 +124,30 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "" }: RideM
       map.fitBounds(bounds, { padding: [50, 50] });
     }
   }, [markers]);
+
+  // Draw route polyline
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove previous polyline
+    if (polylineRef.current) {
+      polylineRef.current.remove();
+      polylineRef.current = null;
+    }
+
+    if (polyline) {
+      const decoded = decodePolyline(polyline);
+      polylineRef.current = L.polyline(decoded, {
+        color: "hsl(var(--primary))",
+        weight: 4,
+        opacity: 0.8,
+      }).addTo(map);
+
+      // Fit bounds to include polyline
+      map.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
+    }
+  }, [polyline]);
 
   return (
     <div
