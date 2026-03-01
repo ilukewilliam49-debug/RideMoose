@@ -594,6 +594,7 @@ export type Database = {
           completed_at: string | null
           cost_center: string | null
           created_at: string
+          delivery_fee_cents: number | null
           distance_km: number | null
           driver_collected_outstanding_at: string | null
           driver_earnings_cents: number
@@ -603,8 +604,10 @@ export type Database = {
           dropoff_lng: number | null
           dropoff_notes: string | null
           duration_min: number
+          estimated_item_cost_cents: number | null
           estimated_price: number | null
           final_fare_cents: number | null
+          final_item_cost_cents: number | null
           final_price: number | null
           id: string
           invoice_id: string | null
@@ -634,16 +637,20 @@ export type Database = {
           pricing_model: string
           proof_photo_required: boolean
           proof_photo_url: string | null
+          quantity: number | null
+          receipt_photo_url: string | null
           requires_loading_help: boolean
           rider_id: string
           scheduled_at: string | null
           service_fee_cents: number
           service_type: Database["public"]["Enums"]["service_type"]
+          shopper_fee_cents: number | null
           signature_required: boolean
           stairs_involved: boolean
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
           store_id: string | null
+          store_name: string | null
           stripe_fee_cents: number
           stripe_payment_intent_id: string | null
           updated_at: string
@@ -659,6 +666,7 @@ export type Database = {
           completed_at?: string | null
           cost_center?: string | null
           created_at?: string
+          delivery_fee_cents?: number | null
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
           driver_earnings_cents?: number
@@ -668,8 +676,10 @@ export type Database = {
           dropoff_lng?: number | null
           dropoff_notes?: string | null
           duration_min?: number
+          estimated_item_cost_cents?: number | null
           estimated_price?: number | null
           final_fare_cents?: number | null
+          final_item_cost_cents?: number | null
           final_price?: number | null
           id?: string
           invoice_id?: string | null
@@ -699,16 +709,20 @@ export type Database = {
           pricing_model?: string
           proof_photo_required?: boolean
           proof_photo_url?: string | null
+          quantity?: number | null
+          receipt_photo_url?: string | null
           requires_loading_help?: boolean
           rider_id: string
           scheduled_at?: string | null
           service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
+          shopper_fee_cents?: number | null
           signature_required?: boolean
           stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           store_id?: string | null
+          store_name?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string
@@ -724,6 +738,7 @@ export type Database = {
           completed_at?: string | null
           cost_center?: string | null
           created_at?: string
+          delivery_fee_cents?: number | null
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
           driver_earnings_cents?: number
@@ -733,8 +748,10 @@ export type Database = {
           dropoff_lng?: number | null
           dropoff_notes?: string | null
           duration_min?: number
+          estimated_item_cost_cents?: number | null
           estimated_price?: number | null
           final_fare_cents?: number | null
+          final_item_cost_cents?: number | null
           final_price?: number | null
           id?: string
           invoice_id?: string | null
@@ -764,16 +781,20 @@ export type Database = {
           pricing_model?: string
           proof_photo_required?: boolean
           proof_photo_url?: string | null
+          quantity?: number | null
+          receipt_photo_url?: string | null
           requires_loading_help?: boolean
           rider_id?: string
           scheduled_at?: string | null
           service_fee_cents?: number
           service_type?: Database["public"]["Enums"]["service_type"]
+          shopper_fee_cents?: number | null
           signature_required?: boolean
           stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           store_id?: string | null
+          store_name?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
           updated_at?: string
@@ -1016,6 +1037,7 @@ export type Database = {
         | "courier"
         | "large_delivery"
         | "retail_delivery"
+        | "personal_shopper"
       user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
@@ -1160,6 +1182,7 @@ export const Constants = {
         "courier",
         "large_delivery",
         "retail_delivery",
+        "personal_shopper",
       ],
       user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
