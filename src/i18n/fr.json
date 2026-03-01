@@ -67,7 +67,9 @@
     "hoursOnline": "Heures en ligne",
     "activeRides": "Trajets actifs",
     "onlineDrivers": "Chauffeurs en ligne",
-    "revenueToday": "Revenus aujourd'hui"
+    "revenueToday": "Revenus aujourd'hui",
+    "quickActions": "Actions rapides",
+    "afterFirstRide": "Après le premier trajet"
   },
   "earnings": {
     "title": "Résumé des revenus",
