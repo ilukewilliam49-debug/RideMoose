@@ -298,9 +298,14 @@
     "emergencyContactPlaceholder": "Phone number for emergencies",
     "petApprovedNote": "Only pet-approved drivers will be matched.",
     "requestPetTransport": "Request Pet Transport",
+    "requestPetTransport": "Request Pet Transport",
     "petSurcharge": "Pet surcharge",
     "petTransportFee": "Pet transport fee",
-    "changeService": "Change service"
+    "changeService": "Change service",
+    "etaPickup": "ETA to pickup",
+    "etaDropoff": "ETA to destination",
+    "driverArriving": "Driver arriving now!",
+    "arrivedAtDropoff": "Arriving at destination!"
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",

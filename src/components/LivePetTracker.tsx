@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
-import { PawPrint, MapPin, Clock, Phone } from "lucide-react";
+import { PawPrint, MapPin, Clock, Phone, Navigation } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
@@ -24,6 +24,17 @@ interface LivePetTrackerProps {
   };
 }
 
+/** Haversine distance in km */
+const haversineKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 const LivePetTracker = ({ ride }: LivePetTrackerProps) => {
   const { t } = useTranslation();
   const [driverLocation, setDriverLocation] = useState<{
@@ -32,6 +43,8 @@ const LivePetTracker = ({ ride }: LivePetTrackerProps) => {
     name: string;
   } | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [etaData, setEtaData] = useState<{ etaMin: number; distKm: number } | null>(null);
+  const [etaLoading, setEtaLoading] = useState(false);
 
   // Initial fetch of driver location
   useEffect(() => {
@@ -79,6 +92,59 @@ const LivePetTracker = ({ ride }: LivePetTrackerProps) => {
     };
   }, [ride.driver_id, ride.id]);
 
+  // Determine the destination the driver is heading toward
+  const destination = useMemo(() => {
+    // Before trip starts → heading to pickup; during trip → heading to dropoff
+    if (ride.status === "in_progress" && ride.dropoff_lat && ride.dropoff_lng) {
+      return { lat: ride.dropoff_lat, lng: ride.dropoff_lng };
+    }
+    if (ride.pickup_lat && ride.pickup_lng) {
+      return { lat: ride.pickup_lat, lng: ride.pickup_lng };
+    }
+    return null;
+  }, [ride.status, ride.pickup_lat, ride.pickup_lng, ride.dropoff_lat, ride.dropoff_lng]);
+
+  // Fetch ETA via Directions API when driver location changes
+  useEffect(() => {
+    if (!driverLocation || !destination) return;
+
+    // Quick straight-line check: skip API if very close
+    const straightKm = haversineKm(driverLocation.lat, driverLocation.lng, destination.lat, destination.lng);
+    if (straightKm < 0.1) {
+      setEtaData({ etaMin: 0, distKm: straightKm });
+      return;
+    }
+
+    // Debounce: only call when location meaningfully changed
+    const timer = setTimeout(async () => {
+      setEtaLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("directions", {
+          body: {
+            origin_lat: driverLocation.lat,
+            origin_lng: driverLocation.lng,
+            dest_lat: destination.lat,
+            dest_lng: destination.lng,
+          },
+        });
+        if (!error && data) {
+          const etaSec = data.duration_in_traffic_sec ?? data.duration_sec ?? 0;
+          setEtaData({
+            etaMin: Math.max(1, Math.round(etaSec / 60)),
+            distKm: data.distance_km ?? straightKm,
+          });
+        }
+      } catch {
+        // Fallback: rough estimate at 30 km/h city speed
+        setEtaData({ etaMin: Math.max(1, Math.round((straightKm / 30) * 60)), distKm: straightKm });
+      } finally {
+        setEtaLoading(false);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [driverLocation?.lat, driverLocation?.lng, destination?.lat, destination?.lng]);
+
   const markers: MapMarker[] = [
     ...(ride.pickup_lat && ride.pickup_lng
       ? [{ lat: ride.pickup_lat, lng: ride.pickup_lng, type: "pickup" as const, label: t("rider.pickup") }]
@@ -97,6 +163,8 @@ const LivePetTracker = ({ ride }: LivePetTrackerProps) => {
 
   const petEmoji = (ride as any).pet_type === "dog" ? "🐕" : (ride as any).pet_type === "cat" ? "🐈" : "🐾";
 
+  const etaLabel = ride.status === "in_progress" ? t("rider.etaDropoff") : t("rider.etaPickup");
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
       {/* Live map */}
@@ -112,6 +180,44 @@ const LivePetTracker = ({ ride }: LivePetTrackerProps) => {
           </div>
         )}
       </div>
+
+      {/* ETA countdown banner */}
+      {driverLocation && etaData && etaData.etaMin > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3"
+        >
+          <div className="flex items-center gap-2">
+            <Navigation className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-xs text-muted-foreground">{etaLabel}</p>
+              <p className="text-lg font-bold tabular-nums text-foreground">
+                {etaLoading ? "…" : `${etaData.etaMin} min`}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground font-mono">
+              {etaData.distKm.toFixed(1)} km away
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Arrived indicator */}
+      {driverLocation && etaData && etaData.etaMin === 0 && (
+        <motion.div
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          className="flex items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3"
+        >
+          <PawPrint className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold text-primary">
+            {ride.status === "in_progress" ? t("rider.arrivedAtDropoff") : t("rider.driverArriving")}
+          </span>
+        </motion.div>
+      )}
 
       {/* Pet transport info card */}
       <div className="glass-surface rounded-lg p-4 space-y-3">
