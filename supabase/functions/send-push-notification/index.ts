@@ -29,19 +29,26 @@ serve(async (req) => {
       .eq("id", ride_id)
       .single();
 
-    if (!ride || ride.service_type !== "large_delivery") {
+    if (!ride || !["large_delivery", "pet_transport"].includes(ride.service_type)) {
       return new Response(JSON.stringify({ sent: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get eligible drivers' push subscriptions
-    const { data: drivers } = await supabase
+    // Get eligible drivers' push subscriptions based on service type
+    let driverQuery = supabase
       .from("profiles")
       .select("id")
       .eq("role", "driver")
-      .eq("is_available", true)
-      .in("vehicle_type", ["SUV", "truck", "van"]);
+      .eq("is_available", true);
+
+    if (ride.service_type === "large_delivery") {
+      driverQuery = driverQuery.in("vehicle_type", ["SUV", "truck", "van"]);
+    } else if (ride.service_type === "pet_transport") {
+      driverQuery = driverQuery.eq("pet_approved", true);
+    }
+
+    const { data: drivers } = await driverQuery;
 
     if (!drivers?.length) {
       return new Response(JSON.stringify({ sent: 0 }), {
@@ -62,9 +69,15 @@ serve(async (req) => {
     }
 
     // Send push notifications using Web Push protocol
+    const defaultTitle = ride.service_type === "pet_transport"
+      ? "New Pet Transport Request"
+      : "New Large Delivery Request";
+    const defaultBody = ride.service_type === "pet_transport"
+      ? `A new pet transport from ${ride.pickup_address} is available.`
+      : `A new large item delivery from ${ride.pickup_address} is available for bidding.`;
     const pushPayload = JSON.stringify({
-      title: title || "New Large Delivery Request",
-      body: body || `A new large item delivery from ${ride.pickup_address} is available for bidding.`,
+      title: title || defaultTitle,
+      body: body || defaultBody,
       url: "/driver/dispatch",
     });
 
