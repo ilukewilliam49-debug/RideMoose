@@ -42,6 +42,20 @@ serve(async (req) => {
       throw new Error("No route found");
     }
 
+    // Extract turn-by-turn steps
+    const steps = (leg.steps || []).map((step: any) => ({
+      instruction: step.html_instructions || "",
+      distance_text: step.distance?.text || "",
+      distance_m: step.distance?.value || 0,
+      duration_text: step.duration?.text || "",
+      duration_sec: step.duration?.value || 0,
+      maneuver: step.maneuver || null,
+      start_lat: step.start_location?.lat,
+      start_lng: step.start_location?.lng,
+      end_lat: step.end_location?.lat,
+      end_lng: step.end_location?.lng,
+    }));
+
     const result = {
       distance_km: (leg.distance?.value || 0) / 1000,
       duration_sec: leg.duration?.value || 0,
@@ -49,6 +63,7 @@ serve(async (req) => {
       duration_in_traffic_sec: leg.duration_in_traffic?.value || leg.duration?.value || 0,
       duration_in_traffic_text: leg.duration_in_traffic?.text || leg.duration?.text || "",
       polyline: data.routes?.[0]?.overview_polyline?.points || null,
+      steps,
     };
 
     return new Response(JSON.stringify(result), {
