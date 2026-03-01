@@ -48,6 +48,7 @@ serve(async (req) => {
       duration_text: leg.duration?.text || "",
       duration_in_traffic_sec: leg.duration_in_traffic?.value || leg.duration?.value || 0,
       duration_in_traffic_text: leg.duration_in_traffic?.text || leg.duration?.text || "",
+      polyline: data.routes?.[0]?.overview_polyline?.points || null,
     };
 
     return new Response(JSON.stringify(result), {
