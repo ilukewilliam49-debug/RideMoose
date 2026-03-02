@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.pet-arrival-notify]
 verify_jwt = false
+
+[functions.sync-bokun-bookings]
+verify_jwt = false

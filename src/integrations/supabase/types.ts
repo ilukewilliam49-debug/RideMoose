@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      bokun_bookings: {
+        Row: {
+          bokun_booking_id: string
+          booking_date: string | null
+          confirmation_code: string | null
+          created_at: string
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          notes: string | null
+          participants: number | null
+          product_id: string | null
+          product_title: string | null
+          raw_data: Json | null
+          seller_name: string | null
+          start_time: string | null
+          status: string
+          synced_at: string
+          total_price_cents: number | null
+          updated_at: string
+        }
+        Insert: {
+          bokun_booking_id: string
+          booking_date?: string | null
+          confirmation_code?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          participants?: number | null
+          product_id?: string | null
+          product_title?: string | null
+          raw_data?: Json | null
+          seller_name?: string | null
+          start_time?: string | null
+          status?: string
+          synced_at?: string
+          total_price_cents?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bokun_booking_id?: string
+          booking_date?: string | null
+          confirmation_code?: string | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          notes?: string | null
+          participants?: number | null
+          product_id?: string | null
+          product_title?: string | null
+          raw_data?: Json | null
+          seller_name?: string | null
+          start_time?: string | null
+          status?: string
+          synced_at?: string
+          total_price_cents?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bokun_sync_status: {
+        Row: {
+          error_message: string | null
+          id: string
+          last_cursor: string | null
+          last_synced_at: string | null
+          resource_type: string
+          status: string | null
+          total_synced: number | null
+          updated_at: string
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          last_cursor?: string | null
+          last_synced_at?: string | null
+          resource_type?: string
+          status?: string | null
+          total_synced?: number | null
+          updated_at?: string
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          last_cursor?: string | null
+          last_synced_at?: string | null
+          resource_type?: string
+          status?: string | null
+          total_synced?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       delivery_bids: {
         Row: {
           created_at: string
