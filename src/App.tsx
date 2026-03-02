@@ -15,6 +15,7 @@ import AdminPricing from "./pages/AdminPricing";
 import AdminZones from "./pages/AdminZones";
 import AdminCorporate from "./pages/AdminCorporate";
 import AdminSupport from "./pages/AdminSupport";
+import AdminBookings from "./pages/AdminBookings";
 import DriverDashboard from "./pages/DriverDashboard";
 import DriverDispatch from "./pages/DriverDispatch";
 import DashboardHome from "./pages/DashboardHome";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="zones" element={<AdminZones />} />
             <Route path="corporate" element={<AdminCorporate />} />
             <Route path="support" element={<AdminSupport />} />
+            <Route path="bookings" element={<AdminBookings />} />
           </Route>
 
           <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
