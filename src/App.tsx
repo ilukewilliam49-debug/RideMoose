@@ -24,6 +24,7 @@ import RiderDashboard from "./pages/RiderDashboard";
 import CorporateApply from "./pages/CorporateApply";
 import FoodRestaurants from "./pages/FoodRestaurants";
 import FoodMenu from "./pages/FoodMenu";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./hooks/useAuth";
 
