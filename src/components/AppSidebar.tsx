@@ -50,7 +50,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
 });
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
