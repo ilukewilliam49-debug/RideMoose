@@ -11,6 +11,7 @@ import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const { t } = useTranslation();
