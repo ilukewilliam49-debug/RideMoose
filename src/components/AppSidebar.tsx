@@ -81,7 +81,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="flex items-center justify-between px-4 py-4">
-          <img src={logoImg} alt="OnlyKnifers" className="h-8 shrink-0 rounded" />
+          <img src={logoImg} alt="Wheelflow" className="h-8 shrink-0 rounded" />
           {!collapsed && <NotificationBell />}
         </div>
 

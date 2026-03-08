@@ -70,7 +70,7 @@ const Login = () => {
       >
         <div className="text-center mb-8">
           <div className="inline-flex items-center mb-4">
-            <img src={logoImg} alt="OnlyKnifers" className="h-12 rounded" />
+            <img src={logoImg} alt="Wheelflow" className="h-12 rounded" />
           </div>
           <p className="text-muted-foreground">
             {isLogin ? t("auth.signInTitle") : t("auth.signUpTitle")}
