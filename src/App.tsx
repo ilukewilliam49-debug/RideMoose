@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleLayout from "./components/RoleLayout";
+import SessionExpiredDialog from "./components/SessionExpiredDialog";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminVerifications from "./pages/AdminVerifications";
 import AdminReports from "./pages/AdminReports";
@@ -24,8 +25,68 @@ import CorporateApply from "./pages/CorporateApply";
 import FoodRestaurants from "./pages/FoodRestaurants";
 import FoodMenu from "./pages/FoodMenu";
 import NotFound from "./pages/NotFound";
+import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  const { sessionExpired, expiredEmail, clearSessionExpired } = useAuth();
+
+  const handleReLoginSuccess = () => {
+    clearSessionExpired();
+    window.location.reload();
+  };
+
+  const handleSwitchAccount = () => {
+    clearSessionExpired();
+    window.location.href = "/login";
+  };
+
+  return (
+    <>
+      <SessionExpiredDialog
+        open={sessionExpired}
+        email={expiredEmail}
+        onSuccess={handleReLoginSuccess}
+        onSwitchAccount={handleSwitchAccount}
+      />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/auth" element={<Navigate to="/login" replace />} />
+
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="verifications" element={<AdminVerifications />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="pricing" element={<AdminPricing />} />
+          <Route path="zones" element={<AdminZones />} />
+          <Route path="corporate" element={<AdminCorporate />} />
+          <Route path="support" element={<AdminSupport />} />
+          <Route path="bookings" element={<AdminBookings />} />
+        </Route>
+
+        <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
+          <Route index element={<DriverDashboard />} />
+          <Route path="dispatch" element={<DriverDispatch />} />
+        </Route>
+
+        <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>
+          <Route index element={<DashboardHome />} />
+          <Route path="rides" element={<RiderDashboard />} />
+          <Route path="food" element={<FoodRestaurants />} />
+          <Route path="food/:restaurantId" element={<FoodMenu />} />
+          <Route path="corporate-apply" element={<CorporateApply />} />
+        </Route>
+
+        <Route path="/dashboard/*" element={<Navigate to="/rider" replace />} />
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -33,40 +94,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth" element={<Navigate to="/login" replace />} />
-
-          <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="verifications" element={<AdminVerifications />} />
-            <Route path="reports" element={<AdminReports />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="pricing" element={<AdminPricing />} />
-            <Route path="zones" element={<AdminZones />} />
-            <Route path="corporate" element={<AdminCorporate />} />
-            <Route path="support" element={<AdminSupport />} />
-            <Route path="bookings" element={<AdminBookings />} />
-          </Route>
-
-          <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
-            <Route index element={<DriverDashboard />} />
-            <Route path="dispatch" element={<DriverDispatch />} />
-          </Route>
-
-          <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>
-            <Route index element={<DashboardHome />} />
-            <Route path="rides" element={<RiderDashboard />} />
-            <Route path="food" element={<FoodRestaurants />} />
-            <Route path="food/:restaurantId" element={<FoodMenu />} />
-            <Route path="corporate-apply" element={<CorporateApply />} />
-          </Route>
-
-          <Route path="/dashboard/*" element={<Navigate to="/rider" replace />} />
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppContent />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -33,6 +33,13 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [expiredEmail, setExpiredEmail] = useState<string | undefined>();
+
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
+    setExpiredEmail(undefined);
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async (userId: string) => {
@@ -45,12 +52,21 @@ export const useAuth = () => {
       setLoading(false);
     };
 
-    // Set up auth listener first — keep it synchronous to avoid deadlocks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        if (event === "TOKEN_REFRESHED") {
+          // Successfully refreshed — clear any expired state
+          clearSessionExpired();
+        }
+
+        if (event === "SIGNED_OUT") {
+          // Only show expired dialog if we had a user before (not manual sign-out)
+          // Manual sign-out sets user to null before this fires
+        }
+
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Use setTimeout to avoid Supabase client deadlock
+          clearSessionExpired();
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
@@ -59,8 +75,18 @@ export const useAuth = () => {
       }
     );
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error && error.message?.includes("refresh_token")) {
+        // Token refresh failed — session expired
+        const lastEmail = user?.email;
+        setExpiredEmail(lastEmail || undefined);
+        setSessionExpired(true);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
@@ -69,14 +95,33 @@ export const useAuth = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for auth errors that indicate expired tokens
+    const handleVisibility = async () => {
+      if (document.visibilityState === "visible") {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || (!session && user)) {
+          setExpiredEmail(user?.email || undefined);
+          setSessionExpired(true);
+          setUser(null);
+          setProfile(null);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   const signOut = async () => {
+    clearSessionExpired();
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
   };
 
-  return { user, profile, loading, signOut };
+  return { user, profile, loading, signOut, sessionExpired, expiredEmail, clearSessionExpired };
 };
