@@ -24,6 +24,7 @@ import RiderDashboard from "./pages/RiderDashboard";
 import CorporateApply from "./pages/CorporateApply";
 import FoodRestaurants from "./pages/FoodRestaurants";
 import FoodMenu from "./pages/FoodMenu";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./hooks/useAuth";
 
@@ -53,6 +54,7 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
         <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>

@@ -11,6 +11,7 @@ import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const { t } = useTranslation();
@@ -134,7 +136,16 @@ const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center space-y-2">
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setForgotOpen(true)}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors block w-full"
+              >
+                {t("auth.forgotPassword")}
+              </button>
+            )}
             <button
               onClick={() => setIsLogin(!isLogin)}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -142,6 +153,7 @@ const Login = () => {
               {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}
             </button>
           </div>
+          <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} prefillEmail={email} />
         </div>
       </motion.div>
     </div>

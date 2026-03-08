@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 interface SessionExpiredDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ const SessionExpiredDialog = ({ open, email: prefillEmail, onSuccess, onSwitchAc
   const [email, setEmail] = useState(prefillEmail || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const { t } = useTranslation();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -85,14 +87,24 @@ const SessionExpiredDialog = ({ open, email: prefillEmail, onSuccess, onSwitchAc
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? t("auth.loading") : t("auth.signIn")}
           </Button>
-          <button
-            type="button"
-            onClick={onSwitchAccount}
-            className="w-full text-sm text-muted-foreground hover:text-primary transition-colors text-center"
-          >
-            Sign in with a different account
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              className="w-full text-sm text-muted-foreground hover:text-primary transition-colors text-center"
+            >
+              {t("auth.forgotPassword")}
+            </button>
+            <button
+              type="button"
+              onClick={onSwitchAccount}
+              className="w-full text-sm text-muted-foreground hover:text-primary transition-colors text-center"
+            >
+              {t("auth.switchAccount")}
+            </button>
+          </div>
         </form>
+        <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} prefillEmail={email} />
       </DialogContent>
     </Dialog>
   );
