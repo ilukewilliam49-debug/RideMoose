@@ -97,6 +97,7 @@ export function AppSidebar() {
                       end={item.url === `/rider` || item.url === `/driver` || item.url === `/admin`}
                       className="hover:bg-accent/50"
                       activeClassName="bg-accent text-primary font-medium"
+                      onClick={() => setOpenMobile(false)}
                     >
                       <item.icon className="mr-2 h-4 w-4 shrink-0" />
                       {!collapsed && (
