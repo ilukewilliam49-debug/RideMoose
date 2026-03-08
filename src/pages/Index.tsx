@@ -34,7 +34,7 @@ const Index = () => {
       <nav className="fixed top-0 w-full z-50 glass-surface">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center">
-            <img src={logoImg} alt="Wheelflow" className="h-10 rounded" />
+            <img src={logoImg} alt="Wheelflow" className="h-14 rounded" />
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
