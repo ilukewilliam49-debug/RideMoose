@@ -26,6 +26,7 @@ const SessionExpiredDialog = ({ open, email: prefillEmail, onSuccess, onSwitchAc
   const [email, setEmail] = useState(prefillEmail || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const { t } = useTranslation();
 
   const handleLogin = async (e: React.FormEvent) => {
