@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 interface SessionExpiredDialogProps {
   open: boolean;
