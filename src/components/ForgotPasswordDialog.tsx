@@ -21,6 +21,13 @@ interface ForgotPasswordDialogProps {
   prefillEmail?: string;
 }
 
+interface RateLimitResult {
+  allowed: boolean;
+  remaining_attempts?: number;
+  retry_after_minutes?: number;
+  reset_after_minutes?: number;
+}
+
 const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswordDialogProps) => {
   const [email, setEmail] = useState(prefillEmail || "");
   const [loading, setLoading] = useState(false);
