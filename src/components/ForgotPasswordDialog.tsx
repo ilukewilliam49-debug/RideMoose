@@ -104,6 +104,9 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
   const handleClose = (open: boolean) => {
     if (!open) {
       setSent(false);
+      setRateLimited(false);
+      setRetryAfter(0);
+      setRemainingAttempts(null);
     }
     onOpenChange(open);
   };
