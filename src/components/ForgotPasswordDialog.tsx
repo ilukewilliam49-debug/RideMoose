@@ -126,6 +126,25 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {rateLimited && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {t("auth.resetRateLimited", { minutes: retryAfter })}
+                </AlertDescription>
+              </Alert>
+            )}
+            {remainingAttempts !== null && remainingAttempts < 3 && !rateLimited && (
+              <Alert className="mb-4">
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  {remainingAttempts > 0 
+                    ? t("auth.attemptsRemaining", { count: remainingAttempts })
+                    : t("auth.lastAttemptWarning")
+                  }
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <Label htmlFor="forgot-email">{t("auth.email")}</Label>
               <div className="relative">
@@ -141,7 +160,7 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || rateLimited}>
               {loading ? t("auth.loading") : t("auth.sendResetLink")}
             </Button>
           </form>
