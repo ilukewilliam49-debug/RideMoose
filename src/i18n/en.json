@@ -57,7 +57,12 @@
     "redirectingToLogin": "Redirecting to login...",
     "invalidResetLink": "This password reset link is invalid or has expired.",
     "backToLogin": "Back to Login",
-    "switchAccount": "Sign in with a different account"
+    "switchAccount": "Sign in with a different account",
+    "rateLimitExceeded": "Too many attempts. Please wait before trying again.",
+    "resetRateLimited": "Password reset is temporarily limited. Try again in {{minutes}} minutes.",
+    "attemptsRemaining": "{{count}} attempts remaining before temporary lockout",
+    "lastAttemptWarning": "Final attempt - account will be temporarily locked after this",
+    "lastAttempt": "This was your final attempt."
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",

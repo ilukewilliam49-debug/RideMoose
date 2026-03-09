@@ -57,7 +57,12 @@
     "redirectingToLogin": "Redirection vers la connexion...",
     "invalidResetLink": "Ce lien de réinitialisation est invalide ou a expiré.",
     "backToLogin": "Retour à la connexion",
-    "switchAccount": "Se connecter avec un autre compte"
+    "switchAccount": "Se connecter avec un autre compte",
+    "rateLimitExceeded": "Trop de tentatives. Veuillez patienter avant de réessayer.",
+    "resetRateLimited": "La réinitialisation du mot de passe est temporairement limitée. Réessayez dans {{minutes}} minutes.",
+    "attemptsRemaining": "{{count}} tentatives restantes avant le verrouillage temporaire",
+    "lastAttemptWarning": "Dernière tentative - le compte sera temporairement verrouillé après celle-ci",
+    "lastAttempt": "C'était votre dernière tentative."
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",

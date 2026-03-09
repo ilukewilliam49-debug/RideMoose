@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, CheckCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Mail, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -20,21 +21,79 @@ interface ForgotPasswordDialogProps {
   prefillEmail?: string;
 }
 
+interface RateLimitResult {
+  allowed: boolean;
+  remaining_attempts?: number;
+  retry_after_minutes?: number;
+  reset_after_minutes?: number;
+}
+
 const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswordDialogProps) => {
   const [email, setEmail] = useState(prefillEmail || "");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [retryAfter, setRetryAfter] = useState(0);
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   const { t } = useTranslation();
+
+  // Countdown timer for rate limit
+  useEffect(() => {
+    if (retryAfter > 0) {
+      const timer = setInterval(() => {
+        setRetryAfter(prev => {
+          if (prev <= 1) {
+            setRateLimited(false);
+            setRemainingAttempts(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 60000); // Update every minute
+      return () => clearInterval(timer);
+    }
+  }, [retryAfter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
+      // Check rate limit first
+      const { data: rateLimitData, error: rateLimitError } = await supabase.rpc(
+        'check_password_reset_rate_limit',
+        { user_email: email }
+      );
+
+      if (rateLimitError) {
+        throw new Error('Failed to check rate limit');
+      }
+
+      const rateLimitResult = rateLimitData as unknown as RateLimitResult;
+
+      if (!rateLimitResult.allowed) {
+        setRateLimited(true);
+        setRetryAfter(Math.ceil(rateLimitResult.retry_after_minutes || 0));
+        toast.error(t("auth.rateLimitExceeded"));
+        return;
+      }
+
+      // Set remaining attempts for display
+      setRemainingAttempts(rateLimitResult.remaining_attempts || null);
+
+      // Proceed with password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
+      
       if (error) throw error;
       setSent(true);
+      
+      if (rateLimitResult.remaining_attempts === 0) {
+        toast.success(t("auth.resetEmailSent") + " " + t("auth.lastAttempt"));
+      } else {
+        toast.success(t("auth.resetEmailSent"));
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -45,6 +104,9 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
   const handleClose = (open: boolean) => {
     if (!open) {
       setSent(false);
+      setRateLimited(false);
+      setRetryAfter(0);
+      setRemainingAttempts(null);
     }
     onOpenChange(open);
   };
@@ -67,6 +129,25 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {rateLimited && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {t("auth.resetRateLimited", { minutes: retryAfter })}
+                </AlertDescription>
+              </Alert>
+            )}
+            {remainingAttempts !== null && remainingAttempts < 3 && !rateLimited && (
+              <Alert className="mb-4">
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  {remainingAttempts > 0 
+                    ? t("auth.attemptsRemaining", { count: remainingAttempts })
+                    : t("auth.lastAttemptWarning")
+                  }
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <Label htmlFor="forgot-email">{t("auth.email")}</Label>
               <div className="relative">
@@ -82,7 +163,7 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || rateLimited}>
               {loading ? t("auth.loading") : t("auth.sendResetLink")}
             </Button>
           </form>
