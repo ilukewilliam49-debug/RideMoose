@@ -50,12 +50,41 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
+      // Check rate limit first
+      const { data: rateLimitResult, error: rateLimitError } = await supabase.rpc(
+        'check_password_reset_rate_limit',
+        { user_email: email }
+      );
+
+      if (rateLimitError) {
+        throw new Error('Failed to check rate limit');
+      }
+
+      if (!rateLimitResult.allowed) {
+        setRateLimited(true);
+        setRetryAfter(Math.ceil(rateLimitResult.retry_after_minutes));
+        toast.error(t("auth.rateLimitExceeded"));
+        return;
+      }
+
+      // Set remaining attempts for display
+      setRemainingAttempts(rateLimitResult.remaining_attempts);
+
+      // Proceed with password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
+      
       if (error) throw error;
       setSent(true);
+      
+      if (rateLimitResult.remaining_attempts === 0) {
+        toast.success(t("auth.resetEmailSent") + " " + t("auth.lastAttempt"));
+      } else {
+        toast.success(t("auth.resetEmailSent"));
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
