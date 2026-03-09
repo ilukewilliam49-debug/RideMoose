@@ -69,7 +69,7 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
         throw new Error('Failed to check rate limit');
       }
 
-      const rateLimitResult = rateLimitData as RateLimitResult;
+      const rateLimitResult = rateLimitData as unknown as RateLimitResult;
 
       if (!rateLimitResult.allowed) {
         setRateLimited(true);
