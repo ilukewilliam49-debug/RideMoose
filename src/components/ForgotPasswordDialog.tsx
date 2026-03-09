@@ -25,7 +25,27 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
   const [email, setEmail] = useState(prefillEmail || "");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [retryAfter, setRetryAfter] = useState(0);
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   const { t } = useTranslation();
+
+  // Countdown timer for rate limit
+  useEffect(() => {
+    if (retryAfter > 0) {
+      const timer = setInterval(() => {
+        setRetryAfter(prev => {
+          if (prev <= 1) {
+            setRateLimited(false);
+            setRemainingAttempts(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 60000); // Update every minute
+      return () => clearInterval(timer);
+    }
+  }, [retryAfter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
