@@ -60,7 +60,7 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
     
     try {
       // Check rate limit first
-      const { data: rateLimitResult, error: rateLimitError } = await supabase.rpc(
+      const { data: rateLimitData, error: rateLimitError } = await supabase.rpc(
         'check_password_reset_rate_limit',
         { user_email: email }
       );
@@ -69,15 +69,17 @@ const ForgotPasswordDialog = ({ open, onOpenChange, prefillEmail }: ForgotPasswo
         throw new Error('Failed to check rate limit');
       }
 
+      const rateLimitResult = rateLimitData as RateLimitResult;
+
       if (!rateLimitResult.allowed) {
         setRateLimited(true);
-        setRetryAfter(Math.ceil(rateLimitResult.retry_after_minutes));
+        setRetryAfter(Math.ceil(rateLimitResult.retry_after_minutes || 0));
         toast.error(t("auth.rateLimitExceeded"));
         return;
       }
 
       // Set remaining attempts for display
-      setRemainingAttempts(rateLimitResult.remaining_attempts);
+      setRemainingAttempts(rateLimitResult.remaining_attempts || null);
 
       // Proceed with password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
