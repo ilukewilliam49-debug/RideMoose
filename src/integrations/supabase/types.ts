@@ -554,6 +554,33 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_attempts: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          email: string
+          id: string
+          last_attempt_at: string
+          reset_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          email: string
+          id?: string
+          last_attempt_at?: string
+          reset_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          email?: string
+          id?: string
+          last_attempt_at?: string
+          reset_at?: string
+        }
+        Relationships: []
+      }
       platform_config: {
         Row: {
           id: string
@@ -1316,6 +1343,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_password_reset_rate_limit: {
+        Args: { user_email: string }
+        Returns: Json
+      }
       driver_can_serve: {
         Args: {
           _service: Database["public"]["Enums"]["service_type"]
