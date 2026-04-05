@@ -19,14 +19,14 @@ import { useTranslation } from "react-i18next";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
 import LivePetTracker from "@/components/LivePetTracker";
 
-type ServiceType = "taxi" | "private_hire" | "shuttle" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
+type ServiceType = "taxi" | "private_hire" | "courier";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const serviceParam = searchParams.get("service");
-  const mode = serviceParam === "courier" ? "delivery" : serviceParam === "personal_shopper" ? "personal_shopper" : serviceParam === "pet_transport" ? "pet_transport" : "rides";
+  const mode = serviceParam === "courier" ? "delivery" : "rides";
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [pickup, setPickup] = useState("");
@@ -34,7 +34,9 @@ const RiderDashboard = () => {
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [serviceType, setServiceType] = useState<ServiceType>(mode === "delivery" ? "courier" : mode === "personal_shopper" ? "personal_shopper" : mode === "pet_transport" ? "pet_transport" : "taxi");
+  const [serviceType, setServiceType] = useState<ServiceType>(
+    serviceParam === "private_hire" ? "private_hire" : mode === "delivery" ? "courier" : "taxi"
+  );
   const [paymentOption, setPaymentOption] = useState<"in_app" | "pay_driver">("in_app");
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
@@ -782,23 +784,11 @@ const RiderDashboard = () => {
               ? t("rider.rideInProgress")
               : mode === "delivery"
                 ? t("rider.requestDelivery")
-                : mode === "personal_shopper"
-                  ? t("rider.requestPersonalShopper")
-                  : mode === "pet_transport"
-                    ? t("rider.requestPetTransport")
-                    : t("rider.requestARide")}
+                : serviceType === "private_hire"
+                  ? t("rider.requestPrivateHire")
+                  : t("rider.requestARide")}
           </h1>
         </div>
-        {mode === "pet_transport" && !activeRide && (
-          <button
-            type="button"
-            onClick={() => navigate("/rider")}
-            className="ml-1 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            {t("rider.changeService")}
-          </button>
-        )}
       </div>
 
       {/* Phone number for SMS notifications */}
@@ -854,25 +844,7 @@ const RiderDashboard = () => {
           </div>
         </div>
       )}
-      {activeRide && (activeRide as any).service_type === "pet_transport" && (
-        <div className="space-y-3">
-          <LivePetTracker ride={activeRide as any} />
-          {(activeRide.status === "requested" || activeRide.status === "accepted") && (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full"
-              disabled={cancellingRide}
-              onClick={cancelRide}
-            >
-              {cancellingRide ? t("rider.cancelling") : t("rider.cancelRide")}
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Active ride tracking map (non-pet) */}
-      {showActiveMap && (activeRide as any)?.service_type !== "pet_transport" && (
+      {showActiveMap && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />
           {(liveEta || activeRideDirections) && (
@@ -949,25 +921,23 @@ const RiderDashboard = () => {
           className="glass-surface rounded-lg p-6 space-y-4 overflow-visible"
         >
           {/* Service Type Toggle */}
-          {mode !== "personal_shopper" && mode !== "pet_transport" && (
           <div className="space-y-2">
             <Label>{t("rider.serviceType")}</Label>
             <div className="grid grid-cols-3 gap-2">
-              {([
-                ...(mode === "rides" ? [
-                  { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
-                  { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
-                  { key: "shuttle" as ServiceType, icon: Bus, label: t("rider.shuttle"), desc: t("rider.perSeatPricing") },
-                ] : [
-                  { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
-                  { key: "large_delivery" as ServiceType, icon: Truck, label: t("rider.largeItem"), desc: t("rider.heavyBulkyItems") },
-                  { key: "retail_delivery" as ServiceType, icon: Store, label: t("rider.retailDelivery"), desc: t("rider.retailDeliveryDesc") },
-                ]),
-              ]).map(({ key, icon: Icon, label, desc }) => (
+              {(mode === "rides"
+                ? [
+                    { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
+                    { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
+                    { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
+                  ]
+                : [
+                    { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
+                  ]
+              ).map(({ key, icon: Icon, label, desc }) => (
                 <button
                   key={key}
                   type="button"
-                  onClick={() => { setServiceType(key); if (key !== "shuttle") setPassengerCount(1); }}
+                  onClick={() => setServiceType(key)}
                   className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
                     serviceType === key
                       ? "border-primary bg-primary/10 shadow-sm"
@@ -981,25 +951,6 @@ const RiderDashboard = () => {
               ))}
             </div>
           </div>
-          )}
-
-          {/* Passenger count for shuttle */}
-          {serviceType === "shuttle" && (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                {t("rider.passengers")}
-              </Label>
-              <Input
-                type="number"
-                min={1}
-                max={12}
-                value={passengerCount}
-                onChange={(e) => setPassengerCount(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
-                className="w-24 bg-secondary"
-              />
-            </div>
-          )}
 
           {/* Courier fields */}
           {serviceType === "courier" && (
@@ -1075,305 +1026,6 @@ const RiderDashboard = () => {
             </div>
           )}
 
-          {/* Large Delivery fields */}
-          {serviceType === "large_delivery" && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>{t("rider.itemDescription")}</Label>
-                <Input
-                  value={itemDescription}
-                  onChange={(e) => setItemDescription(e.target.value)}
-                  placeholder={t("rider.describeItemLarge")}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.estimatedWeight")}</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={weightEstimateKg}
-                  onChange={(e) => setWeightEstimateKg(e.target.value ? parseInt(e.target.value) : "")}
-                  placeholder={t("rider.approxWeight")}
-                  className="bg-secondary w-32"
-                />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
-                <div>
-                  <p className="text-sm font-medium">{t("rider.requiresLoadingHelp")}</p>
-                  <p className="text-[10px] text-muted-foreground">{t("rider.loadingHelpDesc")}</p>
-                </div>
-                <Switch checked={requiresLoadingHelp} onCheckedChange={setRequiresLoadingHelp} />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
-                <div>
-                  <p className="text-sm font-medium">{t("rider.stairsInvolved")}</p>
-                  <p className="text-[10px] text-muted-foreground">{t("rider.stairsDesc")}</p>
-                </div>
-                <Switch checked={stairsInvolved} onCheckedChange={setStairsInvolved} />
-              </div>
-              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <Truck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">{t("rider.largeVehicleNote")}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.pickupNotes")}</Label>
-                <Input
-                  value={pickupNotes}
-                  onChange={(e) => setPickupNotes(e.target.value)}
-                  placeholder={t("rider.pickupNotesPlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.dropoffNotes")}</Label>
-                <Input
-                  value={dropoffNotes}
-                  onChange={(e) => setDropoffNotes(e.target.value)}
-                  placeholder={t("rider.dropoffNotesPlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Retail Delivery fields */}
-          {serviceType === "retail_delivery" && (
-            <div className="space-y-3">
-              {!riderOrgMembership && (
-                <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                  <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                  <p className="text-xs text-destructive">{t("rider.businessAccountRequired")}</p>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label>{t("rider.storeId")}</Label>
-                <Input
-                  value={storeId}
-                  onChange={(e) => setStoreId(e.target.value)}
-                  placeholder={t("rider.storeIdPlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.orderValue")}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={orderValueCents ? (orderValueCents as number / 100) : ""}
-                  onChange={(e) => setOrderValueCents(e.target.value ? Math.round(parseFloat(e.target.value) * 100) : "")}
-                  placeholder={t("rider.orderValuePlaceholder")}
-                  className="bg-secondary w-40"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  {t("rider.packageSize")}
-                </Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["small", "medium", "large"] as const).map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => setPackageSize(size)}
-                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${
-                        packageSize === size
-                          ? "border-primary bg-primary/10"
-                          : "border-border bg-secondary hover:bg-accent"
-                      }`}
-                    >
-                      {t(`rider.package_${size}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
-                <div>
-                  <p className="text-sm font-medium">{t("rider.signatureRequired")}</p>
-                  <p className="text-[10px] text-muted-foreground">{t("rider.signatureRequiredDesc")}</p>
-                </div>
-                <Switch checked={signatureRequired} onCheckedChange={setSignatureRequired} />
-              </div>
-              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <Store className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">{t("rider.retailProofNote")}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.pickupNotes")}</Label>
-                <Input
-                  value={pickupNotes}
-                  onChange={(e) => setPickupNotes(e.target.value)}
-                  placeholder={t("rider.pickupNotesPlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.dropoffNotes")}</Label>
-                <Input
-                  value={dropoffNotes}
-                  onChange={(e) => setDropoffNotes(e.target.value)}
-                  placeholder={t("rider.dropoffNotesPlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Personal Shopper fields */}
-          {serviceType === "personal_shopper" && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>{t("rider.storeName")}</Label>
-                <Input
-                  value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
-                  placeholder={t("rider.storeNamePlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.itemDescription")}</Label>
-                <Input
-                  value={itemDescription}
-                  onChange={(e) => setItemDescription(e.target.value)}
-                  placeholder={t("rider.describeItem")}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.quantity")}</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value ? parseInt(e.target.value) : "")}
-                  placeholder={t("rider.quantityPlaceholder")}
-                  className="bg-secondary w-24"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.estimatedItemCost")}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={estimatedItemCostCents ? (Number(estimatedItemCostCents) / 100) : ""}
-                  onChange={(e) => setEstimatedItemCostCents(e.target.value ? Math.round(parseFloat(e.target.value) * 100) : "")}
-                  placeholder={t("rider.estimatedItemCostPlaceholder")}
-                  className="bg-secondary w-40"
-                />
-              </div>
-              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <ShoppingCart className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">{t("rider.shopperFeeNote")}</p>
-                  <p className="text-xs text-muted-foreground">{t("rider.receiptRequired")}</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.dropoffNotes")}</Label>
-                <Input
-                  value={dropoffNotes}
-                  onChange={(e) => setDropoffNotes(e.target.value)}
-                  placeholder={t("rider.dropoffNotesPlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Pet Transport fields */}
-          {serviceType === "pet_transport" && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>{t("rider.petMode")}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    { key: "pet_with_owner" as const, label: t("rider.petWithOwner"), desc: t("rider.petWithOwnerDesc") },
-                    { key: "pet_only_transport" as const, label: t("rider.petOnlyTransport"), desc: t("rider.petOnlyTransportDesc") },
-                  ]).map(({ key, label, desc }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setPetMode(key)}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-all ${
-                        petMode === key ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"
-                      }`}
-                    >
-                      <p className="text-xs font-semibold">{label}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.petType")}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["dog", "cat", "other"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setPetType(type)}
-                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${
-                        petType === type ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"
-                      }`}
-                    >
-                      {t(`rider.pet${type.charAt(0).toUpperCase() + type.slice(1)}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.petWeightEstimate")}</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={petWeightEstimate}
-                  onChange={(e) => setPetWeightEstimate(e.target.value ? parseInt(e.target.value) : "")}
-                  placeholder={t("rider.petWeightPlaceholder")}
-                  className="bg-secondary w-32"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.destinationType")}</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(["vet", "grooming", "boarding", "airport"] as const).map((dest) => (
-                    <button
-                      key={dest}
-                      type="button"
-                      onClick={() => setDestinationType(dest)}
-                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${
-                        destinationType === dest ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"
-                      }`}
-                    >
-                      {t(`rider.dest${dest.charAt(0).toUpperCase() + dest.slice(1)}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.emergencyContact")}</Label>
-                <Input
-                  type="tel"
-                  value={emergencyContactPhone}
-                  onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                  placeholder={t("rider.emergencyContactPlaceholder")}
-                  className="bg-secondary"
-                />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
-                <div>
-                  <p className="text-sm font-medium">{t("rider.crateConfirmed")}</p>
-                  <p className="text-[10px] text-muted-foreground">{t("rider.crateConfirmedDesc")}</p>
-                </div>
-                <Switch checked={crateConfirmed} onCheckedChange={setCrateConfirmed} />
-              </div>
-              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <PawPrint className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">{t("rider.petApprovedNote")}</p>
-              </div>
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label>{t("rider.pickupLocation")}</Label>
@@ -1479,16 +1131,6 @@ const RiderDashboard = () => {
             </div>
           )}
 
-          {estimatedPrice && serviceType === "shuttle" && (
-            <div className="flex items-center gap-2 p-3 rounded-md bg-secondary">
-              <DollarSign className="h-4 w-4 text-primary" />
-              <span className="text-sm text-muted-foreground">{t("rider.estimatedPrice")}</span>
-              <span className="font-mono font-bold">${estimatedPrice}</span>
-              <span className="text-xs text-muted-foreground ml-1">
-                ({passengerCount} {passengerCount > 1 ? t("rider.seats") : t("rider.seat")})
-              </span>
-            </div>
-          )}
 
           {/* Payment option selector for taxi */}
           {serviceType === "taxi" && (
@@ -1639,8 +1281,8 @@ const RiderDashboard = () => {
           )}
 
           {!paymentClientSecret && (
-            <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords || (serviceType === "retail_delivery" && !riderOrgMembership) || (serviceType === "pet_transport" && (!crateConfirmed || !emergencyContactPhone))} className="w-full">
-              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : serviceType === "courier" ? t("rider.requestCourier") : serviceType === "large_delivery" ? t("rider.requestLargeDelivery") : serviceType === "retail_delivery" ? t("rider.requestRetailDelivery") : serviceType === "personal_shopper" ? t("rider.requestPersonalShopper") : serviceType === "pet_transport" ? t("rider.requestPetTransport") : t("rider.requestShuttle")}
+            <Button onClick={requestRide} disabled={loading || !pickupCoords || !dropoffCoords} className="w-full">
+              {loading ? t("rider.requesting") : serviceType === "taxi" ? t("rider.requestTaxi") : serviceType === "private_hire" ? t("rider.requestPrivateHire") : t("rider.requestCourier")}
             </Button>
           )}
         </motion.div>

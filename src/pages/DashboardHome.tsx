@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, DollarSign, Clock, ShoppingCart, Package, UtensilsCrossed, PawPrint, ChevronRight, ArrowRight } from "lucide-react";
+import { Car, DollarSign, Clock, Package, ChevronRight, ArrowRight, Plane, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -45,11 +45,10 @@ const DashboardHome = () => {
   });
 
   const services = [
-    { icon: Car, label: t("dashboard.rides"), desc: t("dashboard.ridesDesc"), path: "/rider/rides" },
-    { icon: UtensilsCrossed, label: t("dashboard.foodDelivery"), desc: t("dashboard.foodDeliveryDesc"), path: "/rider/food" },
-    { icon: ShoppingCart, label: t("dashboard.personalShopper"), desc: t("dashboard.personalShopperDesc"), path: "/rider/rides?service=personal_shopper" },
+    { icon: Car, label: t("dashboard.localTaxi"), desc: t("dashboard.localTaxiDesc"), path: "/rider/rides?service=taxi" },
+    { icon: Briefcase, label: t("dashboard.privateHire"), desc: t("dashboard.privateHireDesc"), path: "/rider/rides?service=private_hire" },
+    { icon: Plane, label: t("dashboard.airportRides"), desc: t("dashboard.airportRidesDesc"), path: "/rider/rides?service=private_hire" },
     { icon: Package, label: t("dashboard.delivery"), desc: t("dashboard.deliveryDesc"), path: "/rider/rides?service=courier" },
-    { icon: PawPrint, label: t("dashboard.petTransport"), desc: t("dashboard.petTransportDesc"), path: "/rider/rides?service=pet_transport" },
   ];
 
   const totalRides = rideStats?.count ?? 0;
