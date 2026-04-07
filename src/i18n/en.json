@@ -150,6 +150,15 @@
     "suggestions": "Suggestions",
     "seeAll": "See all"
   },
+  "bottomNav": {
+    "home": "Home",
+    "services": "Services",
+    "activity": "Activity",
+    "account": "Account"
+  },
+  "activity": {
+    "noRides": "No rides yet. Book your first ride!"
+  },
   "earnings": {
     "title": "Earnings Summary",
     "trips": "trips",
