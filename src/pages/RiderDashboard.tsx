@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint, Phone, Check, LocateFixed } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint, Phone, Check, LocateFixed, Home, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -100,6 +100,22 @@ const RiderDashboard = () => {
       setLocatingUser(false);
     }
   };
+  // Fetch saved places for quick dropoff selection
+  const { data: savedPlaces } = useQuery({
+    queryKey: ["saved-places-rider", profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return [];
+      const { data, error } = await supabase
+        .from("saved_places")
+        .select("*")
+        .eq("user_id", profile.user_id)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.user_id,
+  });
+
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
@@ -1026,6 +1042,38 @@ const RiderDashboard = () => {
               placeholder={t("rider.searchDropoff")}
               iconColor="text-primary"
             />
+            {savedPlaces && savedPlaces.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {savedPlaces.map((place) => {
+                  const IconComp = place.icon === "home" ? Home : place.icon === "work" ? Briefcase : MapPin;
+                  return (
+                    <button
+                      key={place.id}
+                      type="button"
+                      onClick={async () => {
+                        setDropoff(place.address);
+                        // Geocode the saved address
+                        try {
+                          const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.address)}&format=json&limit=1`);
+                          const results = await res.json();
+                          if (results?.[0]) {
+                            setDropoffCoords({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
+                          }
+                        } catch { /* ignore geocoding errors */ }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-all ${
+                        dropoff === place.address
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-secondary text-muted-foreground hover:bg-accent"
+                      }`}
+                    >
+                      <IconComp className="h-3 w-3" />
+                      {place.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {showBookingMap && <RideMap markers={mapMarkers} polyline={routePolyline} />}
