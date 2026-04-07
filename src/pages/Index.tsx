@@ -40,11 +40,10 @@ const Index = () => {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2.5"
+            className="flex items-center"
             aria-label="RideMoose home"
           >
-            <img src={logoImg} alt="RideMoose" className="h-9 w-9 rounded-xl" />
-            <span className="text-base font-bold tracking-tight">RideMoose</span>
+            <span className="text-lg font-black tracking-tight">Ride<span className="text-primary">Moose</span></span>
           </button>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
