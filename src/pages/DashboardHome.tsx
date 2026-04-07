@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight } from "lucide-react";
+import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon } from "lucide-react";
+import { format, addMinutes } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +22,37 @@ const DashboardHome = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>("rides");
   const [destination, setDestination] = useState("");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
+  const [customTime, setCustomTime] = useState("12:00");
+  const [showCustom, setShowCustom] = useState(false);
+
+  const scheduleLabel = scheduledAt
+    ? format(scheduledAt, "MMM d, h:mm a")
+    : t("dashboard.now");
+
+  const handlePreset = (mins: number) => {
+    setScheduledAt(addMinutes(new Date(), mins));
+    setShowCustom(false);
+    setScheduleOpen(false);
+  };
+
+  const handleNow = () => {
+    setScheduledAt(null);
+    setShowCustom(false);
+    setScheduleOpen(false);
+  };
+
+  const handleCustomConfirm = () => {
+    if (!customDate) return;
+    const [h, m] = customTime.split(":").map(Number);
+    const dt = new Date(customDate);
+    dt.setHours(h, m, 0, 0);
+    setScheduledAt(dt);
+    setShowCustom(false);
+    setScheduleOpen(false);
+  };
 
   // Fetch saved places
   const { data: savedPlaces } = useQuery({
@@ -102,10 +139,56 @@ const DashboardHome = () => {
             iconColor="text-muted-foreground"
           />
         </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 shrink-0">
-          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs font-semibold">{t("dashboard.now")}</span>
-        </div>
+        <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 shrink-0 hover:bg-accent transition-colors">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold max-w-[100px] truncate">{scheduleLabel}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-3" align="end">
+            {!showCustom ? (
+              <div className="space-y-1">
+                <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
+                  Now
+                </button>
+                {[10, 20, 30].map((m) => (
+                  <button key={m} onClick={() => handlePreset(m)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
+                    In {m} mins
+                  </button>
+                ))}
+                <button onClick={() => setShowCustom(true)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors flex items-center gap-2">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  Custom time
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Calendar
+                  mode="single"
+                  selected={customDate}
+                  onSelect={setCustomDate}
+                  disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                  className={cn("p-2 pointer-events-auto")}
+                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button size="sm" onClick={handleCustomConfirm} disabled={!customDate}>
+                    Set
+                  </Button>
+                </div>
+                <button onClick={() => setShowCustom(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  ← Back
+                </button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
       </motion.div>
 
       {/* ── Saved places ── */}
