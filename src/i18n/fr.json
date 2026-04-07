@@ -150,6 +150,15 @@
     "suggestions": "Suggestions",
     "seeAll": "Tout voir"
   },
+  "bottomNav": {
+    "home": "Accueil",
+    "services": "Services",
+    "activity": "Activité",
+    "account": "Compte"
+  },
+  "activity": {
+    "noRides": "Aucun trajet pour l'instant. Réservez votre premier trajet !"
+  },
   "earnings": {
     "title": "Earnings Summary",
     "trips": "trips",
