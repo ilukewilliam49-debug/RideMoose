@@ -901,37 +901,17 @@ const RiderDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="glass-surface rounded-lg p-6 space-y-4 overflow-visible"
         >
-          {/* Service Type Toggle */}
-          <div className="space-y-2">
-            <Label>{t("rider.serviceType")}</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {(mode === "rides"
-                ? [
-                    { key: "taxi" as ServiceType, icon: Car, label: t("rider.taxi"), desc: t("rider.meteredRide") },
-                    { key: "private_hire" as ServiceType, icon: Briefcase, label: t("rider.privateHire"), desc: t("rider.flatFare") },
-                    { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
-                  ]
-                : [
-                    { key: "courier" as ServiceType, icon: Package, label: t("rider.courier"), desc: t("rider.packageDelivery") },
-                  ]
-              ).map(({ key, icon: Icon, label, desc }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setServiceType(key)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
-                    serviceType === key
-                      ? "border-primary bg-primary/10 shadow-sm"
-                      : "border-border bg-secondary hover:bg-accent"
-                  }`}
-                >
-                  <Icon className={`h-5 w-5 ${serviceType === key ? "text-primary" : "text-muted-foreground"}`} />
-                  <p className="text-xs font-semibold">{label}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
-                </button>
-              ))}
+          {/* Map */}
+          {showBookingMap ? (
+            <RideMap markers={mapMarkers} polyline={routePolyline} />
+          ) : userLocation ? (
+            <RideMap markers={[{ lat: userLocation.lat, lng: userLocation.lng, type: "pickup" as const, label: t("rider.you", "You") }]} polyline={null} />
+          ) : (
+            <div className="h-48 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground text-sm">
+              <MapPin className="h-5 w-5 mr-2" />
+              {t("rider.enterAddressToSeeMap", "Enter addresses to see the map")}
             </div>
-          </div>
+          )}
 
           {/* Courier fields */}
           {serviceType === "courier" && (
@@ -1076,7 +1056,7 @@ const RiderDashboard = () => {
             )}
           </div>
 
-          {showBookingMap && <RideMap markers={mapMarkers} polyline={routePolyline} />}
+          
 
           {directionsData && pickupCoords && dropoffCoords && (
             <div className="glass-surface rounded-lg p-3 mt-2 flex items-center gap-4 text-sm">
@@ -1312,18 +1292,6 @@ const RiderDashboard = () => {
         </motion.div>
       )}
 
-      {/* Your Location Map */}
-      {!activeRide && userLocation && (
-        <div className="mt-4">
-          <h2 className="text-sm font-semibold mb-2 text-muted-foreground">{t("rider.yourLocation", "Your Location")}</h2>
-          <div className="rounded-xl overflow-hidden border border-border">
-            <RideMap
-              markers={[{ lat: userLocation.lat, lng: userLocation.lng, type: "pickup" as const, label: t("rider.you", "You") }]}
-              polyline={null}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Ride history */}
       <div>
