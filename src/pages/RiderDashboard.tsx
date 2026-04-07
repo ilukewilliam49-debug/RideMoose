@@ -66,16 +66,6 @@ const RiderDashboard = () => {
   const [crateConfirmed, setCrateConfirmed] = useState(false);
   const [destinationType, setDestinationType] = useState<"vet" | "grooming" | "boarding" | "airport">("vet");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
-  // Phone number for SMS notifications
-  const [riderPhone, setRiderPhone] = useState(profile?.phone || "");
-  const [phoneSaving, setPhoneSaving] = useState(false);
-  const [phoneEditing, setPhoneEditing] = useState(false);
-  const [smsEnabled, setSmsEnabled] = useState((profile as any)?.sms_notifications_enabled ?? true);
-
-  useEffect(() => {
-    if (profile?.phone) setRiderPhone(profile.phone);
-    if ((profile as any)?.sms_notifications_enabled !== undefined) setSmsEnabled((profile as any).sms_notifications_enabled);
-  }, [profile?.phone, (profile as any)?.sms_notifications_enabled]);
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
@@ -754,23 +744,6 @@ const RiderDashboard = () => {
   const showActiveMap = activeRide && activeMarkers.length > 0;
   const showBookingMap = !activeRide && mapMarkers.length > 0;
 
-  const savePhone = async () => {
-    if (!profile?.id || !riderPhone.trim()) return;
-    setPhoneSaving(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ phone: riderPhone.trim() })
-        .eq("id", profile.id);
-      if (error) throw error;
-      toast.success(t("rider.phoneSaved"));
-      setPhoneEditing(false);
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setPhoneSaving(false);
-    }
-  };
 
   return (
     <div className="space-y-6 pt-4">
