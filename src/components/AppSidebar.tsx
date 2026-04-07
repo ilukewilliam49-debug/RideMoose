@@ -1,6 +1,5 @@
-import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -76,11 +75,35 @@ export function AppSidebar() {
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
 
+  // Rider stats for overview in sidebar
+  const { data: rideStats } = useQuery({
+    queryKey: ["rider-stats-sidebar", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      const { data, error } = await supabase
+        .from("rides")
+        .select("id, final_fare_cents, created_at, started_at, status")
+        .eq("rider_id", profile.id)
+        .eq("status", "completed");
+      if (error) throw error;
+      const count = data?.length ?? 0;
+      const totalCents = data?.reduce((sum, r) => sum + (r.final_fare_cents ?? 0), 0) ?? 0;
+      const waits = data
+        ?.filter((r) => r.created_at && r.started_at)
+        .map((r) => (new Date(r.started_at!).getTime() - new Date(r.created_at).getTime()) / 60000) ?? [];
+      const avgWaitMin = waits.length > 0 ? waits.reduce((a, b) => a + b, 0) / waits.length : null;
+      return { count, totalCents, avgWaitMin };
+    },
+    enabled: !!profile?.id && role === "rider",
+  });
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="flex items-center justify-between px-4 py-4">
-          <img src={logoImg} alt="RideMoose" className="h-8 shrink-0 rounded" />
+          <span className="text-base font-black tracking-tight shrink-0">
+            Ride<span className="text-primary">Moose</span>
+          </span>
           {!collapsed && <NotificationBell />}
         </div>
 
@@ -121,6 +144,40 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Rider Overview Stats */}
+        {role === "rider" && !collapsed && rideStats && (
+          <SidebarGroup>
+            <SidebarGroupLabel>{t("dashboard.yourOverview")}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-3 space-y-2">
+                <div className="flex items-center justify-between rounded-xl bg-card/50 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Car className="h-3.5 w-3.5 text-primary/70" />
+                    <span className="text-[11px] text-muted-foreground">{t("dashboard.totalRides")}</span>
+                  </div>
+                  <span className="text-sm font-bold font-mono">{rideStats.count}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-card/50 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-3.5 w-3.5 text-primary/70" />
+                    <span className="text-[11px] text-muted-foreground">{t("dashboard.totalSpent")}</span>
+                  </div>
+                  <span className="text-sm font-bold font-mono">${(rideStats.totalCents / 100).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-card/50 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-primary/70" />
+                    <span className="text-[11px] text-muted-foreground">{t("dashboard.avgWait")}</span>
+                  </div>
+                  <span className="text-sm font-bold font-mono">
+                    {rideStats.avgWaitMin != null ? `${Math.round(rideStats.avgWaitMin)} min` : "—"}
+                  </span>
+                </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
