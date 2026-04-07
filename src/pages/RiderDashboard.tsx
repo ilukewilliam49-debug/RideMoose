@@ -1056,7 +1056,7 @@ const RiderDashboard = () => {
             )}
           </div>
 
-          {showBookingMap && <RideMap markers={mapMarkers} polyline={routePolyline} />}
+          
 
           {directionsData && pickupCoords && dropoffCoords && (
             <div className="glass-surface rounded-lg p-3 mt-2 flex items-center gap-4 text-sm">
@@ -1292,18 +1292,6 @@ const RiderDashboard = () => {
         </motion.div>
       )}
 
-      {/* Your Location Map */}
-      {!activeRide && userLocation && (
-        <div className="mt-4">
-          <h2 className="text-sm font-semibold mb-2 text-muted-foreground">{t("rider.yourLocation", "Your Location")}</h2>
-          <div className="rounded-xl overflow-hidden border border-border">
-            <RideMap
-              markers={[{ lat: userLocation.lat, lng: userLocation.lng, type: "pickup" as const, label: t("rider.you", "You") }]}
-              polyline={null}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Ride history */}
       <div>
