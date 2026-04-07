@@ -993,7 +993,18 @@ const RiderDashboard = () => {
 
 
           <div className="space-y-2">
-            <Label>{t("rider.pickupLocation")}</Label>
+            <div className="flex items-center justify-between">
+              <Label>{t("rider.pickupLocation")}</Label>
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={locatingUser}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+              >
+                <LocateFixed className={`h-3.5 w-3.5 ${locatingUser ? "animate-spin" : ""}`} />
+                {locatingUser ? t("rider.locating", "Locating...") : t("rider.useMyLocation", "Use my location")}
+              </button>
+            </div>
             <AddressAutocomplete
               value={pickup}
               onChange={(val, lat, lng) => {
