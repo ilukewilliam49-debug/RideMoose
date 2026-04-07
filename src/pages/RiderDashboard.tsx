@@ -1042,6 +1042,31 @@ const RiderDashboard = () => {
               placeholder={t("rider.searchDropoff")}
               iconColor="text-primary"
             />
+            {savedPlaces && savedPlaces.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {savedPlaces.map((place) => {
+                  const IconComp = place.icon === "home" ? Home : place.icon === "work" ? Briefcase : MapPin;
+                  return (
+                    <button
+                      key={place.id}
+                      type="button"
+                      onClick={() => {
+                        setDropoff(place.address);
+                        setDropoffCoords(null);
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-all ${
+                        dropoff === place.address
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-secondary text-muted-foreground hover:bg-accent"
+                      }`}
+                    >
+                      <IconComp className="h-3 w-3" />
+                      {place.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {showBookingMap && <RideMap markers={mapMarkers} polyline={routePolyline} />}
