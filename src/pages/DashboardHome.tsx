@@ -139,8 +139,7 @@ const DashboardHome = () => {
               if (lat && lng) {
                 const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides";
                 const sep = base.includes("?") ? "&" : "?";
-                const schedParam = scheduledAt ? `&scheduledAt=${scheduledAt.toISOString()}` : "";
-                navigate(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}${schedParam}`);
+                navigate(withSchedule(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}`));
               }
             }}
             placeholder={t("dashboard.whereTo")}
