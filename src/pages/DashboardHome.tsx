@@ -152,7 +152,7 @@ const DashboardHome = () => {
             onChange={(value, lat, lng) => {
               setDestination(value);
               if (lat && lng) {
-                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides";
+                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : activeTab === "charter" ? "/rider/rides?service=private_hire" : "/rider/rides?service=taxi";
                 const sep = base.includes("?") ? "&" : "?";
                 navigate(withSchedule(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}`));
               }
