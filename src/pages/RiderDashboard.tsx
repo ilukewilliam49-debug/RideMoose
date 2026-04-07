@@ -66,16 +66,6 @@ const RiderDashboard = () => {
   const [crateConfirmed, setCrateConfirmed] = useState(false);
   const [destinationType, setDestinationType] = useState<"vet" | "grooming" | "boarding" | "airport">("vet");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
-  // Phone number for SMS notifications
-  const [riderPhone, setRiderPhone] = useState(profile?.phone || "");
-  const [phoneSaving, setPhoneSaving] = useState(false);
-  const [phoneEditing, setPhoneEditing] = useState(false);
-  const [smsEnabled, setSmsEnabled] = useState((profile as any)?.sms_notifications_enabled ?? true);
-
-  useEffect(() => {
-    if (profile?.phone) setRiderPhone(profile.phone);
-    if ((profile as any)?.sms_notifications_enabled !== undefined) setSmsEnabled((profile as any).sms_notifications_enabled);
-  }, [profile?.phone, (profile as any)?.sms_notifications_enabled]);
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
