@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint, Phone, Check } from "lucide-react";
+import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint, Phone, Check, LocateFixed } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -69,6 +69,7 @@ const RiderDashboard = () => {
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   // User geolocation
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locatingUser, setLocatingUser] = useState(false);
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -77,6 +78,28 @@ const RiderDashboard = () => {
       );
     }
   }, []);
+
+  const useMyLocation = async () => {
+    setLocatingUser(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+      );
+      const { latitude, longitude } = pos.coords;
+      setUserLocation({ lat: latitude, lng: longitude });
+      setPickupCoords({ lat: latitude, lng: longitude });
+      // Reverse geocode via Nominatim (free, no key needed)
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+      const geo = await res.json();
+      const address = geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      setPickup(address);
+      toast.success(t("rider.locationFound", "Location found"));
+    } catch {
+      toast.error(t("rider.locationError", "Could not get your location"));
+    } finally {
+      setLocatingUser(false);
+    }
+  };
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
@@ -970,7 +993,18 @@ const RiderDashboard = () => {
 
 
           <div className="space-y-2">
-            <Label>{t("rider.pickupLocation")}</Label>
+            <div className="flex items-center justify-between">
+              <Label>{t("rider.pickupLocation")}</Label>
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={locatingUser}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+              >
+                <LocateFixed className={`h-3.5 w-3.5 ${locatingUser ? "animate-spin" : ""}`} />
+                {locatingUser ? t("rider.locating", "Locating...") : t("rider.useMyLocation", "Use my location")}
+              </button>
+            </div>
             <AddressAutocomplete
               value={pickup}
               onChange={(val, lat, lng) => {
