@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon } from "lucide-react";
+import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,13 +14,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 
-type Tab = "rides" | "delivery";
+type Tab = "taxi" | "charter" | "delivery";
 
 const DashboardHome = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<Tab>("rides");
+  const [activeTab, setActiveTab] = useState<Tab>("taxi");
   const [destination, setDestination] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
@@ -79,11 +79,15 @@ const DashboardHome = () => {
   });
 
   const suggestions =
-    activeTab === "rides"
+    activeTab === "taxi"
       ? [
           { icon: Car, label: t("dashboard.localTaxi"), path: "/rider/rides?service=taxi" },
-          { icon: Briefcase, label: t("dashboard.privateHire"), path: "/rider/rides?service=private_hire" },
           { icon: Plane, label: t("dashboard.airportRides"), path: "/rider/rides?service=private_hire" },
+        ]
+      : activeTab === "charter"
+      ? [
+          { icon: Briefcase, label: t("dashboard.privateHire"), path: "/rider/rides?service=private_hire" },
+          { icon: Bus, label: t("dashboard.shuttle"), path: "/rider/rides?service=shuttle" },
         ]
       : [
           { icon: Package, label: t("dashboard.delivery"), path: "/rider/rides?service=courier" },
@@ -100,15 +104,26 @@ const DashboardHome = () => {
       {/* ── Top tabs ── */}
       <div className="flex items-center gap-6 pb-5">
         <button
-          onClick={() => setActiveTab("rides")}
+          onClick={() => setActiveTab("taxi")}
           className={`flex items-center gap-2 pb-1 text-[15px] font-bold transition-colors ${
-            activeTab === "rides"
+            activeTab === "taxi"
               ? "text-foreground border-b-2 border-foreground"
               : "text-muted-foreground"
           }`}
         >
           <Car className="h-5 w-5" />
-          {t("dashboard.rides")}
+          {t("dashboard.taxi")}
+        </button>
+        <button
+          onClick={() => setActiveTab("charter")}
+          className={`flex items-center gap-2 pb-1 text-[15px] font-bold transition-colors ${
+            activeTab === "charter"
+              ? "text-foreground border-b-2 border-foreground"
+              : "text-muted-foreground"
+          }`}
+        >
+          <Briefcase className="h-5 w-5" />
+          {t("dashboard.charter")}
         </button>
         <button
           onClick={() => setActiveTab("delivery")}
@@ -137,7 +152,7 @@ const DashboardHome = () => {
             onChange={(value, lat, lng) => {
               setDestination(value);
               if (lat && lng) {
-                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides";
+                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : activeTab === "charter" ? "/rider/rides?service=private_hire" : "/rider/rides?service=taxi";
                 const sep = base.includes("?") ? "&" : "?";
                 navigate(withSchedule(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}`));
               }
