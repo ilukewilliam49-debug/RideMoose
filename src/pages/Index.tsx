@@ -279,7 +279,57 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── Footer ── */}
+      {/* ── Drive with RideMoose ── */}
+      <section className="border-t border-border/40 px-5 py-16 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+            {/* Left — copy */}
+            <div className="space-y-5">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/80">
+                {t("landing.driveEyebrow")}
+              </p>
+              <h2 className="text-3xl font-black tracking-tight md:text-4xl">
+                {t("landing.driveTitle")}
+              </h2>
+              <p className="max-w-xl text-muted-foreground leading-relaxed">
+                {t("landing.driveDesc")}
+              </p>
+              <Button
+                size="lg"
+                className="h-14 rounded-2xl px-8 font-bold shadow-[var(--shadow-gold)] active:scale-[0.98] transition-transform"
+                onClick={() => navigate("/login")}
+              >
+                {t("landing.driveApply")}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Right — perks grid */}
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 lg:gap-3">
+              {[
+                { icon: CalendarClock, title: t("landing.drivePerkFlexible"), desc: t("landing.drivePerkFlexibleDesc") },
+                { icon: Wallet, title: t("landing.drivePerkEarnings"), desc: t("landing.drivePerkEarningsDesc") },
+                { icon: Layers, title: t("landing.drivePerkServices"), desc: t("landing.drivePerkServicesDesc") },
+              ].map((perk) => (
+                <div
+                  key={perk.title}
+                  className="flex items-start gap-4 rounded-2xl border border-border/40 bg-card/60 p-5"
+                  style={{ boxShadow: "inset 0 1px 0 0 hsl(0 0% 100%/0.04)" }}
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                    <perk.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold">{perk.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{perk.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-border/40 px-5 py-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p>{t("landing.footer")}</p>
