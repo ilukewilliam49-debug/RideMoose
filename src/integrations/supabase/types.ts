@@ -581,36 +581,6 @@ export type Database = {
         }
         Relationships: []
       }
-      phone_otps: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          otp_code: string
-          phone: string
-          user_id: string
-          verified: boolean
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          id?: string
-          otp_code: string
-          phone: string
-          user_id: string
-          verified?: boolean
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          otp_code?: string
-          phone?: string
-          user_id?: string
-          verified?: boolean
-        }
-        Relationships: []
-      }
       platform_config: {
         Row: {
           id: string
@@ -724,7 +694,6 @@ export type Database = {
           organization_id: string | null
           pet_approved: boolean
           phone: string | null
-          phone_verified: boolean
           promo_commission_rate: number
           promo_end_date: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -735,7 +704,6 @@ export type Database = {
           updated_at: string
           user_id: string
           vehicle_type: string | null
-          went_online_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -756,7 +724,6 @@ export type Database = {
           organization_id?: string | null
           pet_approved?: boolean
           phone?: string | null
-          phone_verified?: boolean
           promo_commission_rate?: number
           promo_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -767,7 +734,6 @@ export type Database = {
           updated_at?: string
           user_id: string
           vehicle_type?: string | null
-          went_online_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -788,7 +754,6 @@ export type Database = {
           organization_id?: string | null
           pet_approved?: boolean
           phone?: string | null
-          phone_verified?: boolean
           promo_commission_rate?: number
           promo_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -799,7 +764,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vehicle_type?: string | null
-          went_online_at?: string | null
         }
         Relationships: [
           {
@@ -893,99 +857,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      ride_message_reactions: {
-        Row: {
-          created_at: string
-          emoji: string
-          id: string
-          message_id: string
-          profile_id: string
-        }
-        Insert: {
-          created_at?: string
-          emoji: string
-          id?: string
-          message_id: string
-          profile_id: string
-        }
-        Update: {
-          created_at?: string
-          emoji?: string
-          id?: string
-          message_id?: string
-          profile_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ride_message_reactions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "ride_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ride_message_reactions_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ride_messages: {
-        Row: {
-          audio_url: string | null
-          created_at: string
-          id: string
-          image_url: string | null
-          location_lat: number | null
-          location_lng: number | null
-          message: string
-          read_at: string | null
-          ride_id: string
-          sender_profile_id: string
-        }
-        Insert: {
-          audio_url?: string | null
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          location_lat?: number | null
-          location_lng?: number | null
-          message: string
-          read_at?: string | null
-          ride_id: string
-          sender_profile_id: string
-        }
-        Update: {
-          audio_url?: string | null
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          location_lat?: number | null
-          location_lng?: number | null
-          message?: string
-          read_at?: string | null
-          ride_id?: string
-          sender_profile_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ride_messages_ride_id_fkey"
-            columns: ["ride_id"]
-            isOneToOne: false
-            referencedRelation: "rides"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ride_messages_sender_profile_id_fkey"
-            columns: ["sender_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       ride_ratings: {
         Row: {
@@ -1297,39 +1168,6 @@ export type Database = {
           },
         ]
       }
-      saved_places: {
-        Row: {
-          address: string
-          created_at: string
-          icon: string
-          id: string
-          label: string
-          sort_order: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          address?: string
-          created_at?: string
-          icon?: string
-          id?: string
-          label?: string
-          sort_order?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          address?: string
-          created_at?: string
-          icon?: string
-          id?: string
-          label?: string
-          sort_order?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       service_pricing: {
         Row: {
           base_fare: number
@@ -1377,38 +1215,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      shift_sessions: {
-        Row: {
-          created_at: string
-          driver_id: string
-          ended_at: string | null
-          id: string
-          started_at: string
-        }
-        Insert: {
-          created_at?: string
-          driver_id: string
-          ended_at?: string | null
-          id?: string
-          started_at?: string
-        }
-        Update: {
-          created_at?: string
-          driver_id?: string
-          ended_at?: string | null
-          id?: string
-          started_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shift_sessions_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       support_conversations: {
         Row: {
