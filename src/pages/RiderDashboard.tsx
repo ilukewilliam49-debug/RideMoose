@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { DollarSign, ArrowLeft, Car, Bus, Users, Star, Briefcase, MapPinned, Clock, AlertTriangle, CreditCard, Banknote, Building2, Package, ShoppingBag, Truck, Store, ShoppingCart, PawPrint, Phone, Check } from "lucide-react";
+import { format } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -764,6 +765,14 @@ const RiderDashboard = () => {
                   : t("rider.requestARide")}
           </h1>
         </div>
+        {searchParams.get("scheduledAt") && (
+          <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm">
+            <Clock className="h-4 w-4 text-primary" />
+            <span className="font-medium text-primary">
+              Scheduled: {format(new Date(searchParams.get("scheduledAt")!), "MMM d, h:mm a")}
+            </span>
+          </div>
+        )}
       </div>
 
 
