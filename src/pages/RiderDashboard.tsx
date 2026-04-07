@@ -67,6 +67,16 @@ const RiderDashboard = () => {
   const [crateConfirmed, setCrateConfirmed] = useState(false);
   const [destinationType, setDestinationType] = useState<"vet" | "grooming" | "boarding" | "airport">("vet");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  // User geolocation
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => { /* denied or unavailable */ }
+      );
+    }
+  }, []);
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
