@@ -1050,9 +1050,16 @@ const RiderDashboard = () => {
                     <button
                       key={place.id}
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         setDropoff(place.address);
-                        setDropoffCoords(null);
+                        // Geocode the saved address
+                        try {
+                          const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.address)}&format=json&limit=1`);
+                          const results = await res.json();
+                          if (results?.[0]) {
+                            setDropoffCoords({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
+                          }
+                        } catch { /* ignore geocoding errors */ }
                       }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-all ${
                         dropoff === place.address
