@@ -1010,6 +1010,37 @@ const RiderDashboard = () => {
               placeholder={t("rider.searchPickup")}
               iconColor="text-green-400"
             />
+            {savedPlaces && savedPlaces.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {savedPlaces.map((place) => {
+                  const IconComp = place.icon === "home" ? Home : place.icon === "work" ? Briefcase : MapPin;
+                  return (
+                    <button
+                      key={place.id}
+                      type="button"
+                      onClick={async () => {
+                        setPickup(place.address);
+                        try {
+                          const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.address)}&format=json&limit=1`);
+                          const results = await res.json();
+                          if (results?.[0]) {
+                            setPickupCoords({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
+                          }
+                        } catch { /* ignore */ }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs transition-all ${
+                        pickup === place.address
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-secondary text-muted-foreground hover:bg-accent"
+                      }`}
+                    >
+                      <IconComp className="h-3 w-3" />
+                      {place.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label>{t("rider.dropoffLocation")}</Label>
