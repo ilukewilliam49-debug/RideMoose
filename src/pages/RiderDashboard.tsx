@@ -69,6 +69,7 @@ const RiderDashboard = () => {
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   // User geolocation
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locatingUser, setLocatingUser] = useState(false);
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -77,6 +78,28 @@ const RiderDashboard = () => {
       );
     }
   }, []);
+
+  const useMyLocation = async () => {
+    setLocatingUser(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+      );
+      const { latitude, longitude } = pos.coords;
+      setUserLocation({ lat: latitude, lng: longitude });
+      setPickupCoords({ lat: latitude, lng: longitude });
+      // Reverse geocode via Nominatim (free, no key needed)
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+      const geo = await res.json();
+      const address = geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      setPickup(address);
+      toast.success(t("rider.locationFound", "Location found"));
+    } catch {
+      toast.error(t("rider.locationError", "Could not get your location"));
+    } finally {
+      setLocatingUser(false);
+    }
+  };
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
