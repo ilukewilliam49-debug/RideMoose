@@ -13,6 +13,7 @@ import {
   Layers,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
+import heroBg from "@/assets/hero-bg.jpg";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
