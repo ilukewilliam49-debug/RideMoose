@@ -744,23 +744,6 @@ const RiderDashboard = () => {
   const showActiveMap = activeRide && activeMarkers.length > 0;
   const showBookingMap = !activeRide && mapMarkers.length > 0;
 
-  const savePhone = async () => {
-    if (!profile?.id || !riderPhone.trim()) return;
-    setPhoneSaving(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ phone: riderPhone.trim() })
-        .eq("id", profile.id);
-      if (error) throw error;
-      toast.success(t("rider.phoneSaved"));
-      setPhoneEditing(false);
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setPhoneSaving(false);
-    }
-  };
 
   return (
     <div className="space-y-6 pt-4">
