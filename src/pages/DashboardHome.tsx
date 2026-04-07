@@ -54,6 +54,13 @@ const DashboardHome = () => {
     setScheduleOpen(false);
   };
 
+  // Append scheduledAt param to any path
+  const withSchedule = (path: string) => {
+    if (!scheduledAt) return path;
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}scheduledAt=${scheduledAt.toISOString()}`;
+  };
+
   // Fetch saved places
   const { data: savedPlaces } = useQuery({
     queryKey: ["saved-places", profile?.user_id],
