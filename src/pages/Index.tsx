@@ -13,6 +13,7 @@ import {
   Layers,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
+import heroBg from "@/assets/hero-bg.jpg";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
@@ -60,7 +61,17 @@ const Index = () => {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden px-5 pb-6 pt-10 md:pt-20 md:pb-10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,hsl(45_95%_55%/0.08),transparent)]" />
+        {/* Background image */}
+        <img
+          src={heroBg}
+          alt=""
+          width={1920}
+          height={1080}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          aria-hidden="true"
+        />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/70 to-background" />
         <div className="relative mx-auto max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
