@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Search, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight } from "lucide-react";
+import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 
 type Tab = "rides" | "delivery";
 
@@ -14,6 +15,7 @@ const DashboardHome = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>("rides");
+  const [destination, setDestination] = useState("");
 
   // Fetch saved places
   const { data: savedPlaces } = useQuery({
@@ -77,24 +79,34 @@ const DashboardHome = () => {
         </button>
       </div>
 
-      {/* ── "Where to?" search bar ── */}
-      <motion.button
+      {/* ── "Where to?" address field ── */}
+      <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        onClick={() => navigate("/rider/rides" + (activeTab === "delivery" ? "?service=courier" : ""))}
-        className="flex w-full items-center gap-3 rounded-full bg-card px-5 py-3.5 text-left transition-colors hover:bg-accent active:scale-[0.99]"
+        className="flex items-center gap-2 rounded-full bg-card px-2 py-1"
         style={{ boxShadow: "0 1px 4px 0 hsl(0 0% 0%/0.15)" }}
       >
-        <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-        <span className="flex-1 text-[15px] font-semibold text-muted-foreground">
-          {t("dashboard.whereTo")}
-        </span>
-        <div className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5">
+        <div className="flex-1 [&_input]:rounded-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[15px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground">
+          <AddressAutocomplete
+            value={destination}
+            onChange={(value, lat, lng) => {
+              setDestination(value);
+              if (lat && lng) {
+                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides";
+                const sep = base.includes("?") ? "&" : "?";
+                navigate(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}`);
+              }
+            }}
+            placeholder={t("dashboard.whereTo")}
+            iconColor="text-muted-foreground"
+          />
+        </div>
+        <div className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 shrink-0">
           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-xs font-semibold">{t("dashboard.now")}</span>
         </div>
-      </motion.button>
+      </motion.div>
 
       {/* ── Saved places ── */}
       {savedPlaces && savedPlaces.length > 0 && (
