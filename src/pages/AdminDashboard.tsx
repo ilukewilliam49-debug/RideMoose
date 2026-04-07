@@ -112,7 +112,7 @@ const AdminDashboard = () => {
           Admin console
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">RideMoose admin dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">PickYou admin dashboard</h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             This is the internal operations area for approvals, reporting, support, pricing,
             zones, and bookings — not the rider booking experience.
