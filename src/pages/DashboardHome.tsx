@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus } from "lucide-react";
+import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -87,6 +87,8 @@ const DashboardHome = () => {
       : activeTab === "charter"
       ? [
           { icon: Briefcase, label: t("dashboard.privateHire"), path: "/rider/rides?service=private_hire" },
+          { icon: Plane, label: t("dashboard.airportTransfer"), path: "/rider/rides?service=private_hire" },
+          { icon: Route, label: t("dashboard.longDistance"), path: "/rider/rides?service=private_hire" },
           { icon: Bus, label: t("dashboard.shuttle"), path: "/rider/rides?service=shuttle" },
         ]
       : [
