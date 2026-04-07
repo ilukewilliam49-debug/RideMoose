@@ -41,9 +41,9 @@ const Index = () => {
           <button
             onClick={() => navigate("/")}
             className="flex items-center"
-            aria-label="RideMoose home"
+            aria-label="PickYou home"
           >
-            <span className="text-lg font-black tracking-tight">Ride<span className="text-primary">Moose</span></span>
+            <span className="text-lg font-black tracking-tight">Pick<span className="text-primary">You</span></span>
           </button>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
@@ -134,7 +134,7 @@ const Index = () => {
       {/* ── Divider ── */}
       <div className="mx-5 h-px bg-border/30 md:mx-auto md:max-w-7xl" />
 
-      {/* ── Drive with RideMoose ── */}
+      {/* ── Drive with PickYou ── */}
       <section className="px-5 py-12 md:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="space-y-6">
