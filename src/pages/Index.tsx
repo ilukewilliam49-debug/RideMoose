@@ -10,7 +10,7 @@ import {
   MapPin,
   ArrowRight,
   Phone,
-  CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
@@ -36,12 +36,6 @@ const Index = () => {
       title: t("landing.serviceCourierTitle"),
       desc: t("landing.serviceCourierDesc"),
     },
-  ];
-
-  const highlights = [
-    t("landing.highlightOne"),
-    t("landing.highlightTwo"),
-    t("landing.highlightThree"),
   ];
 
   const destinations = [
@@ -72,205 +66,173 @@ const Index = () => {
   ];
 
   const faqs = [
-    {
-      q: t("landing.faqAirportQ"),
-      a: t("landing.faqAirportA"),
-    },
-    {
-      q: t("landing.faqLongDistanceQ"),
-      a: t("landing.faqLongDistanceA"),
-    },
-    {
-      q: t("landing.faqCourierQ"),
-      a: t("landing.faqCourierA"),
-    },
+    { q: t("landing.faqAirportQ"), a: t("landing.faqAirportA") },
+    { q: t("landing.faqLongDistanceQ"), a: t("landing.faqLongDistanceA") },
+    { q: t("landing.faqCourierQ"), a: t("landing.faqCourierA") },
   ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-xl">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      {/* ── Nav ── */}
+      <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-3"
+            className="flex items-center gap-2.5"
             aria-label="RideMoose home"
           >
-            <img src={logoImg} alt="RideMoose" className="h-10 w-10 rounded-lg" />
-            <div className="text-left">
-              <p className="text-sm font-semibold tracking-wide">RideMoose</p>
-              <p className="text-xs text-muted-foreground">Yellowknife & regional rides</p>
-            </div>
+            <img src={logoImg} alt="RideMoose" className="h-9 w-9 rounded-xl" />
+            <span className="text-base font-bold tracking-tight">RideMoose</span>
           </button>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
+            <Button
+              size="sm"
+              className="rounded-full px-5 text-xs font-bold uppercase tracking-wider"
+              onClick={() => navigate("/login")}
+            >
               {t("nav.signIn")}
             </Button>
           </div>
         </div>
       </nav>
 
-      <section className="relative overflow-hidden px-4 pb-16 pt-16 md:pb-24 md:pt-24">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsla(45,95%,55%,0.14),transparent_42%)]" />
-        <div className="container relative mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55 }}
-            className="space-y-8"
-          >
-            <div className="space-y-4">
-              <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                {t("landing.badge")}
-              </div>
-              <h1 className="max-w-3xl text-4xl font-black leading-tight md:text-6xl">
-                {t("landing.heroTitle1")} <span className="text-gradient-gold">{t("landing.heroTitle2")}</span>
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-                {t("landing.heroDesc")}
-              </p>
-            </div>
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden">
+        {/* Gradient backdrop */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,hsl(45_95%_55%/0.12),transparent)]" />
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" className="px-8 text-base font-semibold" onClick={() => navigate("/login")}>
+        <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-16 md:pb-28 md:pt-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-3xl space-y-7"
+          >
+            <h1 className="text-[2.75rem] font-black leading-[1.08] tracking-tight md:text-7xl">
+              {t("landing.heroTitle1")}{" "}
+              <span className="text-gradient-gold">{t("landing.heroTitle2")}</span>
+            </h1>
+            <p className="max-w-xl text-lg leading-relaxed text-muted-foreground md:text-xl">
+              {t("landing.heroDesc")}
+            </p>
+
+            <div className="flex flex-wrap gap-3 pt-1">
+              <Button
+                size="lg"
+                className="h-14 rounded-2xl px-8 text-base font-bold shadow-[var(--shadow-gold)] active:scale-[0.98] transition-transform"
+                onClick={() => navigate("/login")}
+              >
                 {t("landing.requestRide")}
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button variant="outline" size="lg" className="px-8 text-base font-semibold" onClick={() => navigate("/login")}>
+              <Button
+                variant="secondary"
+                size="lg"
+                className="h-14 rounded-2xl px-8 text-base font-bold active:scale-[0.98] transition-transform"
+                onClick={() => navigate("/login")}
+              >
                 {t("landing.requestLongDistance")}
               </Button>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              {highlights.map((item) => (
-                <div key={item} className="rounded-2xl border border-border/50 bg-card/60 px-4 py-3 text-sm text-muted-foreground">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span>{item}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
           </motion.div>
 
+          {/* Service Cards — Uber-style horizontal row */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.12 }}
-            className="glass-surface rounded-[28px] p-6 shadow-[var(--shadow-card)]"
+            transition={{ delay: 0.15, duration: 0.45 }}
+            className="mt-14 grid gap-4 sm:grid-cols-3"
           >
-            <div className="space-y-6">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary/80">
-                  {t("landing.panelEyebrow")}
-                </p>
-                <h2 className="mt-2 text-2xl font-bold">{t("landing.panelTitle")}</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {t("landing.panelDesc")}
-                </p>
-              </div>
-
-              <div className="space-y-3 rounded-2xl border border-border/50 bg-secondary/35 p-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("landing.phoneLabel")}</span>
-                  <span className="font-semibold">(867) 988-8836</span>
+            {services.map((service, i) => (
+              <motion.button
+                key={service.title}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 + i * 0.08, duration: 0.35 }}
+                onClick={() => navigate("/login")}
+                className="group relative flex items-start gap-4 rounded-[20px] border border-border/40 bg-card/70 p-5 text-left transition-all duration-200 hover:border-primary/30 hover:bg-card active:scale-[0.98]"
+                style={{ boxShadow: "inset 0 1px 0 0 hsl(0 0% 100%/0.04), 0 2px 12px -4px hsl(0 0% 0%/0.3)" }}
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                  <service.icon className="h-6 w-6 text-primary" />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("landing.airportLabel")}</span>
-                  <span className="font-semibold">{t("landing.airportValue")}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("landing.longDistanceLabel")}</span>
-                  <span className="font-semibold">{t("landing.longDistanceValue")}</span>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {services.map((service) => (
-                  <div
-                    key={service.title}
-                    className="rounded-2xl border border-border/50 bg-card/70 p-4 sm:last:col-span-2"
-                  >
-                    <service.icon className="h-5 w-5 text-primary" />
-                    <h3 className="mt-3 text-base font-semibold">{service.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.desc}</p>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold">{service.title}</h3>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary/70 transition-colors" />
                   </div>
-                ))}
-              </div>
-
-              <Button className="w-full font-semibold" onClick={() => navigate("/login")}>
-                {t("landing.bookOnline")}
-              </Button>
-            </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">{service.desc}</p>
+                </div>
+              </motion.button>
+            ))}
           </motion.div>
         </div>
       </section>
 
-      <section className="px-4 py-16 md:py-20">
-        <div className="container mx-auto max-w-6xl space-y-8">
-          <div className="max-w-2xl space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary/80">
-              {t("landing.sectionServices")}
-            </p>
-            <h2 className="text-3xl font-bold tracking-tight">{t("landing.servicesTitle")}</h2>
-            <p className="text-muted-foreground">{t("landing.servicesDesc")}</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {quickFacts.map((fact) => (
-              <div key={fact.title} className="rounded-3xl border border-border/50 bg-card/60 p-6">
-                <fact.icon className="h-8 w-8 text-primary" />
-                <h3 className="mt-4 text-xl font-semibold">{fact.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{fact.desc}</p>
+      {/* ── Quick facts — full-width strip ── */}
+      <section className="border-y border-border/40 bg-secondary/20">
+        <div className="mx-auto grid max-w-7xl gap-0 divide-y divide-border/30 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {quickFacts.map((fact) => (
+            <div key={fact.title} className="flex items-start gap-4 px-6 py-8 md:py-10">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+                <fact.icon className="h-5 w-5 text-primary" />
               </div>
-            ))}
-          </div>
+              <div>
+                <h3 className="text-base font-bold">{fact.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{fact.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section className="border-y border-border/50 bg-secondary/20 px-4 py-16 md:py-20">
-        <div className="container mx-auto max-w-6xl space-y-8">
-          <div className="max-w-2xl space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary/80">
+      {/* ── Coverage / destinations ── */}
+      <section className="px-5 py-16 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-xl space-y-3">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/80">
               {t("landing.sectionCoverage")}
             </p>
-            <h2 className="text-3xl font-bold tracking-tight">{t("landing.coverageTitle")}</h2>
-            <p className="text-muted-foreground">{t("landing.coverageDesc")}</p>
+            <h2 className="text-3xl font-black tracking-tight md:text-4xl">{t("landing.coverageTitle")}</h2>
+            <p className="text-muted-foreground leading-relaxed">{t("landing.coverageDesc")}</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary sm:col-span-2 lg:col-span-2">
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-primary/25 bg-primary/8 px-5 py-4 text-sm font-bold text-primary sm:col-span-2 lg:col-span-2">
               {t("landing.yellowknifePrimaryCard")}
             </div>
             {destinations.map((community) => (
               <div
                 key={community}
-                className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3 text-sm font-medium"
+                className="rounded-2xl border border-border/40 bg-card/50 px-5 py-4 text-sm font-semibold"
               >
                 {community}
               </div>
             ))}
-            <div className="rounded-2xl border border-border/50 bg-background/60 px-4 py-3 text-sm font-medium sm:col-span-2 lg:col-span-2">
+            <div className="rounded-2xl border border-border/40 bg-card/50 px-5 py-4 text-sm font-semibold sm:col-span-2 lg:col-span-2">
               {t("landing.outOfTownCard")}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="px-4 py-16 md:py-20">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+      {/* ── FAQ ── */}
+      <section className="border-t border-border/40 bg-secondary/10 px-5 py-16 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div className="space-y-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary/80">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/80">
                 {t("landing.sectionFaq")}
               </p>
-              <h2 className="text-3xl font-bold tracking-tight">{t("landing.faqTitle")}</h2>
-              <p className="text-muted-foreground">{t("landing.faqDesc")}</p>
+              <h2 className="text-3xl font-black tracking-tight md:text-4xl">{t("landing.faqTitle")}</h2>
+              <p className="text-muted-foreground leading-relaxed">{t("landing.faqDesc")}</p>
             </div>
             <div className="space-y-4">
               {faqs.map((faq) => (
-                <div key={faq.q} className="rounded-2xl border border-border/50 bg-card/60 p-5">
-                  <h3 className="text-base font-semibold">{faq.q}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.a}</p>
+                <div key={faq.q} className="rounded-2xl border border-border/40 bg-card/60 p-6">
+                  <h3 className="text-base font-bold">{faq.q}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{faq.a}</p>
                 </div>
               ))}
             </div>
@@ -278,22 +240,33 @@ const Index = () => {
         </div>
       </section>
 
-      <section className="px-4 pb-16 md:pb-24">
-        <div className="container mx-auto max-w-6xl">
-          <div className="overflow-hidden rounded-[32px] border border-primary/20 bg-gradient-to-br from-primary/12 via-card to-card p-8 md:p-10">
+      {/* ── CTA banner ── */}
+      <section className="px-5 py-16 md:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="overflow-hidden rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-8 md:p-12">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <div className="space-y-4">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary/90">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/90">
                   {t("landing.ctaEyebrow")}
                 </p>
-                <h2 className="text-3xl font-bold tracking-tight md:text-4xl">{t("landing.ctaTitle")}</h2>
-                <p className="max-w-2xl text-muted-foreground">{t("landing.ctaDesc")}</p>
+                <h2 className="text-3xl font-black tracking-tight md:text-4xl">{t("landing.ctaTitle")}</h2>
+                <p className="max-w-xl text-muted-foreground leading-relaxed">{t("landing.ctaDesc")}</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
-                <Button size="lg" className="px-8 font-semibold" onClick={() => navigate("/login")}>
+                <Button
+                  size="lg"
+                  className="h-14 rounded-2xl px-8 font-bold shadow-[var(--shadow-gold)] active:scale-[0.98] transition-transform"
+                  onClick={() => navigate("/login")}
+                >
                   {t("landing.requestRide")}
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="px-8 font-semibold" onClick={() => window.location.href = "tel:+18679888836"}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-14 rounded-2xl px-8 font-bold active:scale-[0.98] transition-transform"
+                  onClick={() => (window.location.href = "tel:+18679888836")}
+                >
                   <Phone className="mr-2 h-4 w-4" />
                   {t("landing.callNow")}
                 </Button>
@@ -303,12 +276,16 @@ const Index = () => {
         </div>
       </section>
 
-      <footer className="border-t border-border/60 px-4 py-8">
-        <div className="container mx-auto flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+      {/* ── Footer ── */}
+      <footer className="border-t border-border/40 px-5 py-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p>{t("landing.footer")}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <span>{t("landing.footerCoverage")}</span>
-            <a href="tel:+18679888836" className="font-medium text-foreground hover:text-primary transition-colors">
+            <a
+              href="tel:+18679888836"
+              className="font-semibold text-foreground hover:text-primary transition-colors"
+            >
               (867) 988-8836
             </a>
           </div>

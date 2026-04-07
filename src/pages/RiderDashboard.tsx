@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
 import LivePetTracker from "@/components/LivePetTracker";
 
-type ServiceType = "taxi" | "private_hire" | "courier";
+type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
