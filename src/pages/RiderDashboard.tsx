@@ -67,6 +67,16 @@ const RiderDashboard = () => {
   const [crateConfirmed, setCrateConfirmed] = useState(false);
   const [destinationType, setDestinationType] = useState<"vet" | "grooming" | "boarding" | "airport">("vet");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  // User geolocation
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => { /* denied or unavailable */ }
+      );
+    }
+  }, []);
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
@@ -1218,6 +1228,19 @@ const RiderDashboard = () => {
             </Button>
           )}
         </motion.div>
+      )}
+
+      {/* Your Location Map */}
+      {!activeRide && userLocation && (
+        <div className="mt-4">
+          <h2 className="text-sm font-semibold mb-2 text-muted-foreground">{t("rider.yourLocation", "Your Location")}</h2>
+          <div className="rounded-xl overflow-hidden border border-border">
+            <RideMap
+              markers={[{ lat: userLocation.lat, lng: userLocation.lng, type: "pickup" as const, label: t("rider.you", "You") }]}
+              polyline={null}
+            />
+          </div>
+        </div>
       )}
 
       {/* Ride history */}

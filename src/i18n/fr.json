@@ -499,6 +499,7 @@
     "pickup": "Pickup",
     "dropoff": "Dropoff",
     "you": "You",
+    "yourLocation": "Votre emplacement",
     "couldNotAccept": "Could not accept ride. It may have been taken.",
     "rideAccepted": "Ride accepted!",
     "markedCollected": "Marked as collected!",
