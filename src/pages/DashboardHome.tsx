@@ -1,11 +1,9 @@
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, DollarSign, Clock, Package, ChevronRight, ArrowRight, Plane, Briefcase } from "lucide-react";
+import { Car, Package, ChevronRight, ArrowRight, Plane, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 const DashboardHome = () => {
   const { profile } = useAuth();
@@ -19,49 +17,11 @@ const DashboardHome = () => {
     ? `${timeGreeting}, ${firstName}`
     : timeGreeting;
 
-  const { data: rideStats } = useQuery({
-    queryKey: ["rider-stats", profile?.id],
-    queryFn: async () => {
-      if (!profile?.id) return null;
-      const { data, error } = await supabase
-        .from("rides")
-        .select("id, final_fare_cents, created_at, started_at, status")
-        .eq("rider_id", profile.id)
-        .eq("status", "completed");
-      if (error) throw error;
-
-      const count = data?.length ?? 0;
-      const totalCents = data?.reduce((sum, r) => sum + (r.final_fare_cents ?? 0), 0) ?? 0;
-
-      // Avg wait = time between ride creation and driver starting the trip
-      const waits = data
-        ?.filter((r) => r.created_at && r.started_at)
-        .map((r) => (new Date(r.started_at!).getTime() - new Date(r.created_at).getTime()) / 60000) ?? [];
-      const avgWaitMin = waits.length > 0 ? waits.reduce((a, b) => a + b, 0) / waits.length : null;
-
-      return { count, totalCents, avgWaitMin };
-    },
-    enabled: !!profile?.id,
-  });
-
   const services = [
     { icon: Car, label: t("dashboard.localTaxi"), desc: t("dashboard.localTaxiDesc"), path: "/rider/rides?service=taxi" },
     { icon: Briefcase, label: t("dashboard.privateHire"), desc: t("dashboard.privateHireDesc"), path: "/rider/rides?service=private_hire" },
     { icon: Plane, label: t("dashboard.airportRides"), desc: t("dashboard.airportRidesDesc"), path: "/rider/rides?service=private_hire" },
     { icon: Package, label: t("dashboard.delivery"), desc: t("dashboard.deliveryDesc"), path: "/rider/rides?service=courier" },
-  ];
-
-  const totalRides = rideStats?.count ?? 0;
-  const totalSpent = rideStats ? `$${(rideStats.totalCents / 100).toFixed(2)}` : "$0.00";
-
-  const avgWait = rideStats?.avgWaitMin != null
-    ? `${Math.round(rideStats.avgWaitMin)} min`
-    : "—";
-
-  const stats = [
-    { icon: Car, label: t("dashboard.totalRides"), value: String(totalRides) },
-    { icon: DollarSign, label: t("dashboard.totalSpent"), value: totalSpent },
-    { icon: Clock, label: t("dashboard.avgWait"), value: avgWait, helper: rideStats?.avgWaitMin == null ? t("dashboard.afterFirstRide") : undefined },
   ];
 
   return (
@@ -107,30 +67,6 @@ const DashboardHome = () => {
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{service.desc}</p>
               </div>
             </motion.button>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Overview Stats */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.4 }} className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-muted-foreground">{t("dashboard.yourOverview")}</h2>
-        <div className="grid grid-cols-3 gap-3">
-          {stats.map((card, i) => (
-            <motion.div
-              key={card.label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.08, duration: 0.3 }}
-              className="rounded-2xl border border-border/30 bg-card/60 p-4"
-              style={{ boxShadow: "inset 0 1px 1px 0 hsl(0 0% 100% / 0.03)" }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <card.icon className="h-4 w-4 text-primary/70" />
-                <span className="text-[11px] font-medium text-muted-foreground truncate">{card.label}</span>
-              </div>
-              <p className="text-xl font-bold font-mono">{card.value}</p>
-              {card.helper && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{card.helper}</p>}
-            </motion.div>
           ))}
         </div>
       </motion.div>
