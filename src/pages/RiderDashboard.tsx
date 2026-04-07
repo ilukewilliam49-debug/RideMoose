@@ -100,6 +100,22 @@ const RiderDashboard = () => {
       setLocatingUser(false);
     }
   };
+  // Fetch saved places for quick dropoff selection
+  const { data: savedPlaces } = useQuery({
+    queryKey: ["saved-places-rider", profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return [];
+      const { data, error } = await supabase
+        .from("saved_places")
+        .select("*")
+        .eq("user_id", profile.user_id)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.user_id,
+  });
+
   // Fetch rider's approved org membership with credit info
   const { data: riderOrgMembership } = useQuery({
     queryKey: ["rider-org-membership", profile?.user_id],
