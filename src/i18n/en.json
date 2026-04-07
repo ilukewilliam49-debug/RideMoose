@@ -144,7 +144,11 @@
     "afterFirstRide": "After first ride",
     "goodMorning": "Good morning",
     "goodAfternoon": "Good afternoon",
-    "goodEvening": "Good evening"
+    "goodEvening": "Good evening",
+    "whereTo": "Where to?",
+    "now": "Now",
+    "suggestions": "Suggestions",
+    "seeAll": "See all"
   },
   "earnings": {
     "title": "Earnings Summary",
