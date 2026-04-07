@@ -574,6 +574,7 @@ const RiderDashboard = () => {
           return;
         }
       }
+      const scheduledAtParam = searchParams.get("scheduledAt");
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
         pickup_address: pickup,
@@ -594,6 +595,7 @@ const RiderDashboard = () => {
         payment_status: isOrgBilling ? "invoiced_pending" : "unpaid",
         po_number: isOrgBilling && poNumber ? poNumber : null,
         cost_center: isOrgBilling && costCenter ? costCenter : null,
+        scheduled_at: scheduledAtParam || null,
         ...(serviceType === "courier" ? {
           package_size: packageSize,
           pickup_notes: pickupNotes || null,
