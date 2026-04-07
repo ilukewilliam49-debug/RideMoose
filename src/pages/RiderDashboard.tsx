@@ -1230,6 +1230,19 @@ const RiderDashboard = () => {
         </motion.div>
       )}
 
+      {/* Your Location Map */}
+      {!activeRide && userLocation && (
+        <div className="mt-4">
+          <h2 className="text-sm font-semibold mb-2 text-muted-foreground">{t("rider.yourLocation", "Your Location")}</h2>
+          <div className="rounded-xl overflow-hidden border border-border">
+            <RideMap
+              markers={[{ lat: userLocation.lat, lng: userLocation.lng, type: "pickup" as const, label: t("rider.you", "You") }]}
+              polyline={null}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Ride history */}
       <div>
         <h2 className="text-lg font-semibold mb-3">{t("rider.recentRides")}</h2>
