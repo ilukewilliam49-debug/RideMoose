@@ -54,6 +54,13 @@ const DashboardHome = () => {
     setScheduleOpen(false);
   };
 
+  // Append scheduledAt param to any path
+  const withSchedule = (path: string) => {
+    if (!scheduledAt) return path;
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}scheduledAt=${scheduledAt.toISOString()}`;
+  };
+
   // Fetch saved places
   const { data: savedPlaces } = useQuery({
     queryKey: ["saved-places", profile?.user_id],
@@ -132,8 +139,7 @@ const DashboardHome = () => {
               if (lat && lng) {
                 const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides";
                 const sep = base.includes("?") ? "&" : "?";
-                const schedParam = scheduledAt ? `&scheduledAt=${scheduledAt.toISOString()}` : "";
-                navigate(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}${schedParam}`);
+                navigate(withSchedule(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}`));
               }
             }}
             placeholder={t("dashboard.whereTo")}
@@ -207,7 +213,7 @@ const DashboardHome = () => {
                 key={place.id}
                 onClick={() =>
                   navigate(
-                    `/rider/rides?pickup=${encodeURIComponent(place.address)}`
+                    withSchedule(`/rider/rides?pickup=${encodeURIComponent(place.address)}`)
                   )
                 }
                 className="flex w-full items-center gap-4 py-3.5 text-left hover:bg-accent/30 transition-colors -mx-1 px-1 rounded-lg"
@@ -237,7 +243,7 @@ const DashboardHome = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black tracking-tight">{t("dashboard.suggestions")}</h2>
           <button
-            onClick={() => navigate("/rider/rides")}
+            onClick={() => navigate(withSchedule("/rider/rides"))}
             className="text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
             {t("dashboard.seeAll")}
@@ -248,7 +254,7 @@ const DashboardHome = () => {
           {suggestions.map((item) => (
             <button
               key={item.label}
-              onClick={() => navigate(item.path)}
+              onClick={() => navigate(withSchedule(item.path))}
               className="flex flex-col items-center gap-2 shrink-0 active:scale-[0.96] transition-transform"
             >
               <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-card border border-border/30">
@@ -275,7 +281,7 @@ const DashboardHome = () => {
         <h2 className="text-lg font-black tracking-tight">{t("dashboard.quickActions")}</h2>
 
         <button
-          onClick={() => navigate("/rider/rides")}
+          onClick={() => navigate(withSchedule("/rider/rides"))}
           className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
         >
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
@@ -289,7 +295,7 @@ const DashboardHome = () => {
         </button>
 
         <button
-          onClick={() => navigate("/rider/rides?service=courier")}
+          onClick={() => navigate(withSchedule("/rider/rides?service=courier"))}
           className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
         >
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
