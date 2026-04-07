@@ -22,6 +22,8 @@ import DriverDispatch from "./pages/DriverDispatch";
 import DashboardHome from "./pages/DashboardHome";
 import RiderDashboard from "./pages/RiderDashboard";
 import CorporateApply from "./pages/CorporateApply";
+import RiderActivity from "./pages/RiderActivity";
+import RiderAccount from "./pages/RiderAccount";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./hooks/useAuth";
@@ -75,6 +77,8 @@ const AppContent = () => {
         <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>
           <Route index element={<DashboardHome />} />
           <Route path="rides" element={<RiderDashboard />} />
+          <Route path="activity" element={<RiderActivity />} />
+          <Route path="account" element={<RiderAccount />} />
           <Route path="corporate-apply" element={<CorporateApply />} />
         </Route>
 
