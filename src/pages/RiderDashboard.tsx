@@ -791,59 +791,7 @@ const RiderDashboard = () => {
         </div>
       </div>
 
-      {/* Phone number for SMS notifications */}
-      {!activeRide && (!profile?.phone || phoneEditing) && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-primary" />
-            <p className="text-sm font-medium">{t("rider.addPhoneTitle")}</p>
-          </div>
-          <p className="text-xs text-muted-foreground">{t("rider.addPhoneDesc")}</p>
-          <div className="flex gap-2">
-            <Input
-              value={riderPhone}
-              onChange={(e) => setRiderPhone(e.target.value)}
-              placeholder="+1 555 123 4567"
-              className="bg-secondary text-sm flex-1"
-              type="tel"
-            />
-            <Button size="sm" onClick={savePhone} disabled={phoneSaving || !riderPhone.trim()}>
-              {phoneSaving ? "..." : <Check className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-      )}
-      {!activeRide && profile?.phone && !phoneEditing && (
-        <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 px-4 py-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Phone className="h-3 w-3" />
-            <span>{t("rider.smsEnabled")}: {profile.phone}</span>
-            <button onClick={() => setPhoneEditing(true)} className="text-primary hover:underline ml-1">{t("rider.edit")}</button>
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="sms-toggle" className="text-xs text-muted-foreground cursor-pointer">{smsEnabled ? t("rider.smsOn") : t("rider.smsOff")}</Label>
-            <Switch
-              id="sms-toggle"
-              checked={smsEnabled}
-              onCheckedChange={async (checked) => {
-                setSmsEnabled(checked);
-                if (profile?.id) {
-                  const { error } = await supabase
-                    .from("profiles")
-                    .update({ sms_notifications_enabled: checked })
-                    .eq("id", profile.id);
-                  if (error) {
-                    toast.error(error.message);
-                    setSmsEnabled(!checked);
-                  } else {
-                    toast.success(checked ? t("rider.smsTurnedOn") : t("rider.smsTurnedOff"));
-                  }
-                }
-              }}
-            />
-          </div>
-        </div>
-      )}
+
       {showActiveMap && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />
