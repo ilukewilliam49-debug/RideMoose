@@ -11,6 +11,9 @@ import {
   ArrowRight,
   Phone,
   ChevronRight,
+  Wallet,
+  CalendarClock,
+  Layers,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
