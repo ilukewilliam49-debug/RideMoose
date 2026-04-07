@@ -125,6 +125,8 @@
     "taxi": "Taxi",
     "charter": "Private Charter",
     "shuttle": "Shuttle",
+    "airportTransfer": "Airport Transfer",
+    "longDistance": "Long Distance",
     "ridesDesc": "Book taxi, private hire, airport, and long-distance requests",
     "localTaxi": "Local Taxi",
     "localTaxiDesc": "Book everyday rides around Yellowknife with straightforward local service.",
