@@ -12,7 +12,7 @@ import {
 
 export const serviceLabels: Record<string, string> = {
   taxi: "Taxi",
-  private_hire: "Private Hire",
+  private_hire: "PickYou",
   shuttle: "Shuttle",
   courier: "Courier",
   large_delivery: "Large Delivery",

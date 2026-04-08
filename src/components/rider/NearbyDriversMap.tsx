@@ -186,7 +186,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     }
   }, [drivers, userLocation]);
 
-  const tabLabel = activeTab === "taxi" ? "taxis" : activeTab === "charter" ? "private cars" : "couriers";
+  const tabLabel = activeTab === "taxi" ? "taxis" : activeTab === "charter" ? "contractors" : "couriers";
   const TabIcon = activeTab === "taxi" ? Car : activeTab === "charter" ? Briefcase : Package;
 
   return (

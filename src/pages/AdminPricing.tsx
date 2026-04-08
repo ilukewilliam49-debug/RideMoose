@@ -27,7 +27,7 @@ interface TaxiRate {
 
 const serviceConfig = {
   taxi: { label: "Taxi", icon: Car, color: "text-yellow-500" },
-  private_hire: { label: "Private Hire", icon: Briefcase, color: "text-blue-500" },
+  private_hire: { label: "PickYou", icon: Briefcase, color: "text-blue-500" },
   shuttle: { label: "Shuttle", icon: Bus, color: "text-green-500" },
 } as const;
 
