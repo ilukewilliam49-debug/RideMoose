@@ -49,6 +49,7 @@ interface RideMapProps {
   center?: [number, number];
   className?: string;
   polyline?: string | null;
+  routeInfo?: { distanceKm: number; durationText: string } | null;
 }
 
 /** Decode Google Maps encoded polyline string into [lat, lng] pairs */
@@ -69,11 +70,12 @@ const decodePolyline = (encoded: string): [number, number][] => {
 
 const iconMap = { pickup: pickupIcon, dropoff: dropoffIcon, driver: driverIcon };
 
-const RideMap = ({ markers, center = [62.454, -114.372], className = "", polyline }: RideMapProps) => {
+const RideMap = ({ markers, center = [62.454, -114.372], className = "", polyline, routeInfo }: RideMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
+  const labelRef = useRef<L.Marker | null>(null);
 
   // Initialize map once
   useEffect(() => {
@@ -130,10 +132,14 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove previous polyline
+    // Remove previous polyline & label
     if (polylineRef.current) {
       polylineRef.current.remove();
       polylineRef.current = null;
+    }
+    if (labelRef.current) {
+      labelRef.current.remove();
+      labelRef.current = null;
     }
 
     if (polyline) {
@@ -185,6 +191,40 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
         if (currentIndex >= totalPoints) {
           clearInterval(interval);
           fullLine.remove();
+
+          // Add route info label at midpoint
+          if (routeInfo && decoded.length > 2) {
+            const midIdx = Math.floor(decoded.length / 2);
+            const midPoint = decoded[midIdx];
+            const distLabel = routeInfo.distanceKm < 1
+              ? `${Math.round(routeInfo.distanceKm * 1000)} m`
+              : `${routeInfo.distanceKm.toFixed(1)} km`;
+            const html = `<div style="
+              display:flex;align-items:center;gap:6px;
+              background:hsl(var(--card));
+              color:hsl(var(--card-foreground));
+              border:1px solid hsl(var(--border));
+              border-radius:9999px;
+              padding:4px 10px;
+              font-size:11px;font-weight:700;
+              white-space:nowrap;
+              box-shadow:0 2px 8px hsl(0 0% 0%/0.15);
+              pointer-events:none;
+            ">
+              <span>${distLabel}</span>
+              <span style="color:hsl(var(--muted-foreground))">·</span>
+              <span>${routeInfo.durationText}</span>
+            </div>`;
+            labelRef.current = L.marker(midPoint as L.LatLngExpression, {
+              icon: L.divIcon({
+                html,
+                className: "",
+                iconSize: [0, 0],
+                iconAnchor: [0, 12],
+              }),
+              interactive: false,
+            }).addTo(map);
+          }
         }
       }, stepTime);
 
@@ -192,9 +232,13 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
         clearInterval(interval);
         fullLine.remove();
         shadowLine.remove();
+        if (labelRef.current) {
+          labelRef.current.remove();
+          labelRef.current = null;
+        }
       };
     }
-  }, [polyline]);
+  }, [polyline, routeInfo]);
 
   return (
     <div

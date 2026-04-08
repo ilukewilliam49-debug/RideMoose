@@ -220,6 +220,9 @@ const RiderDashboard = () => {
   const showActiveMap = queries.activeRide && activeMarkers.length > 0;
   const showBookingMap = !queries.activeRide && mapMarkers.length > 0;
   const routePolyline = queries.directionsData?.polyline ?? null;
+  const routeInfo = queries.directionsData
+    ? { distanceKm: queries.directionsData.distance_km, durationText: queries.directionsData.duration_text }
+    : null;
 
   return (
     <div className="space-y-6 pt-4">
@@ -276,7 +279,7 @@ const RiderDashboard = () => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-surface rounded-lg p-6 space-y-4 overflow-visible">
           {/* Map */}
           {showBookingMap ? (
-            <RideMap markers={mapMarkers} polyline={routePolyline} />
+            <RideMap markers={mapMarkers} polyline={routePolyline} routeInfo={routeInfo} />
           ) : state.userLocation ? (
             <RideMap markers={[{ lat: state.userLocation.lat, lng: state.userLocation.lng, type: "pickup" as const, label: t("rider.you", "You") }]} polyline={null} />
           ) : (
