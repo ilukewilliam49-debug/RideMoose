@@ -9,14 +9,17 @@ import {
   CalendarCheck,
   MessageSquare,
   ArrowRight,
+  DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import ErrorRetry from "@/components/driver/ErrorRetry";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-dashboard-stats"],
     queryFn: async () => {
       const [
@@ -25,6 +28,7 @@ const AdminDashboard = () => {
         ridesRes,
         supportRes,
         bookingsRes,
+        revenueRes,
       ] = await Promise.all([
         supabase
           .from("verifications")
@@ -44,7 +48,16 @@ const AdminDashboard = () => {
         supabase
           .from("bokun_bookings" as any)
           .select("id", { count: "exact", head: true }),
+        supabase
+          .from("rides")
+          .select("final_price")
+          .eq("status", "completed"),
       ]);
+
+      const totalRevenue = (revenueRes.data || []).reduce(
+        (sum: number, r: any) => sum + Number(r.final_price || 0),
+        0
+      );
 
       return {
         pendingVerifications: verificationsRes.count || 0,
@@ -52,8 +65,10 @@ const AdminDashboard = () => {
         activeRides: ridesRes.count || 0,
         openSupport: supportRes.count || 0,
         syncedBookings: bookingsRes.count || 0,
+        totalRevenue,
       };
     },
+    refetchInterval: 30000,
   });
 
   const cards = [
@@ -64,6 +79,7 @@ const AdminDashboard = () => {
       icon: FileCheck,
       path: "/admin/verifications",
       cta: "Open verifications",
+      format: "count" as const,
     },
     {
       title: "User management",
@@ -72,6 +88,7 @@ const AdminDashboard = () => {
       icon: Users,
       path: "/admin/users",
       cta: "Open users",
+      format: "count" as const,
     },
     {
       title: "Open rides",
@@ -80,6 +97,16 @@ const AdminDashboard = () => {
       icon: BarChart3,
       path: "/admin/reports",
       cta: "Open reports",
+      format: "count" as const,
+    },
+    {
+      title: "Total revenue",
+      description: "Sum of all completed ride fares across the platform.",
+      value: stats?.totalRevenue ?? 0,
+      icon: DollarSign,
+      path: "/admin/reports",
+      cta: "View reports",
+      format: "currency" as const,
     },
     {
       title: "Support inbox",
@@ -88,6 +115,7 @@ const AdminDashboard = () => {
       icon: MessageSquare,
       path: "/admin/support",
       cta: "Open support",
+      format: "count" as const,
     },
     {
       title: "Bókun bookings",
@@ -96,6 +124,7 @@ const AdminDashboard = () => {
       icon: CalendarCheck,
       path: "/admin/bookings",
       cta: "Open bookings",
+      format: "count" as const,
     },
   ];
 
@@ -120,40 +149,62 @@ const AdminDashboard = () => {
         </div>
       </motion.div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card, index) => (
-          <motion.button
-            key={card.title}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.06, duration: 0.3 }}
-            onClick={() => navigate(card.path)}
-            className="rounded-3xl border border-border/50 bg-card/70 p-6 text-left transition-all hover:border-primary/30 hover:shadow-[0_10px_30px_-12px_hsl(45_95%_55%/0.18)]"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                <card.icon className="h-6 w-6" />
-              </div>
-              <span className="text-3xl font-black tabular-nums">{card.value}</span>
-            </div>
-            <div className="mt-5 space-y-2">
-              <h2 className="text-lg font-semibold">{card.title}</h2>
-              <p className="text-sm leading-6 text-muted-foreground">{card.description}</p>
-            </div>
-            <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary">
-              {card.cta}
-              <ArrowRight className="h-4 w-4" />
-            </div>
-          </motion.button>
-        ))}
-      </div>
+      {isError ? (
+        <ErrorRetry message="Failed to load dashboard stats" onRetry={() => refetch()} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-3xl border border-border/50 bg-card/70 p-6 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <Skeleton className="h-12 w-12 rounded-2xl" />
+                    <Skeleton className="h-9 w-16" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                  <Skeleton className="h-4 w-28" />
+                </div>
+              ))
+            : cards.map((card, index) => (
+                <motion.button
+                  key={card.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.06, duration: 0.3 }}
+                  onClick={() => navigate(card.path)}
+                  className="rounded-3xl border border-border/50 bg-card/70 p-6 text-left transition-all hover:border-primary/30 hover:shadow-[0_10px_30px_-12px_hsl(45_95%_55%/0.18)]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                      <card.icon className="h-6 w-6" />
+                    </div>
+                    <span className="text-3xl font-black tabular-nums">
+                      {card.format === "currency"
+                        ? `$${card.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : card.value}
+                    </span>
+                  </div>
+                  <div className="mt-5 space-y-2">
+                    <h2 className="text-lg font-semibold">{card.title}</h2>
+                    <p className="text-sm leading-6 text-muted-foreground">{card.description}</p>
+                  </div>
+                  <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                    {card.cta}
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                </motion.button>
+              ))}
+        </div>
+      )}
 
       <div className="rounded-3xl border border-border/50 bg-secondary/20 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Quick admin actions</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Jump straight to the operational areas you’re most likely to need.
+              Jump straight to the operational areas you're most likely to need.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
