@@ -783,26 +783,21 @@ const DriverDispatch = () => {
                     </div>
                   </div>
 
-                  {/* Contextual metadata row */}
-                  <div className="px-4 pb-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                    {ride.scheduled_at && (
-                      <span className="flex items-center gap-1 bg-secondary/80 px-2 py-0.5 rounded-full">
-                        <Clock className="h-3 w-3" />
-                        {new Date(ride.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    )}
-                    {(ride.service_type === "taxi" || ride.service_type === "private_hire" || ride.service_type === "shuttle") && ride.passenger_count > 1 && (
-                      <span className="bg-secondary/80 px-2 py-0.5 rounded-full">{ride.passenger_count} passengers</span>
-                    )}
-                    {ride.distance_km && (
-                      <span className="tabular-nums">{Number(ride.distance_km).toFixed(1)} km</span>
-                    )}
-                    {ride.payment_option === "pay_driver" && (
-                      <span className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-medium">
-                        <Banknote className="h-3 w-3" /> Cash
-                      </span>
-                    )}
-                  </div>
+                  {/* Payment & context chips */}
+                  {(ride.payment_option === "pay_driver" || ride.billed_to === "organization") && (
+                    <div className="px-4 pb-1 flex flex-wrap items-center gap-1.5">
+                      {ride.payment_option === "pay_driver" && (
+                        <span className="flex items-center gap-1 text-[10px] font-medium bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full">
+                          <Banknote className="h-3 w-3" /> Cash
+                        </span>
+                      )}
+                      {ride.billed_to === "organization" && (
+                        <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                          Corporate
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Extra details */}
                   <RequestDetails ride={ride} t={t} />
