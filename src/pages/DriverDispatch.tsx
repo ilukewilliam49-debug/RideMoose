@@ -282,6 +282,14 @@ const DriverDispatch = () => {
     <div className="space-y-4 pb-6">
       <PageHeader profile={profile} />
 
+      {/* Trip summary after completion */}
+      {!activeRide && recentDeliveries?.[0] && recentDeliveries[0].id !== dismissedSummaryId && (
+        <TripSummaryCard
+          ride={recentDeliveries[0] as any}
+          onDismiss={() => setDismissedSummaryId(recentDeliveries[0].id)}
+        />
+      )}
+
       {/* Active trip */}
       {activeRide && (
         <ActiveTripPanel
