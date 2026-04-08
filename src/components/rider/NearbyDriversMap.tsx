@@ -186,9 +186,13 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
 
     drivers.forEach((d) => {
       if (!d.latitude || !d.longitude) return;
-      const marker = L.marker([d.latitude, d.longitude], { icon: driverIcon })
+      const vType = "vehicle_type" in d ? (d as any).vehicle_type : undefined;
+      const icon = getVehicleIcon(vType);
+      const label = (vType || "").toLowerCase();
+      const vehicleLabel = label === "suv" ? " (SUV)" : label === "van" ? " (Van)" : " (Sedan)";
+      const marker = L.marker([d.latitude, d.longitude], { icon })
         .addTo(map)
-        .bindPopup(d.full_name || "Driver");
+        .bindPopup(`${d.full_name || "Driver"}${vehicleLabel}`);
       markersRef.current.push(marker);
     });
 
