@@ -11,9 +11,13 @@ import {
   Wallet,
   CalendarClock,
   Layers,
+  DollarSign,
+  TrendingUp,
+  Shield,
 } from "lucide-react";
 
 import heroBg from "@/assets/hero-bg.jpg";
+import driverHero from "@/assets/driver-hero.jpg";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
@@ -135,22 +139,77 @@ const Index = () => {
       <div className="mx-5 h-px bg-border/30 md:mx-auto md:max-w-7xl" />
 
       {/* ── Drive with PickYou ── */}
-      <section className="px-5 py-12 md:py-20">
-        <div className="mx-auto max-w-7xl">
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <h2 className="text-2xl font-black tracking-tight md:text-4xl">
-                {t("landing.driveTitle")}
-              </h2>
+      <section className="relative overflow-hidden">
+        {/* Hero image */}
+        <div className="relative h-64 md:h-80 overflow-hidden">
+          <img
+            src={driverHero}
+            alt="PickYou driver"
+            width={1280}
+            height={720}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background" />
+          <div className="absolute inset-0 flex items-end px-5 pb-6 md:pb-8">
+            <div className="mx-auto max-w-7xl w-full">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4 }}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-primary mb-2">
+                  {t("landing.driveTitle")}
+                </p>
+                <h2 className="text-2xl font-black tracking-tight md:text-4xl max-w-lg">
+                  Earn on your own schedule
+                </h2>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+        {/* Earnings highlights */}
+        <div className="px-5 -mt-1 relative z-10">
+          <div className="mx-auto max-w-7xl">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.35 }}
+              className="grid grid-cols-3 gap-2.5 py-6"
+            >
+              {[
+                { icon: DollarSign, value: "95.1%", label: "You keep" },
+                { icon: TrendingUp, value: "$1,200+", label: "Avg weekly" },
+                { icon: Shield, value: "4.9%", label: "Low commission" },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl bg-card/60 ring-1 ring-border/30 px-3 py-4 text-center"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                    <stat.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-lg font-black tracking-tight">{stat.value}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{stat.label}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Perks */}
+            <div className="space-y-2.5 pb-6">
               <p className="max-w-lg text-[15px] leading-relaxed text-muted-foreground">
                 {t("landing.driveDesc")}
               </p>
-            </div>
-
-            <div className="space-y-2.5">
-              {driverPerks.map((perk) => (
-                <div
+              {driverPerks.map((perk, i) => (
+                <motion.div
                   key={perk.title}
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.15 + i * 0.06, duration: 0.3 }}
                   className="flex items-center gap-4 rounded-2xl bg-card/50 px-5 py-4"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
@@ -160,14 +219,13 @@ const Index = () => {
                     <h3 className="text-[15px] font-bold leading-tight">{perk.title}</h3>
                     <p className="text-[13px] leading-snug text-muted-foreground mt-0.5">{perk.desc}</p>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
 
             <Button
               size="lg"
-              variant="outline"
-              className="h-[52px] w-full rounded-xl text-[15px] font-bold active:scale-[0.97] transition-transform sm:w-auto sm:px-8"
+              className="h-[52px] w-full rounded-xl text-[15px] font-bold shadow-[var(--shadow-gold)] active:scale-[0.97] transition-transform sm:w-auto sm:px-8 mb-12"
               onClick={() => navigate("/login?role=driver")}
             >
               {t("landing.driveApply")}
