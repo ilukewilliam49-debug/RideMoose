@@ -33,6 +33,8 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
   driver: [
     { icon: Home, title: t("nav.dashboard"), url: "/driver" },
     { icon: Car, title: t("nav.dispatch"), url: "/driver/dispatch" },
+    { icon: DollarSign, title: "Earnings", url: "/driver/earnings" },
+    { icon: Users, title: "Account", url: "/driver/account" },
   ],
   admin: [
     { icon: Home, title: t("nav.dashboard"), url: "/admin" },

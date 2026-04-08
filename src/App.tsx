@@ -19,6 +19,8 @@ import AdminSupport from "./pages/AdminSupport";
 import AdminBookings from "./pages/AdminBookings";
 import DriverDashboard from "./pages/DriverDashboard";
 import DriverDispatch from "./pages/DriverDispatch";
+import DriverEarnings from "./pages/DriverEarnings";
+import DriverAccount from "./pages/DriverAccount";
 import DashboardHome from "./pages/DashboardHome";
 import RiderDashboard from "./pages/RiderDashboard";
 import CorporateApply from "./pages/CorporateApply";
@@ -72,6 +74,8 @@ const AppContent = () => {
         <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
           <Route index element={<DriverDashboard />} />
           <Route path="dispatch" element={<DriverDispatch />} />
+          <Route path="earnings" element={<DriverEarnings />} />
+          <Route path="account" element={<DriverAccount />} />
         </Route>
 
         <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>

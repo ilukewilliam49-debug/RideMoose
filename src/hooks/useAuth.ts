@@ -7,6 +7,7 @@ export interface Profile {
   user_id: string;
   full_name: string;
   phone: string | null;
+  phone_verified: boolean;
   avatar_url: string | null;
   role: "rider" | "driver" | "admin";
   is_available: boolean;
