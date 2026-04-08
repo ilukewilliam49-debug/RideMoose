@@ -63,6 +63,19 @@ export const useRideBookingState = () => {
     }
   }, []);
 
+  // Pre-fill dropoff from URL params (passed from DashboardHome "Where to?")
+  useEffect(() => {
+    const dropoffParam = searchParams.get("dropoff");
+    const dlatParam = searchParams.get("dlat");
+    const dlngParam = searchParams.get("dlng");
+    if (dropoffParam) {
+      setDropoff(decodeURIComponent(dropoffParam));
+      if (dlatParam && dlngParam) {
+        setDropoffCoords({ lat: parseFloat(dlatParam), lng: parseFloat(dlngParam) });
+      }
+    }
+  }, []);
+
   // Calculate distance
   const distanceKm = useMemo(() => {
     if (!pickupCoords || !dropoffCoords) return null;
