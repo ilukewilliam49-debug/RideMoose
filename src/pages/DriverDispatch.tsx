@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -102,6 +102,8 @@ const DriverDispatch = () => {
   const [finalItemCostInput, setFinalItemCostInput] = useState<string>("");
   const [showOutstanding, setShowOutstanding] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const proofInputRef = useRef<HTMLInputElement>(null);
   const receiptInputRef = useRef<HTMLInputElement>(null);
 
