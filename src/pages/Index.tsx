@@ -168,7 +168,7 @@ const Index = () => {
               size="lg"
               variant="outline"
               className="h-[52px] w-full rounded-xl text-[15px] font-bold active:scale-[0.97] transition-transform sm:w-auto sm:px-8"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login?role=driver")}
             >
               {t("landing.driveApply")}
               <ArrowRight className="ml-2 h-4 w-4" />
