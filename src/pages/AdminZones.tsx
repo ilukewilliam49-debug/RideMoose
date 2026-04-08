@@ -186,8 +186,31 @@ const AdminZones = () => {
 
   if (isLoading || geoLoading) return <div className="py-8 text-center text-muted-foreground">Loading zones…</div>;
 
+  const confirmDelete = (name: string, onConfirm: () => void) => {
+    setConfirmAction({
+      title: `Delete "${name}"?`,
+      description: "This action cannot be undone. The zone will be permanently removed.",
+      onConfirm,
+    });
+  };
+
   return (
     <div className="space-y-6 pt-4">
+      {/* Confirmation dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmAction?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmAction?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmAction?.onConfirm(); setConfirmAction(null); }}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <h1 className="text-2xl font-bold">Private Hire Zones</h1>
 
       <Tabs defaultValue="pricing" className="w-full">
