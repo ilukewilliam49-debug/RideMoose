@@ -13,6 +13,7 @@ import type { Ride, RiderProfileSummary, DirectionsData, LiveEtaData } from "@/t
 import { isDeliveryType } from "@/lib/driver-constants";
 
 import ActiveTripPanel from "@/components/driver/ActiveTripPanel";
+import TripSummaryCard from "@/components/driver/TripSummaryCard";
 import IncomingRequestCard from "@/components/driver/IncomingRequestCard";
 import OutstandingBalances from "@/components/driver/OutstandingBalances";
 import RecentDeliveries from "@/components/driver/RecentDeliveries";
