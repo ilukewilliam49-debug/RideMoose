@@ -96,6 +96,41 @@ const DriverEarnings = () => {
     enabled: !!profile?.id,
   });
 
+  // Weekly chart data
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: new Date() });
+
+  const { data: weeklyRides } = useQuery({
+    queryKey: ["driver-weekly-chart", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("rides")
+        .select("driver_earnings_cents, completed_at")
+        .eq("driver_id", profile.id)
+        .eq("status", "completed")
+        .gte("completed_at", weekStart.toISOString())
+        .order("completed_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
+  const chartData = useMemo(() => {
+    return weekDays.map((day) => {
+      const dayEarnings = (weeklyRides || [])
+        .filter((r: any) => r.completed_at && isSameDay(new Date(r.completed_at), day))
+        .reduce((sum: number, r: any) => sum + (r.driver_earnings_cents || 0), 0);
+      const isToday = isSameDay(day, new Date());
+      return {
+        day: format(day, "EEE"),
+        earnings: dayEarnings / 100,
+        isToday,
+      };
+    });
+  }, [weeklyRides, weekDays]);
+
   // Commission ramp
   const launchStart = profile?.launch_start_date ? new Date(profile.launch_start_date) : null;
   const daysActive = launchStart ? (Date.now() - launchStart.getTime()) / 86400000 : Infinity;
