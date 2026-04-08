@@ -13,6 +13,7 @@ import type { Ride, RiderProfileSummary, DirectionsData, LiveEtaData } from "@/t
 import { isDeliveryType } from "@/lib/driver-constants";
 
 import ActiveTripPanel from "@/components/driver/ActiveTripPanel";
+import TripSummaryCard from "@/components/driver/TripSummaryCard";
 import IncomingRequestCard from "@/components/driver/IncomingRequestCard";
 import OutstandingBalances from "@/components/driver/OutstandingBalances";
 import RecentDeliveries from "@/components/driver/RecentDeliveries";
@@ -24,6 +25,7 @@ const DriverDispatch = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
+  const [dismissedSummaryId, setDismissedSummaryId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const prevPendingCountRef = useRef(0);
 
@@ -279,6 +281,14 @@ const DriverDispatch = () => {
   return (
     <div className="space-y-4 pb-6">
       <PageHeader profile={profile} />
+
+      {/* Trip summary after completion */}
+      {!activeRide && recentDeliveries?.[0] && recentDeliveries[0].id !== dismissedSummaryId && (
+        <TripSummaryCard
+          ride={recentDeliveries[0] as any}
+          onDismiss={() => setDismissedSummaryId(recentDeliveries[0].id)}
+        />
+      )}
 
       {/* Active trip */}
       {activeRide && (

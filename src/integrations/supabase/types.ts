@@ -1082,6 +1082,8 @@ export type Database = {
           authorized_amount_cents: number | null
           bidding_ends_at: string | null
           billed_to: string
+          cancellation_fee_cents: number
+          cancellation_reason: string | null
           captured_amount_cents: number | null
           commission_cents: number
           completed_at: string | null
@@ -1147,6 +1149,7 @@ export type Database = {
           store_name: string | null
           stripe_fee_cents: number
           stripe_payment_intent_id: string | null
+          tip_cents: number
           updated_at: string
           waiting_min: number
           weight_estimate_kg: number | null
@@ -1155,6 +1158,8 @@ export type Database = {
           authorized_amount_cents?: number | null
           bidding_ends_at?: string | null
           billed_to?: string
+          cancellation_fee_cents?: number
+          cancellation_reason?: string | null
           captured_amount_cents?: number | null
           commission_cents?: number
           completed_at?: string | null
@@ -1220,6 +1225,7 @@ export type Database = {
           store_name?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
+          tip_cents?: number
           updated_at?: string
           waiting_min?: number
           weight_estimate_kg?: number | null
@@ -1228,6 +1234,8 @@ export type Database = {
           authorized_amount_cents?: number | null
           bidding_ends_at?: string | null
           billed_to?: string
+          cancellation_fee_cents?: number
+          cancellation_reason?: string | null
           captured_amount_cents?: number | null
           commission_cents?: number
           completed_at?: string | null
@@ -1293,6 +1301,7 @@ export type Database = {
           store_name?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
+          tip_cents?: number
           updated_at?: string
           waiting_min?: number
           weight_estimate_kg?: number | null

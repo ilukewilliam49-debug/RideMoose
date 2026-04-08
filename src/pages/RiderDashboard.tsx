@@ -21,6 +21,8 @@ import DeliveryBidsList from "@/components/DeliveryBidsList";
 import LivePetTracker from "@/components/LivePetTracker";
 import SavedPlaceChips from "@/components/rider/SavedPlaceChips";
 import ErrorRetry from "@/components/driver/ErrorRetry";
+import RideChatSheet from "@/components/RideChatSheet";
+import CancelRideDialog from "@/components/rider/CancelRideDialog";
 
 type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
 
@@ -571,34 +573,7 @@ const RiderDashboard = () => {
   const currentRatingRideId = manualRateRideId || unratedRide?.id;
   const currentRatingDriverId = manualRateDriverId || unratedRide?.driver_id;
 
-  const [cancellingRide, setCancellingRide] = useState(false);
-
-  const cancelRide = async () => {
-    if (!activeRide) return;
-    setCancellingRide(true);
-    try {
-      // If large_delivery with authorized payment, release the hold first
-      if (activeRide.service_type === "large_delivery" && activeRide.payment_status === "authorized") {
-        const { error: cancelPayErr } = await supabase.functions.invoke("cancel-bid-payment", {
-          body: { ride_id: activeRide.id },
-        });
-        if (cancelPayErr) console.error("Failed to release payment hold:", cancelPayErr);
-      }
-
-      const { error } = await supabase
-        .from("rides")
-        .update({ status: "cancelled" })
-        .eq("id", activeRide.id);
-      if (error) throw error;
-      toast.success(t("rider.rideCancelled"));
-      queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
-      queryClient.invalidateQueries({ queryKey: ["my-rides"] });
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setCancellingRide(false);
-    }
-  };
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const requestRide = async () => {
     if (!profile?.id || !pickup || !dropoff || !pickupCoords || !dropoffCoords) return;
@@ -882,15 +857,24 @@ const RiderDashboard = () => {
               </div>
             )}
             {(activeRide!.status === "requested" || activeRide!.status === "accepted") && (
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full mt-2"
-                disabled={cancellingRide}
-                onClick={cancelRide}
-              >
-                {cancellingRide ? t("rider.cancelling") : t("rider.cancelRide")}
-              </Button>
+              <div className="flex gap-2 mt-2">
+                {activeRide!.driver_id && (
+                  <RideChatSheet rideId={activeRide!.id} otherPartyName={driverProfile?.full_name || undefined} />
+                )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setCancelDialogOpen(true)}
+                >
+                  {t("rider.cancelRide")}
+                </Button>
+              </div>
+            )}
+            {activeRide!.status === "in_progress" && activeRide!.driver_id && (
+              <div className="mt-2">
+                <RideChatSheet rideId={activeRide!.id} otherPartyName={driverProfile?.full_name || undefined} />
+              </div>
             )}
           </div>
         </motion.div>
@@ -1381,6 +1365,21 @@ const RiderDashboard = () => {
             refetchUnrated();
             setManualRateRideId(null);
             setManualRateDriverId(null);
+          }}
+        />
+      )}
+
+      {/* Cancel ride dialog */}
+      {activeRide && (
+        <CancelRideDialog
+          open={cancelDialogOpen}
+          onOpenChange={setCancelDialogOpen}
+          rideId={activeRide.id}
+          rideStatus={activeRide.status}
+          driverAccepted={activeRide.status === "accepted" || activeRide.status === "in_progress"}
+          onCancelled={() => {
+            queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
+            queryClient.invalidateQueries({ queryKey: ["my-rides"] });
           }}
         />
       )}
