@@ -37,7 +37,7 @@ const TRIP_STEPS = [
 function TripStepper({ currentStatus }: { currentStatus: string }) {
   const stepIndex =
     currentStatus === "in_progress" ? 2 :
-    currentStatus === "arrived" ? 1 :
+    (currentStatus as string) === "arrived" ? 1 :
     currentStatus === "accepted" ? 0 : 3;
   return (
     <div className="flex items-center gap-1 py-2">
@@ -245,7 +245,7 @@ export default function ActiveTripPanel({
 
   const getNextActionLabel = () => {
     if (activeRide.status === "accepted") return isDeliveryType(activeRide.service_type) ? "I've arrived" : "I've arrived";
-    if (activeRide.status === "arrived") return isDeliveryType(activeRide.service_type) ? "Start pickup" : "Start trip";
+    if ((activeRide.status as string) === "arrived") return isDeliveryType(activeRide.service_type) ? "Start pickup" : "Start trip";
     if (activeRide.status === "in_progress") return isDeliveryType(activeRide.service_type) ? "Complete delivery" : "Complete trip";
     return "";
   };
@@ -259,8 +259,8 @@ export default function ActiveTripPanel({
   };
 
   const handleNextAction = () => {
-    if (activeRide.status === "accepted") updateRideStatus(activeRide.id, "arrived");
-    else if (activeRide.status === "arrived") updateRideStatus(activeRide.id, "in_progress");
+    if (activeRide.status === "accepted") updateRideStatus(activeRide.id, "in_progress");
+    else if ((activeRide.status as string) === "arrived") updateRideStatus(activeRide.id, "in_progress");
     else if (activeRide.status === "in_progress") updateRideStatus(activeRide.id, "completed");
   };
 
@@ -356,10 +356,10 @@ export default function ActiveTripPanel({
           </div>
           <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
             activeRide.status === "in_progress" ? "bg-green-500/10 text-green-500" :
-            activeRide.status === "arrived" ? "bg-amber-500/10 text-amber-500" :
+            (activeRide.status as string) === "arrived" ? "bg-amber-500/10 text-amber-500" :
             "bg-primary/10 text-primary"
           }`}>
-            {activeRide.status === "in_progress" ? "In progress" : activeRide.status === "arrived" ? "At pickup" : "Accepted"}
+            {activeRide.status === "in_progress" ? "In progress" : (activeRide.status as string) === "arrived" ? "At pickup" : "Accepted"}
           </span>
         </div>
 
