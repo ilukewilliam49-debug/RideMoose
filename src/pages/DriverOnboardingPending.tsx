@@ -53,14 +53,14 @@ const DriverOnboardingPending = () => {
         .upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = await supabase.storage
         .from("proof-photos")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365);
 
       const { error: insertError } = await supabase.from("verifications").insert({
         driver_id: profile.id,
         document_type: docType,
-        document_url: urlData.publicUrl,
+        document_url: urlData?.signedUrl || filePath,
         status: "pending",
       });
       if (insertError) throw insertError;

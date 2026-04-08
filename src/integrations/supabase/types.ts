@@ -1584,6 +1584,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authorize_realtime_channel: {
+        Args: { _channel: string; _user_id: string }
+        Returns: boolean
+      }
       check_password_reset_rate_limit: {
         Args: { user_email: string }
         Returns: Json
