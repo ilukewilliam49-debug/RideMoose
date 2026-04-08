@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Car, Briefcase, Package } from "lucide-react";
+import { useDriverETAs } from "@/hooks/useDriverETAs";
 
 // Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
