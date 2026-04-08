@@ -171,40 +171,51 @@ const DashboardHome = () => {
       </div>
 
       {/* ── Top tabs ── */}
-      <div className="flex items-center gap-6 pb-5">
-        <button
-          onClick={() => setActiveTab("taxi")}
-          className={`flex items-center gap-2 pb-1 text-[15px] font-bold transition-colors ${
-            activeTab === "taxi"
-              ? "text-foreground border-b-2 border-foreground"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Car className="h-5 w-5" />
-          {t("dashboard.taxi")}
-        </button>
-        <button
-          onClick={() => setActiveTab("charter")}
-          className={`flex items-center gap-2 pb-1 text-[15px] font-bold transition-colors ${
-            activeTab === "charter"
-              ? "text-foreground border-b-2 border-foreground"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Briefcase className="h-5 w-5" />
-          {t("dashboard.charter")}
-        </button>
-        <button
-          onClick={() => setActiveTab("delivery")}
-          className={`flex items-center gap-2 pb-1 text-[15px] font-bold transition-colors ${
-            activeTab === "delivery"
-              ? "text-foreground border-b-2 border-foreground"
-              : "text-muted-foreground"
-          }`}
-        >
-          <Package className="h-5 w-5" />
-          {t("dashboard.delivery")}
-        </button>
+      <div className="flex items-center gap-2 pb-5">
+        {([
+          {
+            key: "taxi" as Tab,
+            label: t("dashboard.taxi"),
+            icon: (
+              <Car className="h-4 w-4" />
+            ),
+          },
+          {
+            key: "charter" as Tab,
+            label: t("dashboard.charter"),
+            icon: (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 13h1l1.5-4.5A1 1 0 0 1 6.45 8h11.1a1 1 0 0 1 .95.68L20 13h1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1.05a2.5 2.5 0 0 1-4.9 0h-6.1a2.5 2.5 0 0 1-4.9 0H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z" />
+                <path d="M6 13V9.5" />
+                <path d="M18 13V9.5" />
+                <path d="M9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                <circle cx="7" cy="17" r="1.5" />
+                <circle cx="17" cy="17" r="1.5" />
+              </svg>
+            ),
+          },
+          {
+            key: "delivery" as Tab,
+            label: t("dashboard.delivery"),
+            icon: (
+              <Package className="h-4 w-4" />
+            ),
+          },
+        ]).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "relative flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-all duration-200",
+              activeTab === tab.key
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* ── "Where to?" address field ── */}
