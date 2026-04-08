@@ -284,7 +284,7 @@ const AdminZones = () => {
                           <Button size="icon" variant="ghost" disabled={!isDirty(zone.id)} onClick={() => handleSave(zone)}>
                             <Save className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(zone.id)}>
+                          <Button size="icon" variant="ghost" onClick={() => confirmDelete(edited.zone_name, () => deleteMutation.mutate(zone.id))}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
