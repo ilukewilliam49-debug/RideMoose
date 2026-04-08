@@ -857,15 +857,24 @@ const RiderDashboard = () => {
               </div>
             )}
             {(activeRide!.status === "requested" || activeRide!.status === "accepted") && (
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full mt-2"
-                disabled={cancellingRide}
-                onClick={cancelRide}
-              >
-                {cancellingRide ? t("rider.cancelling") : t("rider.cancelRide")}
-              </Button>
+              <div className="flex gap-2 mt-2">
+                {activeRide!.driver_id && (
+                  <RideChatSheet rideId={activeRide!.id} otherPartyName={driverProfile?.full_name || undefined} />
+                )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setCancelDialogOpen(true)}
+                >
+                  {t("rider.cancelRide")}
+                </Button>
+              </div>
+            )}
+            {activeRide!.status === "in_progress" && activeRide!.driver_id && (
+              <div className="mt-2">
+                <RideChatSheet rideId={activeRide!.id} otherPartyName={driverProfile?.full_name || undefined} />
+              </div>
             )}
           </div>
         </motion.div>
