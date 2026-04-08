@@ -25,6 +25,7 @@ export interface Profile {
   promo_commission_rate: number;
   promo_end_date: string | null;
   launch_start_date: string | null;
+  went_online_at: string | null;
   created_at: string;
   updated_at: string;
 }
