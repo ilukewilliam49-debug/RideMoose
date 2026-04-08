@@ -1368,6 +1368,21 @@ const RiderDashboard = () => {
           }}
         />
       )}
+
+      {/* Cancel ride dialog */}
+      {activeRide && (
+        <CancelRideDialog
+          open={cancelDialogOpen}
+          onOpenChange={setCancelDialogOpen}
+          rideId={activeRide.id}
+          rideStatus={activeRide.status}
+          driverAccepted={activeRide.status === "accepted" || activeRide.status === "in_progress"}
+          onCancelled={() => {
+            queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
+            queryClient.invalidateQueries({ queryKey: ["my-rides"] });
+          }}
+        />
+      )}
     </div>
   );
 };
