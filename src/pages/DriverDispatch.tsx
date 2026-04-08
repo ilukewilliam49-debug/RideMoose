@@ -525,12 +525,19 @@ const DriverDispatch = () => {
                   <ServiceIcon type={activeRide.service_type} className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold">{serviceLabels[activeRide.service_type] || activeRide.service_type}</span>
-                  {activeRide.estimated_price && (
-                    <span className="ml-2 text-sm font-semibold text-primary tabular-nums">
-                      {fmt(Number(activeRide.estimated_price) * 100)}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold">{serviceLabels[activeRide.service_type] || activeRide.service_type}</span>
+                    {isAirportTrip(activeRide) && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                        <Plane className="h-2.5 w-2.5" /> Airport
+                      </span>
+                    )}
+                    {activeRide.estimated_price && (
+                      <span className="text-sm font-semibold text-primary tabular-nums ml-1">
+                        {fmt(Number(activeRide.estimated_price) * 100)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
