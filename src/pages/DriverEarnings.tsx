@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DollarSign,
   TrendingUp,
@@ -16,7 +16,16 @@ import {
   ChevronUp,
   Clock,
   BarChart3,
+  ArrowUpRight,
+  Loader2,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
+import { format, startOfMonth, startOfWeek, subDays, eachDayOfInterval, isSameDay } from "date-fns";
+import { useTranslation } from "react-i18next";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { format, startOfMonth, startOfWeek, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
