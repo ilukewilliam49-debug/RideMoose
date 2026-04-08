@@ -241,21 +241,26 @@ const DriverDispatch = () => {
   }, [queryClient]);
 
   // ─── Actions ───
-  const acceptRide = async (rideId: string) => {
+  const acceptRide = useCallback(async (rideId: string) => {
     if (!profile?.id) return;
-    const { error } = await supabase
-      .from("rides")
-      .update({ driver_id: profile.id, status: "accepted" })
-      .eq("id", rideId)
-      .eq("status", "requested");
-    if (error) toast.error(t("dispatch.couldNotAccept"));
-    else toast.success(t("dispatch.rideAccepted"));
-  };
+    setAcceptingId(rideId);
+    try {
+      const { error } = await supabase
+        .from("rides")
+        .update({ driver_id: profile.id, status: "accepted" })
+        .eq("id", rideId)
+        .eq("status", "requested");
+      if (error) toast.error(t("dispatch.couldNotAccept"));
+      else toast.success(t("dispatch.rideAccepted"));
+    } finally {
+      setAcceptingId(null);
+    }
+  }, [profile?.id, t]);
 
-  const declineRide = (rideId: string) => {
-    // Just hide from list — no DB change needed for decline
+  const declineRide = useCallback((rideId: string) => {
+    setDeclinedIds((prev) => new Set(prev).add(rideId));
     toast.info("Request declined");
-  };
+  }, []);
 
   const markOutstandingCollected = async (rideId: string) => {
     const { error } = await supabase
