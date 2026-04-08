@@ -40,10 +40,9 @@ const Index = () => {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2"
+            className="flex items-center"
             aria-label="PickYou home"
           >
-            <img src="/favicon.png" alt="" className="h-8 w-8" />
             <span className="text-lg font-black tracking-tight">Pick<span className="text-primary">You</span></span>
           </button>
           <div className="flex items-center gap-2">

@@ -101,16 +101,9 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
-              <img src="/favicon.png" alt="" className="h-6 w-6 drop-shadow-sm" />
-            </div>
-            {!collapsed && (
-              <span className="text-lg font-black tracking-tight">
-                Pick<span className="text-primary">You</span>
-              </span>
-            )}
-          </div>
+          <span className="text-lg font-black tracking-tight shrink-0">
+            Pick<span className="text-primary">You</span>
+          </span>
           {!collapsed && <NotificationBell />}
         </div>
 
