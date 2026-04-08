@@ -563,6 +563,33 @@ const DriverDispatch = () => {
               </div>
             </div>
 
+            {/* Rider / customer context */}
+            <div className="px-4 pb-3">
+              <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold shrink-0">
+                    {riderProfile?.full_name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{riderProfile?.full_name || "Customer"}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {isDeliveryType(activeRide.service_type) ? "Sender" : `${activeRide.passenger_count} passenger${activeRide.passenger_count > 1 ? "s" : ""}`}
+                      {activeRide.payment_option === "pay_driver" && " · Cash payment"}
+                      {activeRide.billed_to === "organization" && " · Corporate"}
+                    </p>
+                  </div>
+                </div>
+                {riderProfile?.phone && (
+                  <a
+                    href={`tel:${riderProfile.phone}`}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-transform shrink-0"
+                  >
+                    <Phone className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            </div>
+
             {/* Trip details by service type */}
             <div className="px-4 pb-3">
               {activeRide.service_type === "taxi" ? (
