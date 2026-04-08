@@ -573,34 +573,7 @@ const RiderDashboard = () => {
   const currentRatingRideId = manualRateRideId || unratedRide?.id;
   const currentRatingDriverId = manualRateDriverId || unratedRide?.driver_id;
 
-  const [cancellingRide, setCancellingRide] = useState(false);
-
-  const cancelRide = async () => {
-    if (!activeRide) return;
-    setCancellingRide(true);
-    try {
-      // If large_delivery with authorized payment, release the hold first
-      if (activeRide.service_type === "large_delivery" && activeRide.payment_status === "authorized") {
-        const { error: cancelPayErr } = await supabase.functions.invoke("cancel-bid-payment", {
-          body: { ride_id: activeRide.id },
-        });
-        if (cancelPayErr) console.error("Failed to release payment hold:", cancelPayErr);
-      }
-
-      const { error } = await supabase
-        .from("rides")
-        .update({ status: "cancelled" })
-        .eq("id", activeRide.id);
-      if (error) throw error;
-      toast.success(t("rider.rideCancelled"));
-      queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
-      queryClient.invalidateQueries({ queryKey: ["my-rides"] });
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setCancellingRide(false);
-    }
-  };
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const requestRide = async () => {
     if (!profile?.id || !pickup || !dropoff || !pickupCoords || !dropoffCoords) return;
