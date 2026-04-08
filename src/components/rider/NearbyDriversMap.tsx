@@ -66,11 +66,35 @@ interface NearbyDriversMapProps {
   userLocation: { lat: number; lng: number } | null;
 }
 
+const VEHICLE_TYPES = ["sedan", "suv", "van"] as const;
+type VehicleFilter = (typeof VEHICLE_TYPES)[number];
+
+const vehicleFilterLabels: Record<VehicleFilter, string> = {
+  sedan: "Sedan",
+  suv: "SUV",
+  van: "Van",
+};
+
 const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Set<VehicleFilter>>(
+    new Set(VEHICLE_TYPES)
+  );
+
+  const toggleFilter = (type: VehicleFilter) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        if (next.size > 1) next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
 
   // Query available drivers
   const { data: dbDrivers } = useQuery({
@@ -100,7 +124,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
   });
 
   // Use DB drivers if available, otherwise fall back to filtered mock data
-  const drivers = useMemo(() => {
+  const allDrivers = useMemo(() => {
     if (dbDrivers && dbDrivers.length > 0) return dbDrivers;
     return MOCK_DRIVERS.filter((d) => {
       if (activeTab === "taxi") return d.can_taxi;
@@ -109,7 +133,24 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     });
   }, [dbDrivers, activeTab]);
 
-  const driverCount = drivers.length;
+  // Apply vehicle type filter
+  const drivers = useMemo(() => {
+    return allDrivers.filter((d) => {
+      const vt = ("vehicle_type" in d ? (d as any).vehicle_type : "sedan") || "sedan";
+      return activeFilters.has(vt.toLowerCase() as VehicleFilter);
+    });
+  }, [allDrivers, activeFilters]);
+
+  // Count per vehicle type for filter badges
+  const vehicleCounts = useMemo(() => {
+    const counts: Record<VehicleFilter, number> = { sedan: 0, suv: 0, van: 0 };
+    allDrivers.forEach((d) => {
+      const vt = (("vehicle_type" in d ? (d as any).vehicle_type : "sedan") || "sedan").toLowerCase() as VehicleFilter;
+      if (vt in counts) counts[vt]++;
+      else counts.sedan++;
+    });
+    return counts;
+  }, [allDrivers]);
 
   const center: [number, number] = userLocation
     ? [userLocation.lat, userLocation.lng]
