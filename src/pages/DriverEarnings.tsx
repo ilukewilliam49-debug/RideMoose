@@ -21,25 +21,13 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { format, startOfMonth, startOfWeek, subDays, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, startOfMonth, startOfWeek, eachDayOfInterval, isSameDay, addDays } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-
-const serviceLabels: Record<string, string> = {
-  taxi: "Taxi",
-  private_hire: "Private Hire",
-  shuttle: "Shuttle",
-  courier: "Courier",
-  large_delivery: "Large Delivery",
-  retail_delivery: "Retail",
-  personal_shopper: "Shopper",
-  food_delivery: "Food",
-  pet_transport: "Pet Transport",
-};
+import { fmt } from "@/lib/driver-constants";
+import { serviceLabels } from "@/lib/driver-constants";
 
 type Preset = "today" | "thisWeek" | "thisMonth" | "allTime";
 
@@ -106,7 +94,7 @@ const DriverEarnings = () => {
 
   // Weekly chart data
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: new Date() });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
 
   const { data: weeklyRides } = useQuery({
     queryKey: ["driver-weekly-chart", profile?.id],

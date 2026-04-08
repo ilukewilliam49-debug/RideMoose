@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,42 +45,11 @@ import TaxiMeter from "@/components/TaxiMeter";
 import DriverBidForm from "@/components/DriverBidForm";
 import TurnByTurnNav, { type NavStep } from "@/components/TurnByTurnNav";
 
-// ─── Service helpers ───
-const serviceLabels: Record<string, string> = {
-  taxi: "Taxi",
-  private_hire: "Private Hire",
-  shuttle: "Shuttle",
-  courier: "Courier",
-  large_delivery: "Large Delivery",
-  retail_delivery: "Retail Delivery",
-  personal_shopper: "Personal Shopper",
-  food_delivery: "Food Delivery",
-  pet_transport: "Pet Transport",
-};
+import { serviceLabels, fmt, isAirportTrip, isDeliveryType } from "@/lib/driver-constants";
+import ServiceIcon from "@/components/driver/ServiceIcon";
+import { DispatchCardSkeleton } from "@/components/driver/DriverDashboardSkeletons";
+import { formatDistanceToNowStrict } from "date-fns";
 
-const ServiceIcon = ({ type, className = "h-4 w-4" }: { type: string; className?: string }) => {
-  const icons: Record<string, any> = {
-    shuttle: Bus,
-    private_hire: Briefcase,
-    courier: Package,
-    large_delivery: Truck,
-    retail_delivery: Store,
-    personal_shopper: ShoppingCart,
-    food_delivery: UtensilsCrossed,
-    pet_transport: PawPrint,
-  };
-  const Icon = icons[type] || Car;
-  return <Icon className={className} />;
-};
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-
-/** Check if a ride involves an airport based on address keywords */
-const isAirportTrip = (ride: any): boolean => {
-  const keywords = ["airport", "keflavík", "keflavik", "terminal", "arrivals", "departures", "flugvöllur"];
-  const combined = `${ride.pickup_address || ""} ${ride.dropoff_address || ""}`.toLowerCase();
-  return keywords.some((k) => combined.includes(k));
-};
 // ─── Trip lifecycle steps ───
 const TRIP_STEPS = [
   { key: "accepted", label: "Heading to pickup" },
@@ -133,6 +102,8 @@ const DriverDispatch = () => {
   const [finalItemCostInput, setFinalItemCostInput] = useState<string>("");
   const [showOutstanding, setShowOutstanding] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const proofInputRef = useRef<HTMLInputElement>(null);
   const receiptInputRef = useRef<HTMLInputElement>(null);
 
@@ -270,21 +241,26 @@ const DriverDispatch = () => {
   }, [queryClient]);
 
   // ─── Actions ───
-  const acceptRide = async (rideId: string) => {
+  const acceptRide = useCallback(async (rideId: string) => {
     if (!profile?.id) return;
-    const { error } = await supabase
-      .from("rides")
-      .update({ driver_id: profile.id, status: "accepted" })
-      .eq("id", rideId)
-      .eq("status", "requested");
-    if (error) toast.error(t("dispatch.couldNotAccept"));
-    else toast.success(t("dispatch.rideAccepted"));
-  };
+    setAcceptingId(rideId);
+    try {
+      const { error } = await supabase
+        .from("rides")
+        .update({ driver_id: profile.id, status: "accepted" })
+        .eq("id", rideId)
+        .eq("status", "requested");
+      if (error) toast.error(t("dispatch.couldNotAccept"));
+      else toast.success(t("dispatch.rideAccepted"));
+    } finally {
+      setAcceptingId(null);
+    }
+  }, [profile?.id, t]);
 
-  const declineRide = (rideId: string) => {
-    // Just hide from list — no DB change needed for decline
+  const declineRide = useCallback((rideId: string) => {
+    setDeclinedIds((prev) => new Set(prev).add(rideId));
     toast.info("Request declined");
-  };
+  }, []);
 
   const markOutstandingCollected = async (rideId: string) => {
     const { error } = await supabase
@@ -415,12 +391,12 @@ const DriverDispatch = () => {
       ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0)
       : 0;
 
-  const pendingMarkers: MapMarker[] = (pendingRides || [])
+  const visiblePendingRides = (pendingRides || []).filter((r) => !declinedIds.has(r.id));
+
+  const pendingMarkers: MapMarker[] = visiblePendingRides
     .filter((r) => r.pickup_lat && r.pickup_lng)
     .map((r) => ({ lat: r.pickup_lat!, lng: r.pickup_lng!, type: "pickup" as const, label: r.pickup_address }));
 
-  const isDeliveryType = (type: string) =>
-    ["courier", "large_delivery", "retail_delivery", "personal_shopper", "food_delivery", "pet_transport"].includes(type);
 
   const getNextActionLabel = () => {
     if (!activeRide) return "";
@@ -722,14 +698,14 @@ const DriverDispatch = () => {
               <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                 Incoming requests
               </h2>
-              {(pendingRides?.length ?? 0) > 0 && (
+              {visiblePendingRides.length > 0 && (
                 <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
-                  {pendingRides?.length}
+                  {visiblePendingRides.length}
                 </span>
               )}
             </div>
 
-            {pendingRides?.length === 0 && (
+            {visiblePendingRides.length === 0 && (
               <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-8 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 mx-auto mb-3">
                   <Car className="h-5 w-5 text-muted-foreground/40" />
@@ -740,7 +716,7 @@ const DriverDispatch = () => {
             )}
 
             <div className="space-y-3">
-              {pendingRides?.map((ride, i) => (
+              {visiblePendingRides.map((ride, i) => (
                 <motion.div
                   key={ride.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -787,6 +763,9 @@ const DriverDispatch = () => {
                       {ride.distance_km && (
                         <p className="text-[10px] text-muted-foreground tabular-nums">{Number(ride.distance_km).toFixed(1)} km</p>
                       )}
+                      <p className="text-[9px] text-muted-foreground mt-0.5">
+                        {formatDistanceToNowStrict(new Date(ride.created_at), { addSuffix: true })}
+                      </p>
                     </div>
                   </div>
 
@@ -846,14 +825,22 @@ const DriverDispatch = () => {
                         <Button
                           className="flex-1 h-14 rounded-xl text-[15px] font-bold active:scale-[0.98] transition-transform"
                           onClick={() => acceptRide(ride.id)}
+                          disabled={acceptingId === ride.id}
                         >
-                          <Check className="mr-2 h-5 w-5" />
-                          Accept
+                          {acceptingId === ride.id ? (
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                          ) : (
+                            <>
+                              <Check className="mr-2 h-5 w-5" />
+                              Accept
+                            </>
+                          )}
                         </Button>
                         <Button
                           variant="outline"
                           className="h-14 w-14 rounded-xl active:scale-[0.98]"
                           onClick={() => declineRide(ride.id)}
+                          disabled={!!acceptingId}
                         >
                           <X className="h-5 w-5" />
                         </Button>
