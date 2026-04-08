@@ -391,12 +391,12 @@ const DriverDispatch = () => {
       ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0)
       : 0;
 
-  const pendingMarkers: MapMarker[] = (pendingRides || [])
+  const visiblePendingRides = (pendingRides || []).filter((r) => !declinedIds.has(r.id));
+
+  const pendingMarkers: MapMarker[] = visiblePendingRides
     .filter((r) => r.pickup_lat && r.pickup_lng)
     .map((r) => ({ lat: r.pickup_lat!, lng: r.pickup_lng!, type: "pickup" as const, label: r.pickup_address }));
 
-  const isDeliveryType = (type: string) =>
-    ["courier", "large_delivery", "retail_delivery", "personal_shopper", "food_delivery", "pet_transport"].includes(type);
 
   const getNextActionLabel = () => {
     if (!activeRide) return "";
