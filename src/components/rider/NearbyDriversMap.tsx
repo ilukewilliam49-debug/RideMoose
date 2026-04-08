@@ -50,7 +50,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-  const userMarkerRef = useRef<L.CircleMarker | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
 
   // Query available drivers
   const { data: dbDrivers } = useQuery({
