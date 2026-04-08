@@ -1,10 +1,14 @@
 import type { Tables } from "@/integrations/supabase/types";
+import type { Profile as AuthProfile } from "@/hooks/useAuth";
 
 // Core ride type from database
 export type Ride = Tables<"rides">;
 
-// Profile type from database
-export type Profile = Tables<"profiles">;
+// Profile type from useAuth hook
+export type Profile = AuthProfile;
+
+// Delivery bid type
+export type DeliveryBid = Tables<"delivery_bids">;
 
 // Delivery bid type
 export type DeliveryBid = Tables<"delivery_bids">;

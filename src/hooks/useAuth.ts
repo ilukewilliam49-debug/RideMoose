@@ -27,6 +27,10 @@ export interface Profile {
   promo_end_date: string | null;
   launch_start_date: string | null;
   went_online_at: string | null;
+  organization_id: string | null;
+  role_in_org: string | null;
+  sms_notifications_enabled: boolean;
+  standard_commission_rate: number;
   created_at: string;
   updated_at: string;
 }
