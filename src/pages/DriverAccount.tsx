@@ -1,6 +1,7 @@
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
@@ -12,22 +13,32 @@ import {
   AlertTriangle,
   Clock,
   LogOut,
-  ChevronRight,
   Briefcase,
   Package,
   Bus,
   PawPrint,
   UtensilsCrossed,
+  Star,
+  Camera,
+  MessageCircle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import SupportChatDialog from "@/components/SupportChatDialog";
 
 const DriverAccount = () => {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   // Verification status
-  const { data: verifications } = useQuery({
+  const { data: verifications, isLoading: verifLoading } = useQuery({
     queryKey: ["driver-verifications", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
@@ -62,6 +73,48 @@ const DriverAccount = () => {
     },
     enabled: !!profile?.id,
   });
+
+  // Driver rating
+  const { data: ratingData } = useQuery({
+    queryKey: ["driver-rating", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      const { data, error } = await supabase
+        .from("ride_ratings")
+        .select("rating")
+        .eq("rated_user", profile.id);
+      if (error || !data || data.length === 0) return null;
+      const avg = data.reduce((s, r) => s + r.rating, 0) / data.length;
+      return { average: Math.round(avg * 10) / 10, count: data.length };
+    },
+    enabled: !!profile?.id,
+    staleTime: 60_000,
+  });
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!profile?.id) return;
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${profile.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: urlData.publicUrl })
+        .eq("id", profile.id);
+      if (updateError) throw updateError;
+      toast.success("Profile photo updated");
+      queryClient.invalidateQueries({ queryKey: ["auth-profile"] });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const initials = profile?.full_name
     ? profile.full_name
@@ -106,11 +159,35 @@ const DriverAccount = () => {
         className="rounded-2xl bg-card ring-1 ring-border/50 p-4"
       >
         <div className="flex items-center gap-3">
-          <Avatar className="h-14 w-14">
-            <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-14 w-14">
+              {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name} />}
+              <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-card active:scale-90 transition-transform"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Camera className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleAvatarUpload(file);
+              }}
+            />
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-lg font-bold truncate">{profile?.full_name || "Driver"}</p>
             <div className="flex items-center gap-2 mt-0.5">
@@ -129,16 +206,25 @@ const DriverAccount = () => {
           </div>
         </div>
 
-        {/* Phone */}
-        {profile?.phone && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{profile.phone}</span>
-            {profile.phone_verified && (
-              <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-            )}
-          </div>
-        )}
+        {/* Rating + Phone */}
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/50">
+          {ratingData && (
+            <div className="flex items-center gap-1.5">
+              <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+              <span className="text-sm font-semibold">{ratingData.average}</span>
+              <span className="text-[10px] text-muted-foreground">({ratingData.count} ratings)</span>
+            </div>
+          )}
+          {profile?.phone && (
+            <div className="flex items-center gap-1.5 ml-auto">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">{profile.phone}</span>
+              {profile.phone_verified && (
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+              )}
+            </div>
+          )}
+        </div>
       </motion.div>
 
       {/* Vehicle info */}
@@ -216,7 +302,12 @@ const DriverAccount = () => {
           )}
         </div>
 
-        {totalDocs === 0 ? (
+        {verifLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-full rounded-xl" />
+            <Skeleton className="h-8 w-full rounded-xl" />
+          </div>
+        ) : totalDocs === 0 ? (
           <div className="flex items-start gap-2.5 rounded-xl bg-amber-500/5 ring-1 ring-amber-500/20 px-3 py-2.5">
             <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
@@ -261,10 +352,20 @@ const DriverAccount = () => {
         </motion.div>
       )}
 
-      {/* Sign out */}
+      {/* Help & support */}
       <Button
         variant="outline"
         className="w-full h-12 rounded-xl gap-2 active:scale-[0.98] transition-transform"
+        onClick={() => setSupportOpen(true)}
+      >
+        <MessageCircle className="h-4 w-4" />
+        Help & Support
+      </Button>
+
+      {/* Sign out */}
+      <Button
+        variant="outline"
+        className="w-full h-12 rounded-xl gap-2 active:scale-[0.98] transition-transform text-destructive hover:text-destructive"
         onClick={async () => {
           await signOut();
           navigate("/login");
@@ -273,6 +374,9 @@ const DriverAccount = () => {
         <LogOut className="h-4 w-4" />
         Sign out
       </Button>
+
+      {/* Support dialog */}
+      <SupportChatDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
