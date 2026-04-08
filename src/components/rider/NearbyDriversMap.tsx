@@ -142,6 +142,16 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     });
   }, [allDrivers, activeFilters]);
 
+  // Fetch live traffic-based ETAs for filtered drivers
+  const driverCoords = useMemo(
+    () =>
+      drivers
+        .filter((d) => d.latitude && d.longitude)
+        .map((d) => ({ id: d.id, latitude: d.latitude!, longitude: d.longitude! })),
+    [drivers]
+  );
+  const etas = useDriverETAs(driverCoords, userLocation);
+
   // Count per vehicle type for filter badges
   const vehicleCounts = useMemo(() => {
     const counts: Record<VehicleFilter, number> = { sedan: 0, suv: 0, van: 0 };
