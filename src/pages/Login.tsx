@@ -90,7 +90,10 @@ const Login = () => {
           </p>
         </div>
 
-        <div className="glass-surface rounded-lg p-6">
+        <div className="relative rounded-2xl p-6 border border-border/50 backdrop-blur-xl" style={{
+          background: 'linear-gradient(135deg, hsl(220 28% 14% / 0.8), hsl(220 30% 10% / 0.9))',
+          boxShadow: '0 0 40px -10px hsl(45 95% 55% / 0.12), 0 4px 24px -4px hsl(0 0% 0% / 0.4), inset 0 1px 0 0 hsl(0 0% 100% / 0.05)'
+        }}>
           <div className="flex justify-end mb-3">
             <LanguageSwitcher />
           </div>
