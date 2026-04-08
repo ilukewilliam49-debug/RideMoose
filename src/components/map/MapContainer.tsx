@@ -178,6 +178,7 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
         const batchSize = Math.max(1, Math.ceil(totalPoints / (duration / stepTime)));
         const end = Math.min(currentIndex + batchSize, totalPoints);
         for (let i = currentIndex; i < end; i++) {
+          shadowLine.addLatLng(decoded[i]);
           animatedLine.addLatLng(decoded[i]);
         }
         currentIndex = end;
@@ -190,6 +191,7 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
       return () => {
         clearInterval(interval);
         fullLine.remove();
+        shadowLine.remove();
       };
     }
   }, [polyline]);
