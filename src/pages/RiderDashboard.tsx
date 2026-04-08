@@ -279,7 +279,7 @@ const RiderDashboard = () => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-surface rounded-lg p-6 space-y-4 overflow-visible">
           {/* Map */}
           {showBookingMap ? (
-            <RideMap markers={mapMarkers} polyline={routePolyline} />
+            <RideMap markers={mapMarkers} polyline={routePolyline} routeInfo={routeInfo} />
           ) : state.userLocation ? (
             <RideMap markers={[{ lat: state.userLocation.lat, lng: state.userLocation.lng, type: "pickup" as const, label: t("rider.you", "You") }]} polyline={null} />
           ) : (
