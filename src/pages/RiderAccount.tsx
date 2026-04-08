@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -7,16 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Phone, Check } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
+import SupportChatDialog from "@/components/SupportChatDialog";
 import { toast } from "sonner";
 
 const RiderAccount = () => {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [riderPhone, setRiderPhone] = useState(profile?.phone || "");
   const [phoneSaving, setPhoneSaving] = useState(false);
@@ -24,12 +26,17 @@ const RiderAccount = () => {
   const [smsEnabled, setSmsEnabled] = useState(
     (profile as any)?.sms_notifications_enabled ?? true
   );
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(profile?.full_name || "");
+  const [nameSaving, setNameSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
     if (profile?.phone) setRiderPhone(profile.phone);
+    if (profile?.full_name) setNameValue(profile.full_name);
     if ((profile as any)?.sms_notifications_enabled !== undefined)
       setSmsEnabled((profile as any).sms_notifications_enabled);
-  }, [profile?.phone, (profile as any)?.sms_notifications_enabled]);
+  }, [profile?.phone, profile?.full_name, (profile as any)?.sms_notifications_enabled]);
 
   const initials = profile?.full_name
     ? profile.full_name
@@ -56,6 +63,52 @@ const RiderAccount = () => {
     }
   };
 
+  const handleSaveName = async () => {
+    if (!profile?.id || !nameValue.trim()) return;
+    setNameSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: nameValue.trim() })
+      .eq("id", profile.id);
+    setNameSaving(false);
+    if (error) {
+      toast.error("Failed to update name");
+    } else {
+      toast.success("Name updated");
+      setEditingName(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.id) return;
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const filePath = `${profile.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", profile.id);
+      if (updateError) throw updateError;
+
+      toast.success("Photo updated");
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleToggleSms = async (checked: boolean) => {
     setSmsEnabled(checked);
     if (!profile?.id) return;
@@ -71,17 +124,52 @@ const RiderAccount = () => {
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Profile header */}
+      {/* Profile header with avatar upload */}
       <div className="flex items-center gap-4">
-        <Avatar className="h-14 w-14">
-          <AvatarFallback className="bg-primary/20 text-primary text-lg font-bold">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar className="h-14 w-14">
+            {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
+            <AvatarFallback className="bg-primary/20 text-primary text-lg font-bold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={avatarUploading}
+            className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary flex items-center justify-center hover:bg-primary/90 transition-colors"
+          >
+            <Camera className="h-3 w-3 text-primary-foreground" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarUpload}
+          />
+        </div>
         <div className="flex-1 min-w-0">
-          <p className="text-lg font-bold truncate">
-            {profile?.full_name || "User"}
-          </p>
+          {editingName ? (
+            <div className="flex gap-2">
+              <Input
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <Button size="sm" onClick={handleSaveName} disabled={nameSaving || !nameValue.trim()}>
+                {nameSaving ? "…" : <Check className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-bold truncate">
+                {profile?.full_name || "User"}
+              </p>
+              <button onClick={() => setEditingName(true)}>
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+              </button>
+            </div>
+          )}
           <p className="text-sm text-muted-foreground capitalize">
             {profile?.role || "rider"}
           </p>
@@ -153,6 +241,18 @@ const RiderAccount = () => {
           </span>
           <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
         </button>
+
+        <SupportChatDialog
+          trigger={
+            <button className="flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left hover:bg-accent/30 transition-colors">
+              <span className="text-[15px] font-semibold flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                {t("nav.support", "Help & Support")}
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+            </button>
+          }
+        />
       </div>
 
       {/* Settings */}
