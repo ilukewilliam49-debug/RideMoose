@@ -378,41 +378,49 @@ const DriverEarnings = () => {
           </span>
         </div>
         <div className="h-40">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} barCategoryGap="20%">
-              <XAxis
-                dataKey="day"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                tickFormatter={(v) => `$${v}`}
-                width={40}
-              />
-              <Tooltip
-                cursor={{ fill: "hsl(var(--accent) / 0.3)" }}
-                contentStyle={{
-                  background: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                }}
-                formatter={(value: number) => [`$${value.toFixed(2)}`, "Earnings"]}
-              />
-              <Bar dataKey="earnings" radius={[6, 6, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.isToday ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.3)"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {chartData.every((d) => d.earnings === 0) ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <BarChart3 className="h-8 w-8 text-muted-foreground/20 mb-2" />
+              <p className="text-sm text-muted-foreground">No earnings yet this week</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">Complete trips to see your chart</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} barCategoryGap="20%">
+                <XAxis
+                  dataKey="day"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  tickFormatter={(v) => `$${v}`}
+                  width={40}
+                />
+                <Tooltip
+                  cursor={{ fill: "hsl(var(--accent) / 0.3)" }}
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "12px",
+                    fontSize: "12px",
+                  }}
+                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Earnings"]}
+                />
+                <Bar dataKey="earnings" radius={[6, 6, 0, 0]}>
+                  {chartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.isToday ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.3)"}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </motion.div>
 
@@ -472,9 +480,11 @@ const DriverEarnings = () => {
                     <p className="text-xs text-muted-foreground line-clamp-1">{ride.dropoff_address}</p>
                   </div>
                 </div>
+                {/* Per-trip breakdown */}
                 <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground tabular-nums">
                   <span>Fare: {fmt(ride.final_fare_cents || 0)}</span>
                   <span>Commission: {fmt(ride.commission_cents || 0)}</span>
+                  {ride.stripe_fee_cents > 0 && <span>Fees: {fmt(ride.stripe_fee_cents)}</span>}
                 </div>
               </motion.div>
             ))}
