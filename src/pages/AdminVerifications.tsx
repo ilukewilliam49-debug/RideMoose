@@ -31,7 +31,10 @@ const AdminVerifications = () => {
     (v: any) => statusFilter === "all" || v.status === statusFilter
   ) || [];
 
+  const REQUIRED_DOC_TYPES = ["drivers_license", "vehicle_insurance", "vehicle_registration"];
+
   const updateVerification = async (id: string, status: "approved" | "rejected") => {
+    const verification = verifications?.find((v: any) => v.id === id);
     const { error } = await supabase
       .from("verifications")
       .update({ status, reviewer_notes: notes[id] || null })
@@ -41,9 +44,8 @@ const AdminVerifications = () => {
       return;
     }
 
-    if (status === "approved") {
-      const verification = verifications?.find((v: any) => v.id === id);
-      if (verification?.driver_id) {
+    if (verification?.driver_id) {
+      if (status === "approved") {
         await supabase
           .from("profiles")
           .update({
@@ -51,6 +53,41 @@ const AdminVerifications = () => {
             standard_commission_rate: 0.049,
           } as any)
           .eq("id", verification.driver_id);
+
+        // Check if ALL required docs are now approved
+        const { data: allVerifications } = await supabase
+          .from("verifications")
+          .select("document_type, status")
+          .eq("driver_id", verification.driver_id);
+
+        const allApproved = REQUIRED_DOC_TYPES.every((type) =>
+          allVerifications?.some((v: any) => v.document_type === type && v.status === "approved")
+        );
+
+        if (allApproved) {
+          // Send "fully approved" notification
+          await supabase.from("notifications").insert({
+            user_id: verification.driver_id,
+            title: "You're Approved! 🎉",
+            body: "All your documents have been verified. You can now start accepting rides!",
+            type: "verification_approved",
+          });
+        } else {
+          await supabase.from("notifications").insert({
+            user_id: verification.driver_id,
+            title: "Document Approved",
+            body: `Your ${verification.document_type.replace(/_/g, " ")} has been approved.`,
+            type: "verification_approved",
+          });
+        }
+      } else {
+        // Rejected
+        await supabase.from("notifications").insert({
+          user_id: verification.driver_id,
+          title: "Document Rejected",
+          body: `Your ${verification.document_type.replace(/_/g, " ")} was rejected.${notes[id] ? ` Reason: ${notes[id]}` : " Please re-upload."}`,
+          type: "verification_rejected",
+        });
       }
     }
 
