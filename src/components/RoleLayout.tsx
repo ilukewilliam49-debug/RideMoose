@@ -23,9 +23,12 @@ const RoleLayout = () => {
             </div>
             {/* Rider mobile header: brand wordmark */}
             {isRider && (
-              <span className="text-base font-black tracking-tight md:hidden">
-                Ride<span className="text-primary">Moose</span>
-              </span>
+              <div className="flex items-center gap-2 md:hidden">
+                <img src="/favicon.png" alt="" className="h-7 w-7" />
+                <span className="text-base font-black tracking-tight">
+                  Pick<span className="text-primary">You</span>
+                </span>
+              </div>
             )}
             <span className={`text-sm text-muted-foreground font-medium ${isRider ? "hidden md:inline" : ""}`}>
               Dashboard
