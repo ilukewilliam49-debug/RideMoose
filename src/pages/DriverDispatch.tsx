@@ -172,6 +172,22 @@ const DriverDispatch = () => {
     enabled: !!profile?.id,
   });
 
+  // Fetch rider profile for active trip context
+  const { data: riderProfile } = useQuery({
+    queryKey: ["rider-profile", activeRide?.rider_id],
+    queryFn: async () => {
+      if (!activeRide?.rider_id) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, phone, avatar_url")
+        .eq("id", activeRide.rider_id)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!activeRide?.rider_id,
+  });
+
   usePetArrivalCheck(activeRide as any);
 
   const { data: myBids } = useQuery({
