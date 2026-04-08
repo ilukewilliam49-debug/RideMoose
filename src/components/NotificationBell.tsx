@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Truck, X } from "lucide-react";
+import { Bell, Truck, CheckCircle, XCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 const NotificationBell = () => {
   const { profile } = useAuth();
@@ -42,9 +43,16 @@ const NotificationBell = () => {
         event: "INSERT",
         schema: "public",
         table: "notifications",
+        filter: `user_id=eq.${profile.id}`,
       }, (payload) => {
-        // Only refresh if it's for this user
         queryClient.invalidateQueries({ queryKey: ["notifications", profile.id] });
+        const n = payload.new as any;
+        if (n?.title) {
+          toast(n.title, {
+            description: n.body,
+            duration: 6000,
+          });
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -71,16 +79,21 @@ const NotificationBell = () => {
   const handleClick = (notif: any) => {
     markAsRead(notif.id);
     if (notif.type === "large_delivery_bid" && notif.ride_id) {
-      // Navigate to dispatch for drivers
       if (profile?.role === "driver") {
         navigate("/driver/dispatch");
       }
+    } else if (notif.type === "verification_approved") {
+      navigate("/driver");
+    } else if (notif.type === "verification_rejected") {
+      navigate("/driver/onboarding");
     }
     setOpen(false);
   };
 
   const iconForType = (type: string) => {
     if (type === "large_delivery_bid") return <Truck className="h-4 w-4 text-primary shrink-0" />;
+    if (type === "verification_approved") return <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />;
+    if (type === "verification_rejected") return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
     return <Bell className="h-4 w-4 text-muted-foreground shrink-0" />;
   };
 
