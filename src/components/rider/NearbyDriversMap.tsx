@@ -41,6 +41,25 @@ function getVehicleIcon(vehicleType?: string | null): L.DivIcon {
   });
 }
 
+// Haversine distance in km
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Estimate ETA string from straight-line distance (assumes ~30 km/h avg city speed, 1.3x road factor)
+function estimateEta(driverLat: number, driverLng: number, userLat: number, userLng: number): string {
+  const distKm = haversineKm(driverLat, driverLng, userLat, userLng) * 1.3;
+  const mins = Math.max(1, Math.round((distKm / 30) * 60));
+  if (mins < 2) return "~1 min";
+  return `~${mins} min`;
+}
+
 type Tab = "taxi" | "charter" | "delivery";
 
 interface MockDriver {
