@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, Car } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
@@ -19,6 +19,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<"rider" | "driver">("rider");
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ const Login = () => {
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            data: { full_name: fullName, role },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -111,6 +112,37 @@ const Login = () => {
                     className="pl-10 bg-secondary border-border"
                     required
                   />
+                </div>
+              </div>
+            )}
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label>{t("auth.selectRole")}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole("rider")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
+                      role === "rider"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <User className="h-4 w-4" />
+                    {t("auth.rider")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole("driver")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
+                      role === "driver"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Car className="h-4 w-4" />
+                    {t("auth.driver")}
+                  </button>
                 </div>
               </div>
             )}
