@@ -5,8 +5,35 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { Check, MapPin, MapPinned, Car, Bus, Briefcase, Banknote, Package, AlertTriangle, ShoppingBag, Truck, Weight, Receipt, Store, ShoppingCart, UtensilsCrossed, PawPrint, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Check,
+  X,
+  MapPin,
+  MapPinned,
+  Car,
+  Bus,
+  Briefcase,
+  Banknote,
+  Package,
+  AlertTriangle,
+  ShoppingBag,
+  Truck,
+  Weight,
+  Receipt,
+  Store,
+  ShoppingCart,
+  UtensilsCrossed,
+  PawPrint,
+  Clock,
+  Navigation,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  CircleDot,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
@@ -15,6 +42,79 @@ import TaxiMeter from "@/components/TaxiMeter";
 import DriverBidForm from "@/components/DriverBidForm";
 import TurnByTurnNav, { type NavStep } from "@/components/TurnByTurnNav";
 
+// ─── Service helpers ───
+const serviceLabels: Record<string, string> = {
+  taxi: "Taxi",
+  private_hire: "Private Hire",
+  shuttle: "Shuttle",
+  courier: "Courier",
+  large_delivery: "Large Delivery",
+  retail_delivery: "Retail Delivery",
+  personal_shopper: "Personal Shopper",
+  food_delivery: "Food Delivery",
+  pet_transport: "Pet Transport",
+};
+
+const ServiceIcon = ({ type, className = "h-4 w-4" }: { type: string; className?: string }) => {
+  const icons: Record<string, any> = {
+    shuttle: Bus,
+    private_hire: Briefcase,
+    courier: Package,
+    large_delivery: Truck,
+    retail_delivery: Store,
+    personal_shopper: ShoppingCart,
+    food_delivery: UtensilsCrossed,
+    pet_transport: PawPrint,
+  };
+  const Icon = icons[type] || Car;
+  return <Icon className={className} />;
+};
+
+const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+// ─── Trip lifecycle steps ───
+const TRIP_STEPS = [
+  { key: "accepted", label: "Heading to pickup" },
+  { key: "arrived", label: "At pickup" },
+  { key: "in_progress", label: "Trip in progress" },
+  { key: "completed", label: "Completed" },
+];
+
+function TripStepper({ currentStatus }: { currentStatus: string }) {
+  const stepIndex = currentStatus === "in_progress" ? 2 : currentStatus === "accepted" ? 0 : 3;
+  return (
+    <div className="flex items-center gap-1 py-2">
+      {TRIP_STEPS.map((step, i) => {
+        const isActive = i === stepIndex;
+        const isDone = i < stepIndex;
+        return (
+          <div key={step.key} className="flex items-center gap-1 flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              {isDone ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+              ) : isActive ? (
+                <CircleDot className="h-4 w-4 shrink-0 text-primary" />
+              ) : (
+                <Circle className="h-4 w-4 shrink-0 text-muted-foreground/30" />
+              )}
+              <span
+                className={`text-[10px] font-medium truncate ${
+                  isActive ? "text-primary" : isDone ? "text-green-500" : "text-muted-foreground/40"
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+            {i < TRIP_STEPS.length - 1 && (
+              <div className={`h-px flex-1 min-w-2 ${isDone ? "bg-green-500/40" : "bg-border/30"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const DriverDispatch = () => {
   const { profile } = useAuth();
   const { t } = useTranslation();
@@ -22,6 +122,8 @@ const DriverDispatch = () => {
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [finalItemCostInput, setFinalItemCostInput] = useState<string>("");
+  const [showOutstanding, setShowOutstanding] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const proofInputRef = useRef<HTMLInputElement>(null);
   const receiptInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,10 +140,8 @@ const DriverDispatch = () => {
       if (profile?.can_courier) { serviceTypes.push("courier"); serviceTypes.push("retail_delivery"); serviceTypes.push("personal_shopper"); }
       if (profile?.can_food_delivery) serviceTypes.push("food_delivery");
       if (profile?.pet_approved) serviceTypes.push("pet_transport");
-      // large_delivery eligibility is based on vehicle_type
       if (profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type)) serviceTypes.push("large_delivery");
       if (serviceTypes.length === 0) return [];
-
       const { data, error } = await supabase
         .from("rides")
         .select("*")
@@ -72,10 +172,8 @@ const DriverDispatch = () => {
     enabled: !!profile?.id,
   });
 
-  // Pet arrival proximity check
   usePetArrivalCheck(activeRide as any);
 
-  // Fetch driver's existing bids on pending large_delivery rides
   const { data: myBids } = useQuery({
     queryKey: ["my-delivery-bids", profile?.id],
     queryFn: async () => {
@@ -95,7 +193,6 @@ const DriverDispatch = () => {
   const bidsByRide = new Map<string, any>();
   myBids?.forEach((b: any) => { bidsByRide.set(b.ride_id, b); });
 
-  // Rides with outstanding balance (partial in-app or pay_driver unpaid)
   const { data: outstandingRides } = useQuery({
     queryKey: ["outstanding-rides", profile?.id],
     queryFn: async () => {
@@ -147,6 +244,7 @@ const DriverDispatch = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
+  // ─── Actions ───
   const acceptRide = async (rideId: string) => {
     if (!profile?.id) return;
     const { error } = await supabase
@@ -154,14 +252,16 @@ const DriverDispatch = () => {
       .update({ driver_id: profile.id, status: "accepted" })
       .eq("id", rideId)
       .eq("status", "requested");
-    if (error) {
-      toast.error(t('dispatch.couldNotAccept'));
-    } else {
-      toast.success(t('dispatch.rideAccepted'));
-    }
+    if (error) toast.error(t("dispatch.couldNotAccept"));
+    else toast.success(t("dispatch.rideAccepted"));
   };
 
-  const markOutstandingCollected = async (rideId: string, hasCaptured: boolean) => {
+  const declineRide = (rideId: string) => {
+    // Just hide from list — no DB change needed for decline
+    toast.info("Request declined");
+  };
+
+  const markOutstandingCollected = async (rideId: string) => {
     const { error } = await supabase
       .from("rides")
       .update({
@@ -173,10 +273,11 @@ const DriverDispatch = () => {
       .eq("id", rideId);
     if (error) toast.error(error.message);
     else {
-      toast.success(t('dispatch.markedCollected'));
+      toast.success(t("dispatch.markedCollected"));
       queryClient.invalidateQueries({ queryKey: ["outstanding-rides"] });
     }
   };
+
   const uploadProofPhoto = async (rideId: string, file: File) => {
     setUploadingProof(true);
     try {
@@ -186,18 +287,13 @@ const DriverDispatch = () => {
         .from("proof-photos")
         .upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("proof-photos")
-        .getPublicUrl(path);
-
+      const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
       const { error: updateError } = await supabase
         .from("rides")
         .update({ proof_photo_url: urlData.publicUrl } as any)
         .eq("id", rideId);
       if (updateError) throw updateError;
-
-      toast.success(t('dispatch.proofPhotoUploaded'));
+      toast.success(t("dispatch.proofPhotoUploaded"));
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     } catch (err: any) {
       toast.error(err.message);
@@ -215,21 +311,13 @@ const DriverDispatch = () => {
         .from("proof-photos")
         .upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("proof-photos")
-        .getPublicUrl(path);
-
+      const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
       const { error: updateError } = await supabase
         .from("rides")
-        .update({
-          receipt_photo_url: urlData.publicUrl,
-          final_item_cost_cents: finalCostCents,
-        } as any)
+        .update({ receipt_photo_url: urlData.publicUrl, final_item_cost_cents: finalCostCents } as any)
         .eq("id", rideId);
       if (updateError) throw updateError;
-
-      toast.success(t('dispatch.receiptPhotoUploaded'));
+      toast.success(t("dispatch.receiptPhotoUploaded"));
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     } catch (err: any) {
       toast.error(err.message);
@@ -237,53 +325,36 @@ const DriverDispatch = () => {
       setUploadingReceipt(false);
     }
   };
+
   const updateRideStatus = async (rideId: string, status: string) => {
     const updates: any = { status };
     if (status === "in_progress") updates.started_at = new Date().toISOString();
     if (status === "completed") updates.completed_at = new Date().toISOString();
     const { error } = await supabase.from("rides").update(updates).eq("id", rideId);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    // Capture payment for completed large_delivery or personal_shopper rides
+    if (error) { toast.error(error.message); return; }
     if (status === "completed" && (activeRide?.service_type === "large_delivery" || activeRide?.service_type === "personal_shopper") && activeRide?.payment_status === "authorized") {
       try {
-        const { error: captureErr } = await supabase.functions.invoke("capture-payment", {
-          body: { ride_id: rideId },
-        });
-        if (captureErr) console.error("Capture error:", captureErr);
-      } catch (e) {
-        console.error("Payment capture failed:", e);
-      }
+        await supabase.functions.invoke("capture-payment", { body: { ride_id: rideId } });
+      } catch (e) { console.error("Payment capture failed:", e); }
     }
-
-    // For retail_delivery, proof photo is required before completion (handled by disabled button)
-
-    toast.success(t('dispatch.rideStatusUpdate', { status: status.replace("_", " ") }));
+    toast.success(t("dispatch.rideStatusUpdate", { status: status.replace("_", " ") }));
   };
 
+  // ─── Map data ───
   const activeMarkers: MapMarker[] = activeRide
     ? [
-        ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: t('dispatch.pickup') }] : []),
-        ...(activeRide.dropoff_lat && activeRide.dropoff_lng ? [{ lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, type: "dropoff" as const, label: t('dispatch.dropoff') }] : []),
-        ...(profile?.latitude && profile?.longitude ? [{ lat: profile.latitude, lng: profile.longitude, type: "driver" as const, label: t('dispatch.you') }] : []),
+        ...(activeRide.pickup_lat && activeRide.pickup_lng ? [{ lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, type: "pickup" as const, label: t("dispatch.pickup") }] : []),
+        ...(activeRide.dropoff_lat && activeRide.dropoff_lng ? [{ lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, type: "dropoff" as const, label: t("dispatch.dropoff") }] : []),
+        ...(profile?.latitude && profile?.longitude ? [{ lat: profile.latitude, lng: profile.longitude, type: "driver" as const, label: t("dispatch.you") }] : []),
       ]
     : [];
 
-  // Fetch route polyline for active ride
   const { data: activeRideDirections } = useQuery({
     queryKey: ["driver-active-directions", activeRide?.id],
     queryFn: async () => {
       if (!activeRide?.pickup_lat || !activeRide?.pickup_lng || !activeRide?.dropoff_lat || !activeRide?.dropoff_lng) return null;
       const { data, error } = await supabase.functions.invoke("directions", {
-        body: {
-          origin_lat: activeRide.pickup_lat,
-          origin_lng: activeRide.pickup_lng,
-          dest_lat: activeRide.dropoff_lat,
-          dest_lng: activeRide.dropoff_lng,
-        },
+        body: { origin_lat: activeRide.pickup_lat, origin_lng: activeRide.pickup_lng, dest_lat: activeRide.dropoff_lat, dest_lng: activeRide.dropoff_lng },
       });
       if (error) return null;
       return data as { polyline: string | null; distance_km: number; duration_text: string; duration_in_traffic_text: string; duration_in_traffic_sec: number; duration_sec: number };
@@ -291,9 +362,7 @@ const DriverDispatch = () => {
     enabled: !!activeRide?.pickup_lat && !!activeRide?.dropoff_lat,
     staleTime: 300_000,
   });
-  const activeRoutePolyline = activeRideDirections?.polyline ?? null;
 
-  // Live ETA: from driver's current position to next destination
   const roundCoord = (v: number) => Math.round(v * 1000) / 1000;
   const myLat = profile?.latitude ? roundCoord(profile.latitude) : null;
   const myLng = profile?.longitude ? roundCoord(profile.longitude) : null;
@@ -314,583 +383,526 @@ const DriverDispatch = () => {
     staleTime: 25_000,
     refetchInterval: 30_000,
   });
-  const liveTrafficDelayMin = liveEta ? Math.max((liveEta.duration_in_traffic_sec - liveEta.duration_sec) / 60, 0) : 0;
-  const activeTrafficDelayMin = liveEta ? liveTrafficDelayMin : (activeRideDirections ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0) : 0);
+
+  const activeTrafficDelayMin = liveEta
+    ? Math.max((liveEta.duration_in_traffic_sec - liveEta.duration_sec) / 60, 0)
+    : activeRideDirections
+      ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0)
+      : 0;
 
   const pendingMarkers: MapMarker[] = (pendingRides || [])
     .filter((r) => r.pickup_lat && r.pickup_lng)
-    .map((r) => ({
-      lat: r.pickup_lat!,
-      lng: r.pickup_lng!,
-      type: "pickup" as const,
-      label: r.pickup_address,
-    }));
+    .map((r) => ({ lat: r.pickup_lat!, lng: r.pickup_lng!, type: "pickup" as const, label: r.pickup_address }));
 
-  const ServiceIcon = ({ type }: { type: string }) =>
-    type === "shuttle" ? <Bus className="h-3.5 w-3.5" /> : type === "private_hire" ? <Briefcase className="h-3.5 w-3.5" /> : type === "courier" ? <Package className="h-3.5 w-3.5" /> : type === "large_delivery" ? <Truck className="h-3.5 w-3.5" /> : type === "retail_delivery" ? <Store className="h-3.5 w-3.5" /> : type === "personal_shopper" ? <ShoppingCart className="h-3.5 w-3.5" /> : type === "food_delivery" ? <UtensilsCrossed className="h-3.5 w-3.5" /> : type === "pet_transport" ? <PawPrint className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />;
+  const isDeliveryType = (type: string) =>
+    ["courier", "large_delivery", "retail_delivery", "personal_shopper", "food_delivery", "pet_transport"].includes(type);
+
+  const getNextActionLabel = () => {
+    if (!activeRide) return "";
+    if (activeRide.status === "accepted") return isDeliveryType(activeRide.service_type) ? "Start pickup" : "Start trip";
+    if (activeRide.status === "in_progress") return isDeliveryType(activeRide.service_type) ? "Complete delivery" : "Complete trip";
+    return "";
+  };
+
+  const getNextActionDisabled = () => {
+    if (!activeRide || activeRide.status !== "in_progress") return false;
+    if ((activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery") && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url) return true;
+    if (activeRide.service_type === "personal_shopper" && !(activeRide as any).receipt_photo_url) return true;
+    return false;
+  };
+
+  const handleNextAction = () => {
+    if (!activeRide) return;
+    if (activeRide.status === "accepted") updateRideStatus(activeRide.id, "in_progress");
+    else if (activeRide.status === "in_progress") updateRideStatus(activeRide.id, "completed");
+  };
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-4 pb-6">
+      {/* ─── Page header ─── */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('dispatch.dispatchBoard')}</h1>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {profile?.can_taxi && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Car className="h-3 w-3" /> {t('dispatch.taxi')}</span>}
-          {profile?.can_private_hire && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Briefcase className="h-3 w-3" /> {t('dispatch.private')}</span>}
-          {profile?.can_shuttle && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Bus className="h-3 w-3" /> {t('dispatch.shuttle')}</span>}
-          {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Package className="h-3 w-3" /> {t('dispatch.courier')}</span>}
-          {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Store className="h-3 w-3" /> {t('dispatch.retail')}</span>}
-           {profile?.can_courier && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><ShoppingCart className="h-3 w-3" /> {t('dispatch.personalShopper')}</span>}
-           {profile?.can_food_delivery && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><UtensilsCrossed className="h-3 w-3" /> {t('dispatch.foodDelivery')}</span>}
-           {profile?.pet_approved && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><PawPrint className="h-3 w-3" /> {t('dispatch.petTransport')}</span>}
-          {profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type) && <span className="flex items-center gap-1 px-2 py-1 rounded bg-secondary"><Truck className="h-3 w-3" /> {t('dispatch.large')}</span>}
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Dispatch
+          </p>
+          <h1 className="text-xl font-bold tracking-tight">
+            {activeRide ? "Active trip" : "Waiting for trips"}
+          </h1>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`h-2 w-2 rounded-full ${profile?.is_available ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
+          <span className="text-xs font-medium text-muted-foreground">
+            {profile?.is_available ? "Online" : "Offline"}
+          </span>
         </div>
       </div>
 
-      {/* Active ride with map */}
+      {/* ═══════════════════════════════════════ */}
+      {/* ─── ACTIVE TRIP PANEL ─── */}
+      {/* ═══════════════════════════════════════ */}
       {activeRide && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-          {activeMarkers.length > 0 && <RideMap markers={activeMarkers} polyline={activeRoutePolyline} />}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3"
+        >
+          {/* Map */}
+          {activeMarkers.length > 0 && (
+            <div className="rounded-2xl overflow-hidden ring-1 ring-border/50">
+              <RideMap markers={activeMarkers} polyline={activeRideDirections?.polyline ?? null} />
+            </div>
+          )}
+
+          {/* ETA strip */}
           {(liveEta || activeRideDirections) && (
-            <div className="glass-surface rounded-lg p-3 mt-2 flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <MapPinned className="h-4 w-4 text-primary" />
-                <span className="font-medium text-foreground">{(liveEta?.distance_km ?? activeRideDirections?.distance_km ?? 0).toFixed(1)} km</span>
-                {liveEta && <span className="text-[10px] text-muted-foreground">({activeRide.status === "in_progress" ? t("rider.toDropoff") : t("rider.toPickup")})</span>}
+            <div className="flex items-center gap-4 rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3 text-sm">
+              <div className="flex items-center gap-1.5">
+                <Navigation className="h-4 w-4 text-primary" />
+                <span className="font-semibold tabular-nums">
+                  {(liveEta?.distance_km ?? activeRideDirections?.distance_km ?? 0).toFixed(1)} km
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {activeRide.status === "in_progress" ? "to drop" : "to pickup"}
+                </span>
               </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-primary" />
-                <span className="font-medium text-foreground">{liveEta ? (liveEta.duration_in_traffic_text || liveEta.duration_text) : (activeRideDirections?.duration_in_traffic_text || activeRideDirections?.duration_text)}</span>
-                {liveEta && <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>}
+                <span className="font-semibold">
+                  {liveEta ? (liveEta.duration_in_traffic_text || liveEta.duration_text) : (activeRideDirections?.duration_in_traffic_text || activeRideDirections?.duration_text)}
+                </span>
+                {liveEta && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                )}
               </div>
               {activeTrafficDelayMin > 2 && (
-                <div className="flex items-center gap-1.5 text-amber-500">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span className="text-xs font-medium">+{Math.round(activeTrafficDelayMin)} min traffic</span>
+                <div className="flex items-center gap-1 text-amber-500">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">+{Math.round(activeTrafficDelayMin)}m</span>
                 </div>
               )}
             </div>
           )}
+
+          {/* Turn-by-turn nav */}
           {liveEta?.steps && liveEta.steps.length > 0 && (
-            <div className="mt-2">
-              <TurnByTurnNav steps={liveEta.steps} driverLat={profile?.latitude} driverLng={profile?.longitude} />
-            </div>
+            <TurnByTurnNav steps={liveEta.steps} driverLat={profile?.latitude} driverLng={profile?.longitude} />
           )}
-          <div className="glass-surface rounded-lg p-5 border border-primary/30">
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-sm font-semibold text-primary">{t('dispatch.activeRide')}</h2>
-              <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                {activeRide.service_type === "private_hire" ? t('dispatch.privateHireFlatRate') : activeRide.service_type}
+
+          {/* Trip card */}
+          <div className="rounded-2xl bg-card ring-1 ring-primary/20 overflow-hidden">
+            {/* Header with service type */}
+            <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                  <ServiceIcon type={activeRide.service_type} className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <span className="text-sm font-bold">{serviceLabels[activeRide.service_type] || activeRide.service_type}</span>
+                  {activeRide.estimated_price && (
+                    <span className="ml-2 text-sm font-semibold text-primary tabular-nums">
+                      {fmt(Number(activeRide.estimated_price) * 100)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
+                activeRide.status === "in_progress" ? "bg-green-500/10 text-green-500" : "bg-primary/10 text-primary"
+              }`}>
+                {activeRide.status === "in_progress" ? "In progress" : "Accepted"}
               </span>
             </div>
-            <div className="space-y-2 mb-4">
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-green-400 mt-0.5" />
-                <span className="text-sm">{activeRide.pickup_address}</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                <span className="text-sm">{activeRide.dropoff_address}</span>
+
+            {/* Stepper */}
+            <div className="px-4">
+              <TripStepper currentStatus={activeRide.status} />
+            </div>
+
+            {/* Addresses */}
+            <div className="px-4 pb-3 space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center gap-1 pt-1">
+                  <div className="h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-green-500/20" />
+                  <div className="w-px h-6 bg-border" />
+                  <div className="h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-primary/20" />
+                </div>
+                <div className="flex-1 min-w-0 space-y-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pickup</p>
+                    <p className="text-sm font-medium leading-tight">{activeRide.pickup_address}</p>
+                    {(activeRide as any).pickup_notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5">📝 {(activeRide as any).pickup_notes}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Drop-off</p>
+                    <p className="text-sm font-medium leading-tight">{activeRide.dropoff_address}</p>
+                    {(activeRide as any).dropoff_notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5">📝 {(activeRide as any).dropoff_notes}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-            {/* Taxi rides use the meter */}
-            {activeRide.service_type === "taxi" ? (
-              <TaxiMeter rideId={activeRide.id} meterStatus={activeRide.meter_status} />
-            ) : (
-              <div className="space-y-3">
-                {/* Courier: show package info and proof photo */}
-                {activeRide.service_type === "courier" && (
-                  <div className="space-y-2">
-                    {(activeRide as any).item_description && (
-                      <p className="text-xs text-muted-foreground">
-                        📦 {t('dispatch.item')}: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).marketplace_delivery && (
-                      <div className="flex items-center gap-1.5 text-xs text-yellow-500">
-                        <ShoppingBag className="h-3.5 w-3.5" />
-                        <span>{t('dispatch.marketplaceDeliveryNote')}</span>
-                      </div>
-                    )}
-                    {(activeRide as any).package_size && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('dispatch.package')}: <span className="capitalize font-medium">{(activeRide as any).package_size}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).pickup_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.pickupNotes')}: {(activeRide as any).pickup_notes}</p>
-                    )}
-                    {(activeRide as any).dropoff_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
-                    )}
-                    {activeRide.status === "in_progress" && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url && (
-                      <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
-                        <p className="text-xs text-yellow-500 font-medium mb-2">📸 {t('dispatch.proofRequired')}</p>
-                        <input
-                          ref={proofInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) uploadProofPhoto(activeRide.id, file);
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={uploadingProof}
-                          onClick={() => proofInputRef.current?.click()}
-                        >
-                          {uploadingProof ? t('dispatch.uploading') : t('dispatch.uploadProofPhoto')}
-                        </Button>
-                      </div>
-                    )}
-                    {(activeRide as any).proof_photo_url && (
-                      <p className="text-xs text-green-500">✓ {t('dispatch.proofUploaded')}</p>
-                    )}
-                  </div>
-                )}
-                {/* Large Delivery: show item details */}
-                {activeRide.service_type === "large_delivery" && (
-                  <div className="space-y-2">
-                    {(activeRide as any).item_description && (
-                      <p className="text-xs text-muted-foreground">
-                        📦 {t('dispatch.item')}: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).weight_estimate_kg && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Weight className="h-3 w-3" /> ~{(activeRide as any).weight_estimate_kg} kg
-                      </p>
-                    )}
-                    {(activeRide as any).requires_loading_help && (
-                      <p className="text-xs text-yellow-500">⚠ {t('dispatch.loadingHelpRequired')}</p>
-                    )}
-                    {(activeRide as any).stairs_involved && (
-                      <p className="text-xs text-yellow-500">⚠ {t('dispatch.stairsInvolved')}</p>
-                    )}
-                    {(activeRide as any).pickup_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.pickupNotes')}: {(activeRide as any).pickup_notes}</p>
-                    )}
-                    {(activeRide as any).dropoff_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
-                    )}
-                  </div>
-                )}
-                {/* Retail Delivery: show store/order details and proof photo */}
-                {activeRide.service_type === "retail_delivery" && (
-                  <div className="space-y-2">
-                    {(activeRide as any).store_id && (
-                      <p className="text-xs text-muted-foreground">
-                        🏪 {t('dispatch.storeId')}: <span className="font-medium text-foreground">{(activeRide as any).store_id}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).order_value_cents && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('dispatch.orderValue')}: <span className="font-medium text-foreground">${((activeRide as any).order_value_cents / 100).toFixed(2)}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).package_size && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('dispatch.package')}: <span className="capitalize font-medium">{(activeRide as any).package_size}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).signature_required && (
-                      <p className="text-xs text-yellow-500">✍ {t('dispatch.signatureRequired')}</p>
-                    )}
-                    {(activeRide as any).pickup_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.pickupNotes')}: {(activeRide as any).pickup_notes}</p>
-                    )}
-                    {(activeRide as any).dropoff_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
-                    )}
-                    {activeRide.status === "in_progress" && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url && (
-                      <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
-                        <p className="text-xs text-yellow-500 font-medium mb-2">📸 {t('dispatch.proofRequired')}</p>
-                        <input
-                          ref={proofInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) uploadProofPhoto(activeRide.id, file);
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={uploadingProof}
-                          onClick={() => proofInputRef.current?.click()}
-                        >
-                          {uploadingProof ? t('dispatch.uploading') : t('dispatch.uploadProofPhoto')}
-                        </Button>
-                      </div>
-                    )}
-                    {(activeRide as any).proof_photo_url && (
-                      <p className="text-xs text-green-500">✓ {t('dispatch.proofUploaded')}</p>
-                    )}
-                  </div>
-                )}
-                {/* Personal Shopper: show store, items, receipt upload */}
-                {activeRide.service_type === "personal_shopper" && (
-                  <div className="space-y-2">
-                    {(activeRide as any).store_name && (
-                      <p className="text-xs text-muted-foreground">
-                        🏪 {t('dispatch.storeName')}: <span className="font-medium text-foreground">{(activeRide as any).store_name}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).item_description && (
-                      <p className="text-xs text-muted-foreground">
-                        📦 {t('dispatch.item')}: <span className="font-medium text-foreground">{(activeRide as any).item_description}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).quantity && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('dispatch.quantity')}: <span className="font-medium text-foreground">{(activeRide as any).quantity}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).estimated_item_cost_cents && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('dispatch.estimatedItemCost')}: <span className="font-medium text-foreground">${((activeRide as any).estimated_item_cost_cents / 100).toFixed(2)}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).dropoff_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
-                    )}
-                    {activeRide.status === "in_progress" && !(activeRide as any).receipt_photo_url && (
-                      <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5 space-y-2">
-                        <p className="text-xs text-yellow-500 font-medium">🧾 {t('dispatch.receiptRequired')}</p>
-                        <div className="space-y-1">
-                          <label className="text-xs text-muted-foreground">Final item cost ($)</label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={finalItemCostInput}
-                            onChange={(e) => setFinalItemCostInput(e.target.value)}
-                            placeholder="0.00"
-                            className="bg-secondary w-32 h-8 text-sm"
-                          />
-                        </div>
-                        <input
-                          ref={receiptInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file && finalItemCostInput) {
-                              uploadReceiptPhoto(activeRide.id, file, Math.round(parseFloat(finalItemCostInput) * 100));
-                            }
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={uploadingReceipt || !finalItemCostInput}
-                          onClick={() => receiptInputRef.current?.click()}
-                        >
-                          {uploadingReceipt ? t('dispatch.uploading') : t('dispatch.uploadReceiptPhoto')}
-                        </Button>
-                      </div>
-                    )}
-                    {(activeRide as any).receipt_photo_url && (
-                      <p className="text-xs text-green-500">✓ {t('dispatch.receiptUploaded')}</p>
-                    )}
-                  </div>
-                )}
-                {/* Food Delivery: show restaurant and order details */}
-                {activeRide.service_type === "food_delivery" && (
-                  <div className="space-y-2">
-                    {(activeRide as any).store_name && (
-                      <p className="text-xs text-muted-foreground">
-                        🍽️ {t('dispatch.restaurant')}: <span className="font-medium text-foreground">{(activeRide as any).store_name}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).order_value_cents && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('dispatch.orderValue')}: <span className="font-medium text-foreground">${((activeRide as any).order_value_cents / 100).toFixed(2)}</span>
-                      </p>
-                    )}
-                    {(activeRide as any).pickup_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.pickupNotes')}: {(activeRide as any).pickup_notes}</p>
-                    )}
-                    {(activeRide as any).dropoff_notes && (
-                      <p className="text-xs text-muted-foreground">{t('dispatch.dropoffNotes')}: {(activeRide as any).dropoff_notes}</p>
-                    )}
-                  </div>
-                )}
-                {/* Pet Transport: show pet details */}
-                {(activeRide.service_type as string) === "pet_transport" && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">🐾 {t('dispatch.petMode')}: <span className="font-medium text-foreground capitalize">{(activeRide as any).pet_mode?.replace('_', ' ')}</span></p>
-                    <p className="text-xs text-muted-foreground">{t('dispatch.petType')}: <span className="font-medium text-foreground capitalize">{(activeRide as any).pet_type}</span></p>
-                    {(activeRide as any).pet_weight_estimate && <p className="text-xs text-muted-foreground">{t('dispatch.petWeight')}: ~{(activeRide as any).pet_weight_estimate} kg</p>}
-                    <p className="text-xs text-muted-foreground">{t('dispatch.destinationType')}: <span className="font-medium text-foreground capitalize">{(activeRide as any).destination_type}</span></p>
-                    <p className="text-xs text-muted-foreground">{t('dispatch.emergencyContact')}: <span className="font-medium text-foreground">{(activeRide as any).emergency_contact_phone}</span></p>
-                    {(activeRide as any).crate_confirmed && <p className="text-xs text-green-500">✓ {t('dispatch.crateConfirmed')}</p>}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  {activeRide.status === "accepted" && (
-                    <Button size="sm" onClick={() => updateRideStatus(activeRide.id, "in_progress")}>
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" || activeRide.service_type === "personal_shopper" || activeRide.service_type === "food_delivery" || (activeRide.service_type as string) === "pet_transport" ? t('dispatch.startDelivery') : t('dispatch.startTrip')}
-                    </Button>
-                  )}
-                  {activeRide.status === "in_progress" && (
-                    <Button
-                      size="sm"
-                      disabled={
-                        ((activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery") && (activeRide as any).proof_photo_required && !(activeRide as any).proof_photo_url) ||
-                        (activeRide.service_type === "personal_shopper" && !(activeRide as any).receipt_photo_url)
-                      }
-                      onClick={() => updateRideStatus(activeRide.id, "completed")}
-                    >
-                      {activeRide.service_type === "courier" || activeRide.service_type === "large_delivery" || activeRide.service_type === "retail_delivery" || activeRide.service_type === "personal_shopper" || activeRide.service_type === "food_delivery" || (activeRide.service_type as string) === "pet_transport" ? t('dispatch.completeDelivery') : t('dispatch.completeTrip')}
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" onClick={() => updateRideStatus(activeRide.id, "cancelled")}>
-                    {t('dispatch.cancel')}
-                  </Button>
-                </div>
+
+            {/* Trip details by service type */}
+            <div className="px-4 pb-3">
+              {activeRide.service_type === "taxi" ? (
+                <TaxiMeter rideId={activeRide.id} meterStatus={activeRide.meter_status} />
+              ) : (
+                <>
+                  <TripServiceDetails ride={activeRide} t={t} proofInputRef={proofInputRef} receiptInputRef={receiptInputRef} uploadingProof={uploadingProof} uploadingReceipt={uploadingReceipt} uploadProofPhoto={uploadProofPhoto} uploadReceiptPhoto={uploadReceiptPhoto} finalItemCostInput={finalItemCostInput} setFinalItemCostInput={setFinalItemCostInput} />
+                </>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            {activeRide.service_type !== "taxi" && (
+              <div className="px-4 pb-4 flex gap-2">
+                <Button
+                  className="flex-1 h-14 rounded-xl text-[15px] font-bold active:scale-[0.98] transition-transform"
+                  disabled={getNextActionDisabled()}
+                  onClick={handleNextAction}
+                >
+                  {getNextActionLabel()}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-14 w-14 rounded-xl active:scale-[0.98]"
+                  onClick={() => updateRideStatus(activeRide.id, "cancelled")}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
             )}
           </div>
         </motion.div>
       )}
 
-      {/* Outstanding balance rides */}
+      {/* ═══════════════════════════════════════ */}
+      {/* ─── OUTSTANDING BALANCES ─── */}
+      {/* ═══════════════════════════════════════ */}
       {outstandingRides && outstandingRides.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Banknote className="h-5 w-5 text-yellow-500" />
-            {t('dispatch.collectBalance')}
-          </h2>
-          <div className="space-y-2">
-            {outstandingRides.map((ride) => {
-              const totalFare = Number(ride.final_fare_cents || ride.final_price || 0);
-              const captured = Number(ride.captured_amount_cents || 0);
-              const outstanding = Number(ride.outstanding_amount_cents || 0);
-              const displayOutstanding = outstanding > 0 ? outstanding : totalFare;
-              return (
-                <div key={ride.id} className="glass-surface rounded-lg p-4 space-y-2">
-                  <p className="text-sm font-medium truncate">
-                    {ride.pickup_address} → {ride.dropoff_address}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
-                    <span>{t('earnings.total')}: ${(totalFare / 100).toFixed(2)}</span>
-                    {captured > 0 && <span>{t('earnings.paidInApp')}: ${(captured / 100).toFixed(2)}</span>}
-                    <span className="text-yellow-500 font-semibold">{t('earnings.due')}: ${(displayOutstanding / 100).toFixed(2)}</span>
-                  </div>
-                  {ride.outstanding_reason === "fare_exceeded_authorization" && (
-                    <p className="text-[10px] text-yellow-500">{t('earnings.fareExceeded')}</p>
-                  )}
-                  <Button
-                    size="sm"
-                    className="w-full gap-1.5"
-                    onClick={() => markOutstandingCollected(ride.id, captured > 0)}
-                  >
-                    <Banknote className="h-3.5 w-3.5" /> {t('earnings.markCollected')}
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
+          <button
+            onClick={() => setShowOutstanding(!showOutstanding)}
+            className="flex w-full items-center justify-between rounded-2xl bg-amber-500/8 ring-1 ring-amber-500/20 px-4 py-3 text-left active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-3">
+              <Banknote className="h-4 w-4 text-amber-500" />
+              <div>
+                <p className="text-sm font-semibold">Outstanding balances</p>
+                <p className="text-xs text-muted-foreground">{outstandingRides.length} ride{outstandingRides.length > 1 ? "s" : ""} to collect</p>
+              </div>
+            </div>
+            {showOutstanding ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+          <AnimatePresence>
+            {showOutstanding && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden space-y-2 mt-2">
+                {outstandingRides.map((ride) => {
+                  const totalFare = Number(ride.final_fare_cents || ride.final_price || 0);
+                  const captured = Number(ride.captured_amount_cents || 0);
+                  const outstanding = Number(ride.outstanding_amount_cents || 0);
+                  const displayOutstanding = outstanding > 0 ? outstanding : totalFare;
+                  return (
+                    <div key={ride.id} className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-2">
+                      <p className="text-sm font-medium truncate">{ride.pickup_address} → {ride.dropoff_address}</p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+                        <span>Total: {fmt(totalFare)}</span>
+                        {captured > 0 && <span>Paid: {fmt(captured)}</span>}
+                        <span className="text-amber-500 font-semibold">Due: {fmt(displayOutstanding)}</span>
+                      </div>
+                      <Button size="sm" className="w-full h-10 rounded-xl gap-1.5 active:scale-[0.98]" onClick={() => markOutstandingCollected(ride.id)}>
+                        <Banknote className="h-3.5 w-3.5" /> Mark collected
+                      </Button>
+                    </div>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
-      {/* Recent completed large deliveries with earnings breakdown */}
+      {/* ═══════════════════════════════════════ */}
+      {/* ─── INCOMING REQUESTS ─── */}
+      {/* ═══════════════════════════════════════ */}
+      {!activeRide && (
+        <>
+          {!activeRide && pendingMarkers.length > 0 && (
+            <div className="rounded-2xl overflow-hidden ring-1 ring-border/50">
+              <RideMap markers={pendingMarkers} />
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Incoming requests
+              </h2>
+              {(pendingRides?.length ?? 0) > 0 && (
+                <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
+                  {pendingRides?.length}
+                </span>
+              )}
+            </div>
+
+            {pendingRides?.length === 0 && (
+              <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-6 text-center">
+                <p className="text-sm text-muted-foreground">No pending requests right now</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">New trips will appear here automatically</p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {pendingRides?.map((ride, i) => (
+                <motion.div
+                  key={ride.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-2xl bg-card ring-1 ring-border/50 overflow-hidden"
+                >
+                  {/* Request header */}
+                  <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                    <div className="flex items-center gap-2">
+                      <ServiceIcon type={ride.service_type} className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-bold">{serviceLabels[ride.service_type] || ride.service_type}</span>
+                      {ride.service_type === "shuttle" && (
+                        <span className="text-[10px] text-muted-foreground">{ride.passenger_count} pax</span>
+                      )}
+                    </div>
+                    <span className="text-base font-bold text-primary tabular-nums">
+                      {fmt(Number(ride.estimated_price || 0) * 100)}
+                    </span>
+                  </div>
+
+                  {/* Addresses */}
+                  <div className="px-4 py-2 space-y-1.5">
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                      <p className="text-sm leading-tight line-clamp-1">{ride.pickup_address}</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
+                      <p className="text-sm leading-tight line-clamp-1">{ride.dropoff_address}</p>
+                    </div>
+                  </div>
+
+                  {/* Extra details */}
+                  <RequestDetails ride={ride} t={t} />
+
+                  {/* Actions */}
+                  <div className="px-4 pb-3 pt-1">
+                    {ride.service_type === "large_delivery" ? (
+                      <DriverBidForm
+                        rideId={ride.id}
+                        driverId={profile?.id || ""}
+                        estimatedPrice={Number(ride.estimated_price || 0)}
+                        existingBid={bidsByRide.get(ride.id) || null}
+                        onBidChanged={() => queryClient.invalidateQueries({ queryKey: ["my-delivery-bids"] })}
+                      />
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1 h-12 rounded-xl font-bold active:scale-[0.98] transition-transform"
+                          onClick={() => acceptRide(ride.id)}
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Accept
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-12 w-12 rounded-xl active:scale-[0.98]"
+                          onClick={() => declineRide(ride.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* ─── RECENT DELIVERIES (collapsible) ─── */}
+      {/* ═══════════════════════════════════════ */}
       {recentDeliveries && recentDeliveries.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-primary" />
-            {t('dispatch.recentDeliveries')}
-          </h2>
-          <div className="space-y-2">
-            {recentDeliveries.map((ride: any) => {
-              const bidAmount = ride.final_fare_cents || 0;
-              const commission = ride.commission_cents || 0;
-              const stripeFee = ride.stripe_fee_cents || 0;
-              const earnings = ride.driver_earnings_cents || 0;
-              return (
-                <div key={ride.id} className="glass-surface rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${ride.service_type === 'courier' ? 'bg-accent text-accent-foreground' : ride.service_type === 'retail_delivery' ? 'bg-secondary text-secondary-foreground' : ride.service_type === 'personal_shopper' ? 'bg-primary/10 text-primary' : 'bg-primary/10 text-primary'}`}>
-                        {ride.service_type === 'courier' ? t('dispatch.courierBadge') : ride.service_type === 'retail_delivery' ? t('dispatch.retailDeliveryBadge') : ride.service_type === 'personal_shopper' ? t('dispatch.personalShopperBadge') : ride.service_type === 'food_delivery' ? t('dispatch.foodDeliveryBadge') : (ride.service_type as string) === 'pet_transport' ? t('dispatch.petTransportBadge') : t('dispatch.largeDeliveryBadge')}
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex w-full items-center justify-between rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3 text-left active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-3">
+              <Receipt className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">Recent deliveries</p>
+            </div>
+            {showHistory ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden space-y-2 mt-2">
+                {recentDeliveries.map((ride: any) => (
+                  <div key={ride.id} className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ServiceIcon type={ride.service_type} className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <p className="text-sm font-medium truncate">{ride.pickup_address} → {ride.dropoff_address}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                        {ride.completed_at ? new Date(ride.completed_at).toLocaleDateString() : ""}
                       </span>
-                      <p className="text-sm font-medium truncate min-w-0">
-                        {ride.pickup_address} → {ride.dropoff_address}
-                      </p>
                     </div>
-                    <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                      {ride.completed_at ? new Date(ride.completed_at).toLocaleDateString() : ""}
-                    </span>
-                  </div>
-                  <div className="text-[10px] font-mono text-muted-foreground border-t border-border pt-2 space-y-1">
-                    <div className="flex justify-between">
-                      <span>{ride.service_type === 'courier' || ride.service_type === 'retail_delivery' ? t('earnings.fare') : t('earnings.bidAmount')}</span>
-                      <span>${(bidAmount / 100).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                     <span>{t('earnings.platformCommission', { rate: ride.service_type === 'courier' ? '6' : ride.service_type === 'pet_transport' ? '7' : ride.service_type === 'retail_delivery' ? '7' : ride.service_type === 'personal_shopper' ? '10' : '8' })}</span>
-                      <span className="text-destructive">-${(commission / 100).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>{t('earnings.processingFee')}</span>
-                      <span className="text-destructive">-${(stripeFee / 100).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold text-xs text-primary pt-1 border-t border-border">
-                      <span>{t('earnings.netEarnings')}</span>
-                      <span>${(earnings / 100).toFixed(2)}</span>
+                    <div className="flex items-center justify-between text-xs tabular-nums">
+                      <span className="text-muted-foreground">Fare: {fmt(ride.final_fare_cents || 0)}</span>
+                      <span className="text-primary font-semibold">Net: {fmt(ride.driver_earnings_cents || 0)}</span>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
-
-      {!activeRide && pendingMarkers.length > 0 && (
-        <RideMap markers={pendingMarkers} />
-      )}
-
-      <div>
-        <h2 className="text-lg font-semibold mb-3">{t('dispatch.incomingRequests')}</h2>
-        {pendingRides?.length === 0 && (
-          <p className="text-sm text-muted-foreground">{t('dispatch.noPendingRequests')}</p>
-        )}
-        <div className="space-y-2">
-          {pendingRides?.map((ride) => (
-            <motion.div
-              key={ride.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="glass-surface rounded-lg p-4 flex items-center justify-between"
-            >
-              <div className="space-y-1 flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1 text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                    <ServiceIcon type={ride.service_type} />
-                    {ride.service_type}
-                  </span>
-                  {ride.service_type === "shuttle" && (
-                    <span className="text-xs text-muted-foreground">{ride.passenger_count} {t('dispatch.pax')}</span>
-                  )}
-                  {ride.service_type === "courier" && (ride as any).marketplace_delivery && (
-                    <span className="flex items-center gap-1 text-xs text-yellow-500">
-                      <ShoppingBag className="h-3 w-3" /> {t('dispatch.marketplace')}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm font-medium truncate">
-                  {ride.pickup_address} → {ride.dropoff_address}
-                </p>
-                {ride.service_type === "courier" && (ride as any).item_description && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    📦 {(ride as any).item_description}
-                  </p>
-                )}
-                {ride.service_type === "courier" && (ride as any).marketplace_delivery && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-yellow-500">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>{t('dispatch.ensureCapacity')}</span>
-                  </div>
-                )}
-                {ride.service_type === "large_delivery" && (ride as any).item_description && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    📦 {(ride as any).item_description}
-                  </p>
-                )}
-                {ride.service_type === "large_delivery" && (
-                  <div className="flex flex-wrap gap-2 text-[10px]">
-                    {(ride as any).weight_estimate_kg && (
-                      <span className="text-muted-foreground">~{(ride as any).weight_estimate_kg} kg</span>
-                    )}
-                    {(ride as any).requires_loading_help && (
-                      <span className="text-yellow-500">{t('dispatch.loadingHelp')}</span>
-                    )}
-                    {(ride as any).stairs_involved && (
-                      <span className="text-yellow-500">{t('dispatch.stairs')}</span>
-                    )}
-                  </div>
-                )}
-                {/* Retail delivery details in request list */}
-                {ride.service_type === "retail_delivery" && (
-                  <div className="flex flex-wrap gap-2 text-[10px]">
-                    {(ride as any).store_id && (
-                      <span className="text-muted-foreground">🏪 {(ride as any).store_id}</span>
-                    )}
-                    {(ride as any).signature_required && (
-                      <span className="text-yellow-500">{t('dispatch.signatureRequired')}</span>
-                    )}
-                  </div>
-                )}
-                {/* Personal shopper details in request list */}
-                {ride.service_type === "personal_shopper" && (
-                  <div className="flex flex-wrap gap-2 text-[10px]">
-                    {(ride as any).store_name && (
-                      <span className="text-muted-foreground">🏪 {(ride as any).store_name}</span>
-                    )}
-                    {(ride as any).item_description && (
-                      <span className="text-muted-foreground truncate">📦 {(ride as any).item_description}</span>
-                    )}
-                  </div>
-                )}
-                {/* Food delivery details in request list */}
-                {ride.service_type === "food_delivery" && (
-                  <div className="flex flex-wrap gap-2 text-[10px]">
-                    {(ride as any).store_name && (
-                      <span className="text-muted-foreground">🍽️ {(ride as any).store_name}</span>
-                    )}
-                    {(ride as any).order_value_cents && (
-                      <span className="text-muted-foreground">${((ride as any).order_value_cents / 100).toFixed(2)}</span>
-                    )}
-                  </div>
-                )}
-                {/* Pet transport details in request list */}
-                {(ride.service_type as string) === "pet_transport" && (
-                  <div className="flex flex-wrap gap-2 text-[10px]">
-                    <span className="text-muted-foreground">🐾 {(ride as any).pet_type}</span>
-                    <span className="text-muted-foreground capitalize">{(ride as any).pet_mode?.replace('_', ' ')}</span>
-                    {(ride as any).pet_weight_estimate && (
-                      <span className="text-muted-foreground">~{(ride as any).pet_weight_estimate} kg</span>
-                    )}
-                    <span className="text-muted-foreground capitalize">→ {(ride as any).destination_type}</span>
-                    {(ride as any).crate_confirmed && (
-                      <span className="text-green-500">✓ {t('dispatch.crateConfirmed')}</span>
-                    )}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground font-mono">
-                  ${Number(ride.estimated_price || 0).toFixed(2)}
-                </p>
-              </div>
-              <div className="flex gap-2 ml-3 shrink-0">
-                {ride.service_type === "large_delivery" ? (
-                  <DriverBidForm
-                    rideId={ride.id}
-                    driverId={profile?.id || ""}
-                    estimatedPrice={Number(ride.estimated_price || 0)}
-                    existingBid={bidsByRide.get(ride.id) || null}
-                    onBidChanged={() => queryClient.invalidateQueries({ queryKey: ["my-delivery-bids"] })}
-                  />
-                ) : (
-                  <Button size="icon" variant="ghost" onClick={() => acceptRide(ride.id)}>
-                    <Check className="h-4 w-4 text-green-400" />
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
+
+// ─── Request detail chips ───
+function RequestDetails({ ride, t }: { ride: any; t: any }) {
+  const chips: { label: string; warn?: boolean }[] = [];
+
+  if (ride.service_type === "courier") {
+    if (ride.item_description) chips.push({ label: `📦 ${ride.item_description}` });
+    if (ride.marketplace_delivery) chips.push({ label: "Marketplace", warn: true });
+    if (ride.package_size) chips.push({ label: ride.package_size });
+  } else if (ride.service_type === "large_delivery") {
+    if (ride.item_description) chips.push({ label: `📦 ${ride.item_description}` });
+    if (ride.weight_estimate_kg) chips.push({ label: `~${ride.weight_estimate_kg} kg` });
+    if (ride.requires_loading_help) chips.push({ label: "Loading help", warn: true });
+    if (ride.stairs_involved) chips.push({ label: "Stairs", warn: true });
+  } else if (ride.service_type === "retail_delivery") {
+    if (ride.store_id) chips.push({ label: `🏪 ${ride.store_id}` });
+    if (ride.signature_required) chips.push({ label: "Signature req.", warn: true });
+  } else if (ride.service_type === "personal_shopper") {
+    if (ride.store_name) chips.push({ label: `🏪 ${ride.store_name}` });
+    if (ride.item_description) chips.push({ label: `📦 ${ride.item_description}` });
+  } else if (ride.service_type === "food_delivery") {
+    if (ride.store_name) chips.push({ label: `🍽️ ${ride.store_name}` });
+    if (ride.order_value_cents) chips.push({ label: `$${(ride.order_value_cents / 100).toFixed(2)}` });
+  } else if (ride.service_type === "pet_transport") {
+    if (ride.pet_type) chips.push({ label: `🐾 ${ride.pet_type}` });
+    if (ride.pet_mode) chips.push({ label: ride.pet_mode.replace("_", " ") });
+    if (ride.destination_type) chips.push({ label: `→ ${ride.destination_type}` });
+  }
+
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+      {chips.map((c, i) => (
+        <span
+          key={i}
+          className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+            c.warn ? "bg-amber-500/10 text-amber-500" : "bg-secondary text-secondary-foreground"
+          }`}
+        >
+          {c.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ─── Active trip service-specific details ───
+function TripServiceDetails({ ride, t, proofInputRef, receiptInputRef, uploadingProof, uploadingReceipt, uploadProofPhoto, uploadReceiptPhoto, finalItemCostInput, setFinalItemCostInput }: any) {
+  const details: JSX.Element[] = [];
+
+  if (ride.service_type === "courier" || ride.service_type === "large_delivery" || ride.service_type === "retail_delivery") {
+    if (ride.item_description) details.push(<DetailRow key="item" icon="📦" label="Item" value={ride.item_description} />);
+    if (ride.package_size) details.push(<DetailRow key="pkg" icon="📏" label="Size" value={ride.package_size} />);
+    if (ride.weight_estimate_kg) details.push(<DetailRow key="wt" icon="⚖️" label="Weight" value={`~${ride.weight_estimate_kg} kg`} />);
+    if (ride.requires_loading_help) details.push(<DetailRow key="load" icon="⚠️" label="" value="Loading help required" warn />);
+    if (ride.stairs_involved) details.push(<DetailRow key="strs" icon="⚠️" label="" value="Stairs involved" warn />);
+    if (ride.store_id) details.push(<DetailRow key="store" icon="🏪" label="Store" value={ride.store_id} />);
+    if (ride.order_value_cents) details.push(<DetailRow key="val" icon="💰" label="Order value" value={`$${(ride.order_value_cents / 100).toFixed(2)}`} />);
+    if (ride.signature_required) details.push(<DetailRow key="sig" icon="✍️" label="" value="Signature required" warn />);
+    if (ride.marketplace_delivery) details.push(<DetailRow key="mkt" icon="🛒" label="" value="Marketplace delivery" warn />);
+
+    // Proof photo for in_progress
+    if (ride.status === "in_progress" && ride.proof_photo_required && !ride.proof_photo_url) {
+      details.push(
+        <div key="proof" className="p-3 rounded-xl bg-amber-500/5 ring-1 ring-amber-500/20 space-y-2">
+          <p className="text-xs font-semibold text-amber-500">📸 Delivery proof photo required</p>
+          <input ref={proofInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadProofPhoto(ride.id, f); }} />
+          <Button size="sm" variant="outline" className="h-10 rounded-xl active:scale-[0.98]" disabled={uploadingProof} onClick={() => proofInputRef.current?.click()}>
+            {uploadingProof ? "Uploading…" : "Take photo"}
+          </Button>
+        </div>
+      );
+    }
+    if (ride.proof_photo_url) details.push(<DetailRow key="proofok" icon="✅" label="" value="Proof uploaded" />);
+  }
+
+  if (ride.service_type === "personal_shopper") {
+    if (ride.store_name) details.push(<DetailRow key="store" icon="🏪" label="Store" value={ride.store_name} />);
+    if (ride.item_description) details.push(<DetailRow key="item" icon="📦" label="Items" value={ride.item_description} />);
+    if (ride.quantity) details.push(<DetailRow key="qty" icon="🔢" label="Qty" value={String(ride.quantity)} />);
+    if (ride.estimated_item_cost_cents) details.push(<DetailRow key="est" icon="💰" label="Est. cost" value={`$${(ride.estimated_item_cost_cents / 100).toFixed(2)}`} />);
+
+    if (ride.status === "in_progress" && !ride.receipt_photo_url) {
+      details.push(
+        <div key="receipt" className="p-3 rounded-xl bg-amber-500/5 ring-1 ring-amber-500/20 space-y-2">
+          <p className="text-xs font-semibold text-amber-500">🧾 Receipt photo required</p>
+          <div className="space-y-1">
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Final item cost ($)</label>
+            <Input type="number" min={0} value={finalItemCostInput} onChange={(e: any) => setFinalItemCostInput(e.target.value)} placeholder="0.00" className="bg-secondary w-32 h-9 rounded-lg text-sm" />
+          </div>
+          <input ref={receiptInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f && finalItemCostInput) uploadReceiptPhoto(ride.id, f, Math.round(parseFloat(finalItemCostInput) * 100)); }} />
+          <Button size="sm" variant="outline" className="h-10 rounded-xl active:scale-[0.98]" disabled={uploadingReceipt || !finalItemCostInput} onClick={() => receiptInputRef.current?.click()}>
+            {uploadingReceipt ? "Uploading…" : "Upload receipt"}
+          </Button>
+        </div>
+      );
+    }
+    if (ride.receipt_photo_url) details.push(<DetailRow key="rcptok" icon="✅" label="" value="Receipt uploaded" />);
+  }
+
+  if (ride.service_type === "food_delivery") {
+    if (ride.store_name) details.push(<DetailRow key="rest" icon="🍽️" label="Restaurant" value={ride.store_name} />);
+    if (ride.order_value_cents) details.push(<DetailRow key="val" icon="💰" label="Order" value={`$${(ride.order_value_cents / 100).toFixed(2)}`} />);
+  }
+
+  if (ride.service_type === "pet_transport") {
+    if (ride.pet_type) details.push(<DetailRow key="type" icon="🐾" label="Pet" value={ride.pet_type} />);
+    if (ride.pet_mode) details.push(<DetailRow key="mode" icon="🚗" label="Mode" value={ride.pet_mode.replace("_", " ")} />);
+    if (ride.pet_weight_estimate) details.push(<DetailRow key="pwt" icon="⚖️" label="Weight" value={`~${ride.pet_weight_estimate} kg`} />);
+    if (ride.destination_type) details.push(<DetailRow key="dest" icon="📍" label="Destination" value={ride.destination_type} />);
+    if (ride.emergency_contact_phone) details.push(<DetailRow key="emrg" icon="📞" label="Emergency" value={ride.emergency_contact_phone} />);
+    if (ride.crate_confirmed) details.push(<DetailRow key="crate" icon="✅" label="" value="Crate confirmed" />);
+  }
+
+  if (details.length === 0) return null;
+
+  return <div className="space-y-2 pb-2">{details}</div>;
+}
+
+function DetailRow({ icon, label, value, warn }: { icon: string; label: string; value: string; warn?: boolean }) {
+  return (
+    <div className={`flex items-center gap-2 text-xs ${warn ? "text-amber-500" : "text-muted-foreground"}`}>
+      <span>{icon}</span>
+      {label && <span>{label}:</span>}
+      <span className={`font-medium ${warn ? "" : "text-foreground"}`}>{value}</span>
+    </div>
+  );
+}
 
 export default DriverDispatch;
