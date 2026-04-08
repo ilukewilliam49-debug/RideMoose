@@ -87,7 +87,7 @@ const Login = () => {
       >
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-5">
-            <img src={logoImg} alt="PickYou" className="h-20 rounded-xl bg-white p-2 drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
+            <img src={logoImg} alt="PickYou" className="h-16 rounded-md bg-white px-3 py-1 object-contain drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
           </div>
           
           <p className="text-sm text-muted-foreground">
