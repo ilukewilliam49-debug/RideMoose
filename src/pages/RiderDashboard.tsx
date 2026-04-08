@@ -21,6 +21,8 @@ import DeliveryBidsList from "@/components/DeliveryBidsList";
 import LivePetTracker from "@/components/LivePetTracker";
 import SavedPlaceChips from "@/components/rider/SavedPlaceChips";
 import ErrorRetry from "@/components/driver/ErrorRetry";
+import RideChatSheet from "@/components/RideChatSheet";
+import CancelRideDialog from "@/components/rider/CancelRideDialog";
 
 type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
 
