@@ -101,9 +101,12 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="flex items-center justify-between px-4 py-4">
-          <span className="text-base font-black tracking-tight shrink-0">
-            Ride<span className="text-primary">Moose</span>
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <img src="/favicon.png" alt="" className="h-7 w-7" />
+            <span className="text-base font-black tracking-tight">
+              Pick<span className="text-primary">You</span>
+            </span>
+          </div>
           {!collapsed && <NotificationBell />}
         </div>
 
