@@ -49,6 +49,7 @@ interface RideMapProps {
   center?: [number, number];
   className?: string;
   polyline?: string | null;
+  routeInfo?: { distanceKm: number; durationText: string } | null;
 }
 
 /** Decode Google Maps encoded polyline string into [lat, lng] pairs */
