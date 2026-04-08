@@ -35,7 +35,6 @@ const DriverAccount = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [supportOpen, setSupportOpen] = useState(false);
 
   // Verification status
   const { data: verifications, isLoading: verifLoading } = useQuery({
@@ -353,14 +352,17 @@ const DriverAccount = () => {
       )}
 
       {/* Help & support */}
-      <Button
-        variant="outline"
-        className="w-full h-12 rounded-xl gap-2 active:scale-[0.98] transition-transform"
-        onClick={() => setSupportOpen(true)}
-      >
-        <MessageCircle className="h-4 w-4" />
-        Help & Support
-      </Button>
+      <SupportChatDialog
+        trigger={
+          <Button
+            variant="outline"
+            className="w-full h-12 rounded-xl gap-2 active:scale-[0.98] transition-transform"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Help & Support
+          </Button>
+        }
+      />
 
       {/* Sign out */}
       <Button
@@ -374,9 +376,6 @@ const DriverAccount = () => {
         <LogOut className="h-4 w-4" />
         Sign out
       </Button>
-
-      {/* Support dialog */}
-      <SupportChatDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
