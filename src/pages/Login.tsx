@@ -145,7 +145,7 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-            )
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">{t("auth.email")}</Label>
               <div className="relative">
