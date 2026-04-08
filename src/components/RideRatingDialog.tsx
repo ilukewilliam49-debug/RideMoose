@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Star } from "lucide-react";
+import { Star, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,6 +29,8 @@ interface RideRatingDialogProps {
   onRated?: () => void;
 }
 
+const TIP_PRESETS = [0, 200, 500, 1000];
+
 const RideRatingDialog = ({
   open,
   onOpenChange,
@@ -42,6 +44,9 @@ const RideRatingDialog = ({
   const [hoveredStar, setHoveredStar] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [tipCents, setTipCents] = useState(0);
+  const [customTip, setCustomTip] = useState("");
+  const [showCustomTip, setShowCustomTip] = useState(false);
   const { t } = useTranslation();
 
   const handleSubmit = async () => {
@@ -53,6 +58,7 @@ const RideRatingDialog = ({
 
     setSubmitting(true);
     try {
+      // Submit rating
       const { error } = await supabase.from("ride_ratings").insert({
         ride_id: rideId,
         rated_by: ratedBy,
@@ -69,9 +75,23 @@ const RideRatingDialog = ({
       } else {
         toast.success(t("rating.thanksForRating"));
       }
+
+      // Submit tip if any
+      const finalTip = showCustomTip && customTip ? Math.round(parseFloat(customTip) * 100) : tipCents;
+      if (finalTip > 0) {
+        await supabase
+          .from("rides")
+          .update({ tip_cents: finalTip } as any)
+          .eq("id", rideId);
+        toast.success(`$${(finalTip / 100).toFixed(2)} tip sent!`);
+      }
+
       onOpenChange(false);
       setRating(0);
       setComment("");
+      setTipCents(0);
+      setCustomTip("");
+      setShowCustomTip(false);
       onRated?.();
     } catch (err: any) {
       toast.error(err.message);
@@ -96,6 +116,7 @@ const RideRatingDialog = ({
         </DialogHeader>
 
         <div className="space-y-5 py-2">
+          {/* Stars */}
           <div className="flex flex-col items-center gap-2">
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -124,6 +145,54 @@ const RideRatingDialog = ({
             )}
           </div>
 
+          {/* Tip section */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Add a tip for {driverName || "your driver"}</span>
+            </div>
+            <div className="flex gap-2">
+              {TIP_PRESETS.map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => { setTipCents(amount); setShowCustomTip(false); }}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    tipCents === amount && !showCustomTip
+                      ? "bg-primary/10 text-primary ring-1 ring-primary/30"
+                      : "bg-secondary hover:bg-accent"
+                  }`}
+                >
+                  {amount === 0 ? "No tip" : `$${(amount / 100).toFixed(0)}`}
+                </button>
+              ))}
+              <button
+                onClick={() => { setShowCustomTip(true); setTipCents(0); }}
+                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                  showCustomTip
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/30"
+                    : "bg-secondary hover:bg-accent"
+                }`}
+              >
+                Custom
+              </button>
+            </div>
+            {showCustomTip && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.50"
+                  value={customTip}
+                  onChange={(e) => setCustomTip(e.target.value)}
+                  placeholder="0.00"
+                  className="flex-1 h-9 rounded-lg bg-secondary border-0 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Comment */}
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
               {t("rating.commentOptional")}
