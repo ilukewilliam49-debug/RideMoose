@@ -115,6 +115,37 @@ const Login = () => {
                 </div>
               </div>
             )}
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label>{t("auth.selectRole")}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole("rider")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
+                      role === "rider"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <User className="h-4 w-4" />
+                    {t("auth.rider")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole("driver")}
+                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
+                      role === "driver"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Car className="h-4 w-4" />
+                    {t("auth.driver")}
+                  </button>
+                </div>
+              </div>
+            )
             <div className="space-y-2">
               <Label htmlFor="email">{t("auth.email")}</Label>
               <div className="relative">
