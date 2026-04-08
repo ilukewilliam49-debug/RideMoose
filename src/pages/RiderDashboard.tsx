@@ -19,6 +19,8 @@ import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
 import LivePetTracker from "@/components/LivePetTracker";
+import SavedPlaceChips from "@/components/rider/SavedPlaceChips";
+import ErrorRetry from "@/components/driver/ErrorRetry";
 
 type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
 
