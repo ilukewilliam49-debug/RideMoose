@@ -268,14 +268,22 @@ const Index = () => {
 
       {/* ── Footer ── */}
       <footer className="border-t border-border/30 px-5 py-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 text-xs text-muted-foreground/70 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 text-xs text-muted-foreground/70 md:flex-row md:items-center md:justify-between">
           <p>{t("landing.footer")}</p>
-          <a
-            href="tel:+18679888836"
-            className="font-medium text-muted-foreground hover:text-primary transition-colors"
-          >
-            (867) 988-8836
-          </a>
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate("/terms")} className="font-medium text-muted-foreground hover:text-primary transition-colors">
+              Terms of Service
+            </button>
+            <button onClick={() => navigate("/privacy")} className="font-medium text-muted-foreground hover:text-primary transition-colors">
+              Privacy Policy
+            </button>
+            <a
+              href="tel:+18679888836"
+              className="font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              (867) 988-8836
+            </a>
+          </div>
         </div>
       </footer>
     </div>

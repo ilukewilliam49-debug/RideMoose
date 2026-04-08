@@ -30,6 +30,8 @@ import RiderActivity from "./pages/RiderActivity";
 import RiderAccount from "./pages/RiderAccount";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { useAuth } from "./hooks/useAuth";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -61,6 +63,8 @@ const AppContent = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
           <Route index element={<AdminDashboard />} />
