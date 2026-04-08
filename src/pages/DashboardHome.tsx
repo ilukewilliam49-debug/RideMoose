@@ -254,14 +254,14 @@ const DashboardHome = () => {
                 <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
                   Now
                 </button>
-                {[10, 20, 30].map((m) => (
+                {[{ m: 15, label: "In 15 mins" }, { m: 30, label: "In 30 mins" }, { m: 60, label: "In 1 hour" }].map(({ m, label }) => (
                   <button key={m} onClick={() => handlePreset(m)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
-                    In {m} mins
+                    {label}
                   </button>
                 ))}
                 <button onClick={() => setShowCustom(true)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors flex items-center gap-2">
                   <CalendarIcon className="h-3.5 w-3.5" />
-                  Custom time
+                  Custom date &amp; time
                 </button>
               </div>
             ) : (
