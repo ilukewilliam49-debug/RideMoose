@@ -45,6 +45,13 @@ const AdminZones = () => {
   const [geoEditState, setGeoEditState] = useState<Record<string, Partial<GeoZone & { polygonText?: string }>>>({});
   const [newGeoZone, setNewGeoZone] = useState({ zone_key: "", zone_name: "", color: "#3b82f6", polygonText: "[[0, 0]]" });
 
+  // Confirmation dialog
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   // ── Pricing zones ──
   const { data: zones, isLoading } = useQuery({
     queryKey: ["admin-zones"],
