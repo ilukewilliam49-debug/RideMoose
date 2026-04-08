@@ -38,7 +38,7 @@ const DashboardHome = () => {
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [customTime, setCustomTime] = useState("12:00");
   const [showCustom, setShowCustom] = useState(false);
-  const [supportOpen, setSupportOpen] = useState(false);
+  
 
   const scheduleLabel = scheduledAt
     ? format(scheduledAt, "MMM d, h:mm a")
