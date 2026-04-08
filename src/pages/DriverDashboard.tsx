@@ -144,6 +144,24 @@ const DriverDashboard = () => {
     refetchInterval: 8000,
   });
 
+  // Recent completed trips
+  const { data: recentTrips } = useQuery({
+    queryKey: ["driver-recent-trips", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("rides")
+        .select("id, pickup_address, dropoff_address, service_type, driver_earnings_cents, completed_at")
+        .eq("driver_id", profile.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(5);
+      if (error) return [];
+      return data;
+    },
+    enabled: !!profile?.id,
+  });
+
   // ─── Online duration ───
   const onlineSince = profile?.went_online_at;
   const onlineDuration = onlineSince
