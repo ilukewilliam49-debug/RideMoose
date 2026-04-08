@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -15,9 +15,11 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  BarChart3,
 } from "lucide-react";
-import { format, startOfMonth, startOfWeek, subDays } from "date-fns";
+import { format, startOfMonth, startOfWeek, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -93,6 +95,41 @@ const DriverEarnings = () => {
     },
     enabled: !!profile?.id,
   });
+
+  // Weekly chart data
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: new Date() });
+
+  const { data: weeklyRides } = useQuery({
+    queryKey: ["driver-weekly-chart", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("rides")
+        .select("driver_earnings_cents, completed_at")
+        .eq("driver_id", profile.id)
+        .eq("status", "completed")
+        .gte("completed_at", weekStart.toISOString())
+        .order("completed_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
+  const chartData = useMemo(() => {
+    return weekDays.map((day) => {
+      const dayEarnings = (weeklyRides || [])
+        .filter((r: any) => r.completed_at && isSameDay(new Date(r.completed_at), day))
+        .reduce((sum: number, r: any) => sum + (r.driver_earnings_cents || 0), 0);
+      const isToday = isSameDay(day, new Date());
+      return {
+        day: format(day, "EEE"),
+        earnings: dayEarnings / 100,
+        isToday,
+      };
+    });
+  }, [weeklyRides, weekDays]);
 
   // Commission ramp
   const launchStart = profile?.launch_start_date ? new Date(profile.launch_start_date) : null;
@@ -202,6 +239,57 @@ const DriverEarnings = () => {
           muted
         />
       </div>
+
+      {/* Weekly earnings chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl bg-card ring-1 ring-border/50 p-4"
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            This week
+          </span>
+        </div>
+        <div className="h-40">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} barCategoryGap="20%">
+              <XAxis
+                dataKey="day"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                tickFormatter={(v) => `$${v}`}
+                width={40}
+              />
+              <Tooltip
+                cursor={{ fill: "hsl(var(--accent) / 0.3)" }}
+                contentStyle={{
+                  background: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "12px",
+                  fontSize: "12px",
+                }}
+                formatter={(value: number) => [`$${value.toFixed(2)}`, "Earnings"]}
+              />
+              <Bar dataKey="earnings" radius={[6, 6, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.isToday ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.3)"}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
 
       {/* Recent trips */}
       <div>
