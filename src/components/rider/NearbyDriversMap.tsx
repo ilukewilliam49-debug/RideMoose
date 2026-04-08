@@ -255,11 +255,6 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
         .bindPopup(popupHtml);
       markersRef.current.push(marker);
     });
-      const marker = L.marker([d.latitude, d.longitude], { icon })
-        .addTo(map)
-        .bindPopup(popupHtml);
-      markersRef.current.push(marker);
-    });
 
     // Fit bounds to include all drivers + user
     const allPoints: L.LatLngExpression[] = drivers
