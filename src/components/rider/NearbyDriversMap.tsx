@@ -98,7 +98,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
   };
 
   // Query available drivers
-  const { data: dbDrivers } = useQuery({
+  const { data: dbDrivers, isLoading } = useQuery({
     queryKey: ["nearby-drivers", activeTab],
     queryFn: async () => {
       let query = supabase
