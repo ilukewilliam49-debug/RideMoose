@@ -46,8 +46,10 @@ type Preset = "today" | "thisWeek" | "thisMonth" | "allTime";
 const DriverEarnings = () => {
   const { profile } = useAuth();
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [preset, setPreset] = useState<Preset>("today");
   const [showHistory, setShowHistory] = useState(true);
+  const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
 
   const getRange = (p: Preset) => {
     const now = new Date();
