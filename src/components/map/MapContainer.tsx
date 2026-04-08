@@ -70,11 +70,12 @@ const decodePolyline = (encoded: string): [number, number][] => {
 
 const iconMap = { pickup: pickupIcon, dropoff: dropoffIcon, driver: driverIcon };
 
-const RideMap = ({ markers, center = [62.454, -114.372], className = "", polyline }: RideMapProps) => {
+const RideMap = ({ markers, center = [62.454, -114.372], className = "", polyline, routeInfo }: RideMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
+  const labelRef = useRef<L.Marker | null>(null);
 
   // Initialize map once
   useEffect(() => {
