@@ -45,42 +45,11 @@ import TaxiMeter from "@/components/TaxiMeter";
 import DriverBidForm from "@/components/DriverBidForm";
 import TurnByTurnNav, { type NavStep } from "@/components/TurnByTurnNav";
 
-// ─── Service helpers ───
-const serviceLabels: Record<string, string> = {
-  taxi: "Taxi",
-  private_hire: "Private Hire",
-  shuttle: "Shuttle",
-  courier: "Courier",
-  large_delivery: "Large Delivery",
-  retail_delivery: "Retail Delivery",
-  personal_shopper: "Personal Shopper",
-  food_delivery: "Food Delivery",
-  pet_transport: "Pet Transport",
-};
+import { serviceLabels, fmt, isAirportTrip, isDeliveryType } from "@/lib/driver-constants";
+import ServiceIcon from "@/components/driver/ServiceIcon";
+import { DispatchCardSkeleton } from "@/components/driver/DriverDashboardSkeletons";
+import { formatDistanceToNowStrict } from "date-fns";
 
-const ServiceIcon = ({ type, className = "h-4 w-4" }: { type: string; className?: string }) => {
-  const icons: Record<string, any> = {
-    shuttle: Bus,
-    private_hire: Briefcase,
-    courier: Package,
-    large_delivery: Truck,
-    retail_delivery: Store,
-    personal_shopper: ShoppingCart,
-    food_delivery: UtensilsCrossed,
-    pet_transport: PawPrint,
-  };
-  const Icon = icons[type] || Car;
-  return <Icon className={className} />;
-};
-
-const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-
-/** Check if a ride involves an airport based on address keywords */
-const isAirportTrip = (ride: any): boolean => {
-  const keywords = ["airport", "keflavík", "keflavik", "terminal", "arrivals", "departures", "flugvöllur"];
-  const combined = `${ride.pickup_address || ""} ${ride.dropoff_address || ""}`.toLowerCase();
-  return keywords.some((k) => combined.includes(k));
-};
 // ─── Trip lifecycle steps ───
 const TRIP_STEPS = [
   { key: "accepted", label: "Heading to pickup" },
