@@ -84,7 +84,7 @@ export const useRideQueries = ({
       if (error) throw error;
       return data as { distance_km: number; duration_sec: number; duration_text: string; duration_in_traffic_sec: number; duration_in_traffic_text: string; polyline: string | null };
     },
-    enabled: !!pickupCoords && !!dropoffCoords && ["taxi", "courier", "large_delivery", "retail_delivery", "personal_shopper", "pet_transport"].includes(serviceType),
+    enabled: !!pickupCoords && !!dropoffCoords,
     staleTime: 60_000,
   });
 
