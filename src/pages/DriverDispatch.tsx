@@ -25,6 +25,7 @@ const DriverDispatch = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
+  const [dismissedSummaryId, setDismissedSummaryId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const prevPendingCountRef = useRef(0);
 
