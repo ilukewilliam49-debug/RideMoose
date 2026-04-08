@@ -166,6 +166,46 @@ const DriverAccount = () => {
     setEditing(true);
   };
 
+  const handleDocReupload = async (file: File, docType: string) => {
+    if (!profile?.id) return;
+    setReuploadingDoc(docType);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${profile.id}/${docType}_${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("proof-photos")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
+
+      // Delete old rejected verification and insert new one
+      await supabase
+        .from("verifications")
+        .delete()
+        .eq("driver_id", profile.id)
+        .eq("document_type", docType);
+
+      const { error: insertError } = await supabase
+        .from("verifications")
+        .insert({
+          driver_id: profile.id,
+          document_type: docType,
+          document_url: urlData.publicUrl,
+          status: "pending",
+        });
+      if (insertError) throw insertError;
+
+      toast.success(`${docType.replace(/_/g, " ")} re-uploaded successfully`);
+      queryClient.invalidateQueries({ queryKey: ["driver-verifications", profile.id] });
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setReuploadingDoc(null);
+      setPendingDocType(null);
+    }
+  };
+
   const saveEdits = () => {
     const updates: Record<string, string> = {};
     if (editName && editName !== profile?.full_name) updates.full_name = editName;
