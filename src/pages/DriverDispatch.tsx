@@ -75,6 +75,12 @@ const ServiceIcon = ({ type, className = "h-4 w-4" }: { type: string; className?
 
 const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+/** Check if a ride involves an airport based on address keywords */
+const isAirportTrip = (ride: any): boolean => {
+  const keywords = ["airport", "keflavík", "keflavik", "terminal", "arrivals", "departures", "flugvöllur"];
+  const combined = `${ride.pickup_address || ""} ${ride.dropoff_address || ""}`.toLowerCase();
+  return keywords.some((k) => combined.includes(k));
+};
 // ─── Trip lifecycle steps ───
 const TRIP_STEPS = [
   { key: "accepted", label: "Heading to pickup" },
