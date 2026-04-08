@@ -1,20 +1,31 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route } from "lucide-react";
+import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route, HelpCircle } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
+import ActiveRideBanner from "@/components/rider/ActiveRideBanner";
+import ErrorRetry from "@/components/driver/ErrorRetry";
+import SupportChatDialog from "@/components/SupportChatDialog";
 
 type Tab = "taxi" | "charter" | "delivery";
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+};
 
 const DashboardHome = () => {
   const { profile } = useAuth();
@@ -27,6 +38,7 @@ const DashboardHome = () => {
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [customTime, setCustomTime] = useState("12:00");
   const [showCustom, setShowCustom] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const scheduleLabel = scheduledAt
     ? format(scheduledAt, "MMM d, h:mm a")
@@ -54,7 +66,6 @@ const DashboardHome = () => {
     setScheduleOpen(false);
   };
 
-  // Append scheduledAt param to any path
   const withSchedule = (path: string) => {
     if (!scheduledAt) return path;
     const sep = path.includes("?") ? "&" : "?";
@@ -62,7 +73,7 @@ const DashboardHome = () => {
   };
 
   // Fetch saved places
-  const { data: savedPlaces } = useQuery({
+  const { data: savedPlaces, isLoading: savedPlacesLoading, isError: savedPlacesError, refetch: refetchSaved } = useQuery({
     queryKey: ["saved-places", profile?.user_id],
     queryFn: async () => {
       if (!profile?.user_id) return [];
@@ -76,6 +87,34 @@ const DashboardHome = () => {
       return data ?? [];
     },
     enabled: !!profile?.user_id,
+  });
+
+  // Recent destinations from ride history
+  const { data: recentDestinations } = useQuery({
+    queryKey: ["recent-destinations", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("rides")
+        .select("dropoff_address, dropoff_lat, dropoff_lng")
+        .eq("rider_id", profile.id)
+        .in("status", ["completed", "in_progress"])
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) return [];
+      // Deduplicate by address
+      const seen = new Set<string>();
+      const unique: typeof data = [];
+      for (const r of data ?? []) {
+        if (!seen.has(r.dropoff_address)) {
+          seen.add(r.dropoff_address);
+          unique.push(r);
+        }
+        if (unique.length >= 3) break;
+      }
+      return unique;
+    },
+    enabled: !!profile?.id,
   });
 
   const suggestions =
@@ -101,8 +140,26 @@ const DashboardHome = () => {
     return MapPin;
   };
 
+  const firstName = profile?.full_name?.split(" ")[0] || "";
+
   return (
     <div className="pb-8">
+      {/* ── Greeting ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4"
+      >
+        <h1 className="text-xl font-black tracking-tight">
+          {getGreeting()}{firstName ? `, ${firstName}` : ""} 👋
+        </h1>
+      </motion.div>
+
+      {/* ── Active ride banner ── */}
+      <div className="mb-4">
+        <ActiveRideBanner />
+      </div>
+
       {/* ── Top tabs ── */}
       <div className="flex items-center gap-6 pb-5">
         <button
@@ -216,6 +273,26 @@ const DashboardHome = () => {
       </motion.div>
 
       {/* ── Saved places ── */}
+      {savedPlacesLoading && (
+        <div className="mt-4 space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-1.5 flex-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {savedPlacesError && (
+        <div className="mt-4">
+          <ErrorRetry message="Failed to load saved places" onRetry={() => refetchSaved()} />
+        </div>
+      )}
+
       {savedPlaces && savedPlaces.length > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -245,6 +322,39 @@ const DashboardHome = () => {
               </button>
             );
           })}
+        </motion.div>
+      )}
+
+      {/* ── Recent destinations ── */}
+      {recentDestinations && recentDestinations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.12, duration: 0.3 }}
+          className="mt-2 divide-y divide-border/30"
+        >
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-2 pt-1">
+            {t("dashboard.recent", "Recent")}
+          </p>
+          {recentDestinations.map((rd, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides?service=taxi";
+                const sep = base.includes("?") ? "&" : "?";
+                const params = rd.dropoff_lat && rd.dropoff_lng
+                  ? `${sep}dropoff=${encodeURIComponent(rd.dropoff_address)}&dlat=${rd.dropoff_lat}&dlng=${rd.dropoff_lng}`
+                  : `${sep}dropoff=${encodeURIComponent(rd.dropoff_address)}`;
+                navigate(withSchedule(`${base}${params}`));
+              }}
+              className="flex w-full items-center gap-4 py-3 text-left hover:bg-accent/30 transition-colors -mx-1 px-1 rounded-lg"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <p className="text-[13px] text-muted-foreground truncate flex-1">{rd.dropoff_address}</p>
+            </button>
+          ))}
         </motion.div>
       )}
 
@@ -324,7 +434,24 @@ const DashboardHome = () => {
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
         </button>
+
+        {/* Help / Support */}
+        <button
+          onClick={() => setSupportOpen(true)}
+          className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <HelpCircle className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-bold">{t("nav.support", "Help & Support")}</p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">{t("dashboard.supportDesc", "Get help with your rides")}</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+        </button>
       </motion.div>
+
+      <SupportChatDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
