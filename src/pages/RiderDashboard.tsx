@@ -345,18 +345,12 @@ const RiderDashboard = () => {
               </button>
             </div>
             <AddressAutocomplete value={state.pickup} onChange={(val, lat, lng) => { state.setPickup(val); if (lat && lng) state.setPickupCoords({ lat, lng }); }} placeholder={t("rider.searchPickup")} iconColor="text-green-400" />
-            {queries.savedPlaces && queries.savedPlaces.length > 0 && (
-              <SavedPlaceChips places={queries.savedPlaces} selectedAddress={state.pickup} onSelect={(address, lat, lng) => { state.setPickup(address); if (lat && lng) state.setPickupCoords({ lat, lng }); }} />
-            )}
           </div>
 
           {/* Dropoff */}
           <div className="space-y-2">
             <Label>{t("rider.dropoffLocation")}</Label>
             <AddressAutocomplete value={state.dropoff} onChange={(val, lat, lng) => { state.setDropoff(val); if (lat && lng) state.setDropoffCoords({ lat, lng }); }} placeholder={t("rider.searchDropoff")} iconColor="text-primary" />
-            {queries.savedPlaces && queries.savedPlaces.length > 0 && (
-              <SavedPlaceChips places={queries.savedPlaces} selectedAddress={state.dropoff} onSelect={(address, lat, lng) => { state.setDropoff(address); if (lat && lng) state.setDropoffCoords({ lat, lng }); }} />
-            )}
           </div>
 
           {/* Route info */}
