@@ -26,6 +26,7 @@ import {
   Save,
   Edit3,
   X,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,9 @@ const DriverAccount = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [reuploadingDoc, setReuploadingDoc] = useState<string | null>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const [pendingDocType, setPendingDocType] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editVehicle, setEditVehicle] = useState("");
@@ -55,7 +59,7 @@ const DriverAccount = () => {
       if (!profile?.id) return [];
       const { data, error } = await supabase
         .from("verifications")
-        .select("document_type, status")
+        .select("id, document_type, status, reviewer_notes")
         .eq("driver_id", profile.id);
       if (error) throw error;
       return data;
