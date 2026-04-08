@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route, HelpCircle } from "lucide-react";
@@ -17,6 +17,7 @@ import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import ActiveRideBanner from "@/components/rider/ActiveRideBanner";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import SupportChatDialog from "@/components/SupportChatDialog";
+import NearbyDriversMap from "@/components/rider/NearbyDriversMap";
 
 type Tab = "taxi" | "charter" | "delivery";
 
@@ -38,7 +39,16 @@ const DashboardHome = () => {
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [customTime, setCustomTime] = useState("12:00");
   const [showCustom, setShowCustom] = useState(false);
-  
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}
+      );
+    }
+  }, []);
 
   const scheduleLabel = scheduledAt
     ? format(scheduledAt, "MMM d, h:mm a")
@@ -271,6 +281,9 @@ const DashboardHome = () => {
           </PopoverContent>
         </Popover>
       </motion.div>
+
+      {/* ── Nearby drivers map ── */}
+      <NearbyDriversMap activeTab={activeTab} userLocation={userLocation} />
 
       {/* ── Saved places ── */}
       {savedPlacesLoading && (
