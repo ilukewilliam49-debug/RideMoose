@@ -242,14 +242,19 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
       const icon = getVehicleIcon(vType);
       const label = (vType || "").toLowerCase();
       const vehicleLabel = label === "suv" ? "SUV" : label === "van" ? "Van" : "Sedan";
-      const etaStr = userLocation
-        ? estimateEta(d.latitude, d.longitude, userLocation.lat, userLocation.lng)
-        : "";
+      const eta = etas[d.id];
+      const etaStr = eta ? eta.duration_text : "";
+      const trafficIcon = eta?.traffic ? "🚦" : "🕐";
       const popupHtml = `<div style="text-align:center;font-family:system-ui,sans-serif;line-height:1.4">
         <div style="font-weight:600;font-size:13px">${d.full_name || "Driver"}</div>
         <div style="font-size:11px;color:#666">${vehicleLabel}</div>
-        ${etaStr ? `<div style="margin-top:4px;font-size:12px;font-weight:700;color:hsl(142,71%,45%)">🕐 ${etaStr} away</div>` : ""}
+        ${etaStr ? `<div style="margin-top:4px;font-size:12px;font-weight:700;color:hsl(142,71%,45%)">${trafficIcon} ${etaStr} away</div>` : ""}
       </div>`;
+      const marker = L.marker([d.latitude, d.longitude], { icon })
+        .addTo(map)
+        .bindPopup(popupHtml);
+      markersRef.current.push(marker);
+    });
       const marker = L.marker([d.latitude, d.longitude], { icon })
         .addTo(map)
         .bindPopup(popupHtml);
