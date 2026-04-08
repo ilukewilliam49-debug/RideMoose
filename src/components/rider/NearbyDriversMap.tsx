@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
@@ -66,11 +66,35 @@ interface NearbyDriversMapProps {
   userLocation: { lat: number; lng: number } | null;
 }
 
+const VEHICLE_TYPES = ["sedan", "suv", "van"] as const;
+type VehicleFilter = (typeof VEHICLE_TYPES)[number];
+
+const vehicleFilterLabels: Record<VehicleFilter, string> = {
+  sedan: "Sedan",
+  suv: "SUV",
+  van: "Van",
+};
+
 const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Set<VehicleFilter>>(
+    new Set(VEHICLE_TYPES)
+  );
+
+  const toggleFilter = (type: VehicleFilter) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        if (next.size > 1) next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
 
   // Query available drivers
   const { data: dbDrivers } = useQuery({
@@ -100,7 +124,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
   });
 
   // Use DB drivers if available, otherwise fall back to filtered mock data
-  const drivers = useMemo(() => {
+  const allDrivers = useMemo(() => {
     if (dbDrivers && dbDrivers.length > 0) return dbDrivers;
     return MOCK_DRIVERS.filter((d) => {
       if (activeTab === "taxi") return d.can_taxi;
@@ -109,7 +133,24 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     });
   }, [dbDrivers, activeTab]);
 
-  const driverCount = drivers.length;
+  // Apply vehicle type filter
+  const drivers = useMemo(() => {
+    return allDrivers.filter((d) => {
+      const vt = ("vehicle_type" in d ? (d as any).vehicle_type : "sedan") || "sedan";
+      return activeFilters.has(vt.toLowerCase() as VehicleFilter);
+    });
+  }, [allDrivers, activeFilters]);
+
+  // Count per vehicle type for filter badges
+  const vehicleCounts = useMemo(() => {
+    const counts: Record<VehicleFilter, number> = { sedan: 0, suv: 0, van: 0 };
+    allDrivers.forEach((d) => {
+      const vt = (("vehicle_type" in d ? (d as any).vehicle_type : "sedan") || "sedan").toLowerCase() as VehicleFilter;
+      if (vt in counts) counts[vt]++;
+      else counts.sedan++;
+    });
+    return counts;
+  }, [allDrivers]);
 
   const center: [number, number] = userLocation
     ? [userLocation.lat, userLocation.lng]
@@ -224,8 +265,38 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
       <div className="absolute top-3 left-3 z-[1000] flex items-center gap-1.5 rounded-full bg-card/90 backdrop-blur-sm px-3 py-1.5 shadow-sm border border-border/30">
         <TabIcon className="h-3.5 w-3.5 text-primary" />
         <span className="text-xs font-bold">
-          {driverCount} {tabLabel} nearby
+          {drivers.length} {tabLabel} nearby
         </span>
+      </div>
+      {/* Vehicle type filter legend */}
+      <div className="absolute bottom-3 right-3 z-[1000] flex items-center gap-1.5">
+        {VEHICLE_TYPES.map((type) => {
+          const isActive = activeFilters.has(type);
+          const count = vehicleCounts[type];
+          return (
+            <button
+              key={type}
+              onClick={() => toggleFilter(type)}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold border transition-all ${
+                isActive
+                  ? "bg-primary/90 text-primary-foreground border-primary shadow-sm"
+                  : "bg-card/80 text-muted-foreground border-border/40 opacity-60"
+              } backdrop-blur-sm`}
+            >
+              <span
+                className="inline-block w-3 h-3 rounded-full"
+                style={{ background: isActive ? "hsl(45,93%,47%)" : "hsl(var(--muted))" }}
+                dangerouslySetInnerHTML={{
+                  __html: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24">${vehicleSvgs[type]}</svg>`,
+                }}
+              />
+              {vehicleFilterLabels[type]}
+              <span className={`ml-0.5 ${isActive ? "text-primary-foreground/70" : "text-muted-foreground/60"}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
