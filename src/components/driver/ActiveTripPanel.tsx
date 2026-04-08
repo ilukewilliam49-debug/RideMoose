@@ -306,23 +306,40 @@ export default function ActiveTripPanel({
               </div>
             )}
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 gap-1.5 font-semibold"
-            onClick={() => {
-              const dest = activeRide.status === "in_progress"
-                ? { lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, addr: activeRide.dropoff_address }
-                : { lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, addr: activeRide.pickup_address };
-              const destination = dest.lat && dest.lng
-                ? `${dest.lat},${dest.lng}`
-                : encodeURIComponent(dest.addr || "");
-              window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`, "_blank");
-            }}
-          >
-            <Navigation className="h-3.5 w-3.5" />
-            Navigate
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 font-semibold"
+              onClick={() => {
+                const dest = activeRide.status === "in_progress"
+                  ? { lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, addr: activeRide.dropoff_address }
+                  : { lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, addr: activeRide.pickup_address };
+                const destination = dest.lat && dest.lng
+                  ? `${dest.lat},${dest.lng}`
+                  : encodeURIComponent(dest.addr || "");
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`, "_blank");
+              }}
+            >
+              <Navigation className="h-3.5 w-3.5" />
+              Maps
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 font-semibold"
+              onClick={() => {
+                const dest = activeRide.status === "in_progress"
+                  ? { lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng }
+                  : { lat: activeRide.pickup_lat, lng: activeRide.pickup_lng };
+                if (dest.lat && dest.lng) {
+                  window.open(`https://waze.com/ul?ll=${dest.lat},${dest.lng}&navigate=yes`, "_blank");
+                }
+              }}
+            >
+              Waze
+            </Button>
+          </div>
         </div>
       )}
 
