@@ -478,36 +478,55 @@ const DriverDispatch = () => {
             </div>
           )}
 
-          {/* ETA strip */}
+          {/* ETA strip + Navigate button */}
           {(liveEta || activeRideDirections) && (
-            <div className="flex items-center gap-4 rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3 text-sm">
-              <div className="flex items-center gap-1.5">
-                <Navigation className="h-4 w-4 text-primary" />
-                <span className="font-semibold tabular-nums">
-                  {(liveEta?.distance_km ?? activeRideDirections?.distance_km ?? 0).toFixed(1)} km
-                </span>
-                <span className="text-[10px] text-muted-foreground">
-                  {activeRide.status === "in_progress" ? "to drop" : "to pickup"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="font-semibold">
-                  {liveEta ? (liveEta.duration_in_traffic_text || liveEta.duration_text) : (activeRideDirections?.duration_in_traffic_text || activeRideDirections?.duration_text)}
-                </span>
-                {liveEta && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+            <div className="flex items-center gap-3 rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3 text-sm">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Navigation className="h-4 w-4 text-primary" />
+                  <span className="font-semibold tabular-nums">
+                    {(liveEta?.distance_km ?? activeRideDirections?.distance_km ?? 0).toFixed(1)} km
                   </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {activeRide.status === "in_progress" ? "to drop" : "to pickup"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="font-semibold">
+                    {liveEta ? (liveEta.duration_in_traffic_text || liveEta.duration_text) : (activeRideDirections?.duration_in_traffic_text || activeRideDirections?.duration_text)}
+                  </span>
+                  {liveEta && (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                    </span>
+                  )}
+                </div>
+                {activeTrafficDelayMin > 2 && (
+                  <div className="flex items-center gap-1 text-amber-500">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">+{Math.round(activeTrafficDelayMin)}m</span>
+                  </div>
                 )}
               </div>
-              {activeTrafficDelayMin > 2 && (
-                <div className="flex items-center gap-1 text-amber-500">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium">+{Math.round(activeTrafficDelayMin)}m</span>
-                </div>
-              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 gap-1.5 font-semibold"
+                onClick={() => {
+                  const dest = activeRide.status === "in_progress"
+                    ? { lat: activeRide.dropoff_lat, lng: activeRide.dropoff_lng, addr: activeRide.dropoff_address }
+                    : { lat: activeRide.pickup_lat, lng: activeRide.pickup_lng, addr: activeRide.pickup_address };
+                  const destination = dest.lat && dest.lng
+                    ? `${dest.lat},${dest.lng}`
+                    : encodeURIComponent(dest.addr || "");
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`, "_blank");
+                }}
+              >
+                <Navigation className="h-3.5 w-3.5" />
+                Navigate
+              </Button>
             </div>
           )}
 
