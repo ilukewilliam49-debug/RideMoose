@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -14,15 +14,16 @@ import {
   AlertTriangle,
   Power,
   Car,
-  Package,
-  Briefcase,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
+import { serviceLabels, fmt } from "@/lib/driver-constants";
+import { DashboardStatsSkeleton, RecentTripsSkeleton } from "@/components/driver/DriverDashboardSkeletons";
+import ShiftSummaryDialog from "@/components/driver/ShiftSummaryDialog";
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
@@ -30,8 +31,27 @@ const DriverDashboard = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [togglingAvailability, setTogglingAvailability] = useState(false);
+  const [shiftSummaryOpen, setShiftSummaryOpen] = useState(false);
+  const [lastShiftStart, setLastShiftStart] = useState<string | null>(null);
 
   const isOnline = !!profile?.is_available;
+
+  // ─── Live-ticking online duration ───
+  const [onlineDuration, setOnlineDuration] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tick = () => {
+      const onlineSince = profile?.went_online_at;
+      if (!onlineSince) { setOnlineDuration(null); return; }
+      const diff = Date.now() - new Date(onlineSince).getTime();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setOnlineDuration(h > 0 ? `${h}h ${m}m` : `${m}m`);
+    };
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [profile?.went_online_at]);
 
   // ─── Toggle online / offline ───
   const toggleAvailability = useCallback(async () => {
@@ -43,14 +63,14 @@ const DriverDashboard = () => {
 
       if (newStatus) {
         updates.went_online_at = new Date().toISOString();
-        // Start shift session
         await supabase.from("shift_sessions").insert({
           driver_id: profile.id,
           started_at: new Date().toISOString(),
         });
       } else {
+        // Show shift summary before clearing
+        setLastShiftStart(profile.went_online_at || null);
         updates.went_online_at = null;
-        // End open shift session
         const { data: openSession } = await supabase
           .from("shift_sessions")
           .select("id")
@@ -65,6 +85,7 @@ const DriverDashboard = () => {
             .update({ ended_at: new Date().toISOString() })
             .eq("id", openSession.id);
         }
+        setShiftSummaryOpen(true);
       }
 
       const { error } = await supabase
@@ -73,7 +94,7 @@ const DriverDashboard = () => {
         .eq("id", profile.id);
       if (error) throw error;
 
-      toast.success(newStatus ? "You're online — ready for dispatch" : "You're offline");
+      if (newStatus) toast.success("You're online — ready for dispatch");
       queryClient.invalidateQueries({ queryKey: ["auth-profile"] });
     } catch {
       toast.error("Failed to update availability");
@@ -83,13 +104,11 @@ const DriverDashboard = () => {
   }, [profile, isOnline, queryClient]);
 
   // ─── Dashboard stats ───
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["driver-dashboard-stats", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return null;
-
       const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-
       const [activeRideRes, pendingRes, completedTodayRes, earningsTodayRes, outstandingRes] =
         await Promise.all([
           supabase
@@ -144,8 +163,25 @@ const DriverDashboard = () => {
     refetchInterval: 8000,
   });
 
-  // Recent completed trips
-  const { data: recentTrips } = useQuery({
+  // ─── Driver rating ───
+  const { data: ratingData } = useQuery({
+    queryKey: ["driver-rating", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      const { data, error } = await supabase
+        .from("ride_ratings")
+        .select("rating")
+        .eq("rated_user", profile.id);
+      if (error || !data || data.length === 0) return null;
+      const avg = data.reduce((s, r) => s + r.rating, 0) / data.length;
+      return { average: Math.round(avg * 10) / 10, count: data.length };
+    },
+    enabled: !!profile?.id,
+    staleTime: 60_000,
+  });
+
+  // ─── Recent completed trips ───
+  const { data: recentTrips, isLoading: tripsLoading } = useQuery({
     queryKey: ["driver-recent-trips", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
@@ -162,31 +198,7 @@ const DriverDashboard = () => {
     enabled: !!profile?.id,
   });
 
-  // ─── Online duration ───
-  const onlineSince = profile?.went_online_at;
-  const onlineDuration = onlineSince
-    ? (() => {
-        const diff = Date.now() - new Date(onlineSince).getTime();
-        const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        return h > 0 ? `${h}h ${m}m` : `${m}m`;
-      })()
-    : null;
-
-  const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
   const activeRide = stats?.activeRide;
-
-  const serviceLabels: Record<string, string> = {
-    taxi: "Taxi",
-    private_hire: "Private Hire",
-    courier: "Courier",
-    large_delivery: "Large Delivery",
-    retail_delivery: "Retail",
-    personal_shopper: "Shopper",
-    food_delivery: "Food",
-    pet_transport: "Pet Transport",
-    shuttle: "Shuttle",
-  };
 
   return (
     <div className="space-y-4 pb-6">
@@ -196,9 +208,17 @@ const DriverDashboard = () => {
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Driver
           </p>
-          <h1 className="text-xl font-bold tracking-tight">
-            {profile?.full_name?.split(" ")[0] || "Driver"}
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold tracking-tight">
+              {profile?.full_name?.split(" ")[0] || "Driver"}
+            </h1>
+            {ratingData && (
+              <span className="flex items-center gap-1 text-sm font-semibold text-amber-500">
+                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                {ratingData.average}
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={toggleAvailability}
@@ -291,20 +311,24 @@ const DriverDashboard = () => {
       )}
 
       {/* ── Stats grid ── */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          label="Earnings today"
-          value={fmt(stats?.earningsToday ?? 0)}
-          icon={<DollarSign className="h-4 w-4" />}
-          color="text-green-500"
-        />
-        <StatCard
-          label="Trips today"
-          value={String(stats?.completedToday ?? 0)}
-          icon={<TrendingUp className="h-4 w-4" />}
-          color="text-primary"
-        />
-      </div>
+      {statsLoading ? (
+        <DashboardStatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            label="Earnings today"
+            value={fmt(stats?.earningsToday ?? 0)}
+            icon={<DollarSign className="h-4 w-4" />}
+            color="text-green-500"
+          />
+          <StatCard
+            label="Trips today"
+            value={String(stats?.completedToday ?? 0)}
+            icon={<TrendingUp className="h-4 w-4" />}
+            color="text-primary"
+          />
+        </div>
+      )}
 
       {/* ── Dispatch CTA ── */}
       <motion.button
@@ -358,39 +382,8 @@ const DriverDashboard = () => {
         </motion.div>
       )}
 
-      {/* ── Service capabilities ── */}
-      {(profile?.can_taxi || profile?.can_private_hire || profile?.can_courier || profile?.can_food_delivery || profile?.pet_approved) ? (
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground px-1">
-            Your services
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {profile?.can_taxi && <ServiceBadge label="Taxi" />}
-            {profile?.can_private_hire && <ServiceBadge label="Private Hire" />}
-            {profile?.can_shuttle && <ServiceBadge label="Shuttle" />}
-            {profile?.can_courier && <ServiceBadge label="Courier" />}
-            {profile?.can_food_delivery && <ServiceBadge label="Food Delivery" />}
-            {profile?.pet_approved && <ServiceBadge label="Pet Transport" />}
-            {profile?.vehicle_type && <ServiceBadge label={profile.vehicle_type} />}
-            {profile?.seat_capacity && (
-              <ServiceBadge label={`${profile.seat_capacity} seats`} />
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-start gap-3 rounded-2xl bg-amber-500/8 ring-1 ring-amber-500/20 px-4 py-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-          <div>
-            <p className="text-sm font-semibold">No services enabled</p>
-            <p className="text-xs text-muted-foreground">
-              Contact admin to enable your driver capabilities.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* ── Quick action: No active trip prompt ── */}
-      {!activeRide && isOnline && (
+      {!activeRide && isOnline && !statsLoading && (
         <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-4 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/5 mx-auto mb-2">
             <Car className="h-4 w-4 text-muted-foreground/40" />
@@ -411,7 +404,9 @@ const DriverDashboard = () => {
       )}
 
       {/* ── Recent trips ── */}
-      {recentTrips && recentTrips.length > 0 && (
+      {tripsLoading ? (
+        <RecentTripsSkeleton />
+      ) : recentTrips && recentTrips.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -427,7 +422,7 @@ const DriverDashboard = () => {
             </Button>
           </div>
           <div className="space-y-2">
-            {recentTrips.map((ride: any) => (
+            {recentTrips.map((ride) => (
               <div
                 key={ride.id}
                 className="flex items-center justify-between rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3"
@@ -447,7 +442,15 @@ const DriverDashboard = () => {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
+
+      {/* Shift summary dialog */}
+      <ShiftSummaryDialog
+        open={shiftSummaryOpen}
+        onClose={() => setShiftSummaryOpen(false)}
+        profileId={profile?.id}
+        shiftStartedAt={lastShiftStart}
+      />
     </div>
   );
 };
@@ -480,15 +483,6 @@ function StatCard({
         {value}
       </p>
     </motion.div>
-  );
-}
-
-// ─── Service badge ───
-function ServiceBadge({ label }: { label: string }) {
-  return (
-    <span className="rounded-full bg-secondary ring-1 ring-border/50 px-3 py-1.5 text-xs font-medium text-secondary-foreground">
-      {label}
-    </span>
   );
 }
 
