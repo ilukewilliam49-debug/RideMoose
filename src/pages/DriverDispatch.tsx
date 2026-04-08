@@ -825,14 +825,22 @@ const DriverDispatch = () => {
                         <Button
                           className="flex-1 h-14 rounded-xl text-[15px] font-bold active:scale-[0.98] transition-transform"
                           onClick={() => acceptRide(ride.id)}
+                          disabled={acceptingId === ride.id}
                         >
-                          <Check className="mr-2 h-5 w-5" />
-                          Accept
+                          {acceptingId === ride.id ? (
+                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                          ) : (
+                            <>
+                              <Check className="mr-2 h-5 w-5" />
+                              Accept
+                            </>
+                          )}
                         </Button>
                         <Button
                           variant="outline"
                           className="h-14 w-14 rounded-xl active:scale-[0.98]"
                           onClick={() => declineRide(ride.id)}
+                          disabled={!!acceptingId}
                         >
                           <X className="h-5 w-5" />
                         </Button>
