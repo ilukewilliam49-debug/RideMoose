@@ -10,8 +10,6 @@ export type Profile = AuthProfile;
 // Delivery bid type
 export type DeliveryBid = Tables<"delivery_bids">;
 
-// Delivery bid type
-export type DeliveryBid = Tables<"delivery_bids">;
 
 // Rider profile subset for active trip context
 export interface RiderProfileSummary {
