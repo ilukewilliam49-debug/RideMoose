@@ -149,11 +149,22 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
       // Fit bounds to include polyline
       map.fitBounds(fullLine.getBounds(), { padding: [40, 40], maxZoom: 16 });
 
+      // Shadow/glow layer behind the route
+      const shadowLine = L.polyline([], {
+        color: "hsl(var(--primary))",
+        weight: 12,
+        opacity: 0.2,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(map);
+
       // Animate: progressively reveal segments
       const animatedLine = L.polyline([], {
         color: "hsl(var(--primary))",
         weight: 4,
-        opacity: 0.8,
+        opacity: 0.85,
+        lineCap: "round",
+        lineJoin: "round",
       }).addTo(map);
 
       polylineRef.current = animatedLine;
@@ -167,6 +178,7 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
         const batchSize = Math.max(1, Math.ceil(totalPoints / (duration / stepTime)));
         const end = Math.min(currentIndex + batchSize, totalPoints);
         for (let i = currentIndex; i < end; i++) {
+          shadowLine.addLatLng(decoded[i]);
           animatedLine.addLatLng(decoded[i]);
         }
         currentIndex = end;
@@ -179,6 +191,7 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
       return () => {
         clearInterval(interval);
         fullLine.remove();
+        shadowLine.remove();
       };
     }
   }, [polyline]);
