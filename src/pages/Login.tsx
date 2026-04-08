@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, Car, Steering Wheel } from "lucide-react";
+import { Mail, Lock, User, Car } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
