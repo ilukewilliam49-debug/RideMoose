@@ -82,7 +82,10 @@
   },
   "auth": {
     "signInTitle": "Sign in to your account",
-    "signUpTitle": "Create your account",
+    "signUpTitle": "Créez votre compte",
+    "selectRole": "Je veux",
+    "rider": "Voyager",
+    "driver": "Conduire",
     "fullName": "Full Name",
     "email": "Email",
     "password": "Password",

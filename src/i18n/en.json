@@ -83,6 +83,9 @@
   "auth": {
     "signInTitle": "Sign in to your account",
     "signUpTitle": "Create your account",
+    "selectRole": "I want to",
+    "rider": "Ride",
+    "driver": "Drive",
     "fullName": "Full Name",
     "email": "Email",
     "password": "Password",
