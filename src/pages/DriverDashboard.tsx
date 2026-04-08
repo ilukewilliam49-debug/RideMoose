@@ -163,7 +163,7 @@ const DriverDashboard = () => {
     refetchInterval: 8000,
   });
 
-  // ─── Driver rating ───
+  // ─── Driver rating + acceptance rate ───
   const { data: ratingData } = useQuery({
     queryKey: ["driver-rating", profile?.id],
     queryFn: async () => {
@@ -178,6 +178,25 @@ const DriverDashboard = () => {
     },
     enabled: !!profile?.id,
     staleTime: 60_000,
+  });
+
+  const { data: acceptanceRate } = useQuery({
+    queryKey: ["driver-acceptance-rate", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      // Count completed + cancelled (declined) rides assigned to this driver
+      const [completedRes, cancelledRes] = await Promise.all([
+        supabase.from("rides").select("id", { count: "exact", head: true }).eq("driver_id", profile.id).eq("status", "completed"),
+        supabase.from("rides").select("id", { count: "exact", head: true }).eq("driver_id", profile.id).eq("status", "cancelled"),
+      ]);
+      const completed = completedRes.count || 0;
+      const cancelled = cancelledRes.count || 0;
+      const total = completed + cancelled;
+      if (total === 0) return null;
+      return Math.round((completed / total) * 100);
+    },
+    enabled: !!profile?.id,
+    staleTime: 120_000,
   });
 
   // ─── Recent completed trips ───
@@ -216,6 +235,11 @@ const DriverDashboard = () => {
               <span className="flex items-center gap-1 text-sm font-semibold text-amber-500">
                 <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
                 {ratingData.average}
+              </span>
+            )}
+            {acceptanceRate !== null && acceptanceRate !== undefined && (
+              <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                {acceptanceRate}% accept
               </span>
             )}
           </div>
