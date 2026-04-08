@@ -63,7 +63,7 @@ export const useRideBookingState = () => {
     }
   }, []);
 
-  // Pre-fill dropoff from URL params (passed from DashboardHome "Where to?")
+  // Pre-fill pickup/dropoff from URL params (e.g. saved places, "Where to?")
   useEffect(() => {
     const dropoffParam = searchParams.get("dropoff");
     const dlatParam = searchParams.get("dlat");
@@ -72,6 +72,15 @@ export const useRideBookingState = () => {
       setDropoff(decodeURIComponent(dropoffParam));
       if (dlatParam && dlngParam) {
         setDropoffCoords({ lat: parseFloat(dlatParam), lng: parseFloat(dlngParam) });
+      }
+    }
+    const pickupParam = searchParams.get("pickup");
+    const platParam = searchParams.get("plat");
+    const plngParam = searchParams.get("plng");
+    if (pickupParam) {
+      setPickup(decodeURIComponent(pickupParam));
+      if (platParam && plngParam) {
+        setPickupCoords({ lat: parseFloat(platParam), lng: parseFloat(plngParam) });
       }
     }
   }, []);
