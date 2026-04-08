@@ -125,7 +125,7 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
     }
   }, [markers]);
 
-  // Draw route polyline
+  // Draw route polyline with animation
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -138,14 +138,48 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
 
     if (polyline) {
       const decoded = decodePolyline(polyline);
-      polylineRef.current = L.polyline(decoded, {
+
+      // Create the full polyline (invisible initially) for bounds fitting
+      const fullLine = L.polyline(decoded, {
+        color: "hsl(var(--primary))",
+        weight: 4,
+        opacity: 0,
+      }).addTo(map);
+
+      // Fit bounds to include polyline
+      map.fitBounds(fullLine.getBounds(), { padding: [40, 40], maxZoom: 16 });
+
+      // Animate: progressively reveal segments
+      const animatedLine = L.polyline([], {
         color: "hsl(var(--primary))",
         weight: 4,
         opacity: 0.8,
       }).addTo(map);
 
-      // Fit bounds to include polyline
-      map.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
+      polylineRef.current = animatedLine;
+
+      const totalPoints = decoded.length;
+      const duration = 800; // ms
+      const stepTime = Math.max(5, duration / totalPoints);
+      let currentIndex = 0;
+
+      const interval = setInterval(() => {
+        const batchSize = Math.max(1, Math.ceil(totalPoints / (duration / stepTime)));
+        const end = Math.min(currentIndex + batchSize, totalPoints);
+        for (let i = currentIndex; i < end; i++) {
+          animatedLine.addLatLng(decoded[i]);
+        }
+        currentIndex = end;
+        if (currentIndex >= totalPoints) {
+          clearInterval(interval);
+          fullLine.remove();
+        }
+      }, stepTime);
+
+      return () => {
+        clearInterval(interval);
+        fullLine.remove();
+      };
     }
   }, [polyline]);
 
