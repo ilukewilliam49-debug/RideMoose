@@ -581,6 +581,44 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_requests: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          driver_id: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          driver_id: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          driver_id?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_requests_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phone_otps: {
         Row: {
           created_at: string
