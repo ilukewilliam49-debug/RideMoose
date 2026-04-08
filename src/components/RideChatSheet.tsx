@@ -134,12 +134,14 @@ export default function RideChatSheet({ rideId, otherPartyName, trigger }: RideC
 
   const handleImageUpload = async (file: File) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
       const ext = file.name.split(".").pop();
-      const path = `${rideId}/${Date.now()}.${ext}`;
+      const path = `${user.id}/${rideId}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("chat-images").upload(path, file);
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(path);
-      await sendMessage("📷 Photo", urlData.publicUrl);
+      const { data: urlData } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60 * 24 * 365);
+      await sendMessage("📷 Photo", urlData?.signedUrl);
     } catch (err: any) {
       toast.error("Failed to upload image");
     }

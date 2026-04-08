@@ -217,12 +217,14 @@ export default function ActiveTripPanel({
   const uploadProofPhoto = async (rideId: string, file: File) => {
     setUploadingProof(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
       const ext = file.name.split(".").pop();
-      const path = `${rideId}/proof.${ext}`;
+      const path = `${user.id}/${rideId}/proof.${ext}`;
       const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
-      const { error: updateError } = await supabase.from("rides").update({ proof_photo_url: urlData.publicUrl } as any).eq("id", rideId);
+      const { data: urlData } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const { error: updateError } = await supabase.from("rides").update({ proof_photo_url: urlData?.signedUrl } as any).eq("id", rideId);
       if (updateError) throw updateError;
       toast.success(t("dispatch.proofPhotoUploaded"));
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
@@ -232,12 +234,14 @@ export default function ActiveTripPanel({
   const uploadReceiptPhoto = async (rideId: string, file: File, finalCostCents: number) => {
     setUploadingReceipt(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
       const ext = file.name.split(".").pop();
-      const path = `${rideId}/receipt.${ext}`;
+      const path = `${user.id}/${rideId}/receipt.${ext}`;
       const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
-      const { error: updateError } = await supabase.from("rides").update({ receipt_photo_url: urlData.publicUrl, final_item_cost_cents: finalCostCents } as any).eq("id", rideId);
+      const { data: urlData } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const { error: updateError } = await supabase.from("rides").update({ receipt_photo_url: urlData?.signedUrl, final_item_cost_cents: finalCostCents } as any).eq("id", rideId);
       if (updateError) throw updateError;
       toast.success(t("dispatch.receiptPhotoUploaded"));
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
