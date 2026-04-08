@@ -26,6 +26,7 @@ import {
   UtensilsCrossed,
   PawPrint,
   Clock,
+  Phone,
   Navigation,
   ChevronDown,
   ChevronUp,
@@ -170,6 +171,22 @@ const DriverDispatch = () => {
       return data;
     },
     enabled: !!profile?.id,
+  });
+
+  // Fetch rider profile for active trip context
+  const { data: riderProfile } = useQuery({
+    queryKey: ["rider-profile", activeRide?.rider_id],
+    queryFn: async () => {
+      if (!activeRide?.rider_id) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, phone, avatar_url")
+        .eq("id", activeRide.rider_id)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!activeRide?.rider_id,
   });
 
   usePetArrivalCheck(activeRide as any);
@@ -547,6 +564,33 @@ const DriverDispatch = () => {
               </div>
             </div>
 
+            {/* Rider / customer context */}
+            <div className="px-4 pb-3">
+              <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold shrink-0">
+                    {riderProfile?.full_name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{riderProfile?.full_name || "Customer"}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {isDeliveryType(activeRide.service_type) ? "Sender" : `${activeRide.passenger_count} passenger${activeRide.passenger_count > 1 ? "s" : ""}`}
+                      {activeRide.payment_option === "pay_driver" && " · Cash payment"}
+                      {activeRide.billed_to === "organization" && " · Corporate"}
+                    </p>
+                  </div>
+                </div>
+                {riderProfile?.phone && (
+                  <a
+                    href={`tel:${riderProfile.phone}`}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-transform shrink-0"
+                  >
+                    <Phone className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            </div>
+
             {/* Trip details by service type */}
             <div className="px-4 pb-3">
               {activeRide.service_type === "taxi" ? (
@@ -685,12 +729,43 @@ const DriverDispatch = () => {
                   <div className="px-4 py-2 space-y-1.5">
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                      <p className="text-sm leading-tight line-clamp-1">{ride.pickup_address}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-tight line-clamp-1">{ride.pickup_address}</p>
+                        {ride.pickup_notes && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.pickup_notes}</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
-                      <p className="text-sm leading-tight line-clamp-1">{ride.dropoff_address}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-tight line-clamp-1">{ride.dropoff_address}</p>
+                        {ride.dropoff_notes && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.dropoff_notes}</p>
+                        )}
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Contextual metadata row */}
+                  <div className="px-4 pb-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                    {ride.scheduled_at && (
+                      <span className="flex items-center gap-1 bg-secondary/80 px-2 py-0.5 rounded-full">
+                        <Clock className="h-3 w-3" />
+                        {new Date(ride.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                    {(ride.service_type === "taxi" || ride.service_type === "private_hire" || ride.service_type === "shuttle") && ride.passenger_count > 1 && (
+                      <span className="bg-secondary/80 px-2 py-0.5 rounded-full">{ride.passenger_count} passengers</span>
+                    )}
+                    {ride.distance_km && (
+                      <span className="tabular-nums">{Number(ride.distance_km).toFixed(1)} km</span>
+                    )}
+                    {ride.payment_option === "pay_driver" && (
+                      <span className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-medium">
+                        <Banknote className="h-3 w-3" /> Cash
+                      </span>
+                    )}
                   </div>
 
                   {/* Extra details */}
