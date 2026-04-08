@@ -1,9 +1,23 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const TermsOfService = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Terms of Service | PickYou";
+    const setMeta = (name: string, content: string) => {
+      let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      if (!el) { el = document.createElement("meta"); el.name = name; document.head.appendChild(el); }
+      el.content = content;
+    };
+    setMeta("description", "Read the PickYou Terms of Service covering account usage, payments, cancellations, and liability.");
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
+    link.href = "https://ridemoose.com/terms";
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
