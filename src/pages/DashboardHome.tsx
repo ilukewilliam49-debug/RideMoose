@@ -436,22 +436,21 @@ const DashboardHome = () => {
         </button>
 
         {/* Help / Support */}
-        <button
-          onClick={() => setSupportOpen(true)}
-          className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <HelpCircle className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold">{t("nav.support", "Help & Support")}</p>
-            <p className="text-[13px] text-muted-foreground mt-0.5">{t("dashboard.supportDesc", "Get help with your rides")}</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-        </button>
+        <SupportChatDialog
+          trigger={
+            <button className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <HelpCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-bold">{t("nav.support", "Help & Support")}</p>
+                <p className="text-[13px] text-muted-foreground mt-0.5">{t("dashboard.supportDesc", "Get help with your rides")}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+            </button>
+          }
+        />
       </motion.div>
-
-      <SupportChatDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
