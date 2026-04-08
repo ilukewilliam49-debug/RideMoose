@@ -116,12 +116,12 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
       markersRef.current.push(marker);
     });
 
-    // Fit bounds
+    // Fit bounds tightly to pickup + dropoff
     if (markers.length === 1) {
-      map.setView([markers[0].lat, markers[0].lng], 14);
+      map.setView([markers[0].lat, markers[0].lng], 15);
     } else if (markers.length > 1) {
       const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng] as L.LatLngExpression));
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
     }
   }, [markers]);
 
