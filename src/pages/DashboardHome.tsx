@@ -283,6 +283,9 @@ const DashboardHome = () => {
         </Popover>
       </motion.div>
 
+      {/* ── Nearby drivers map ── */}
+      <NearbyDriversMap activeTab={activeTab} userLocation={userLocation} />
+
       {/* ── Saved places ── */}
       {savedPlacesLoading && (
         <div className="mt-4 space-y-3">
