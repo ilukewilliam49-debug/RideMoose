@@ -720,17 +720,45 @@ const DriverDispatch = () => {
                   className="rounded-2xl bg-card ring-1 ring-border/50 overflow-hidden"
                 >
                   {/* Request header */}
-                  <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                    <div className="flex items-center gap-2">
-                      <ServiceIcon type={ride.service_type} className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-bold">{serviceLabels[ride.service_type] || ride.service_type}</span>
-                      {ride.service_type === "shuttle" && (
-                        <span className="text-[10px] text-muted-foreground">{ride.passenger_count} pax</span>
+                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+                        <ServiceIcon type={ride.service_type} className="h-4.5 w-4.5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold">{serviceLabels[ride.service_type] || ride.service_type}</span>
+                          {isAirportTrip(ride) && (
+                            <span className="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                              <Plane className="h-2.5 w-2.5" /> Airport
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                          {ride.service_type === "shuttle" && <span>{ride.passenger_count} pax</span>}
+                          {(ride.service_type === "taxi" || ride.service_type === "private_hire") && ride.passenger_count > 1 && (
+                            <span className="flex items-center gap-0.5"><Users className="h-2.5 w-2.5" />{ride.passenger_count}</span>
+                          )}
+                          {isDeliveryType(ride.service_type) && ride.package_size && (
+                            <span className="capitalize">{ride.package_size} pkg</span>
+                          )}
+                          {ride.scheduled_at && (
+                            <span className="flex items-center gap-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {new Date(ride.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-base font-bold text-primary tabular-nums">
+                        {fmt(Number(ride.estimated_price || 0) * 100)}
+                      </span>
+                      {ride.distance_km && (
+                        <p className="text-[10px] text-muted-foreground tabular-nums">{Number(ride.distance_km).toFixed(1)} km</p>
                       )}
                     </div>
-                    <span className="text-base font-bold text-primary tabular-nums">
-                      {fmt(Number(ride.estimated_price || 0) * 100)}
-                    </span>
                   </div>
 
                   {/* Addresses */}
