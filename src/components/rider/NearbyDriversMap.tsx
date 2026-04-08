@@ -280,6 +280,15 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
         className="rounded-2xl overflow-hidden border border-border/30"
         style={{ height: 200 }}
       />
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 z-[1001] flex items-center justify-center rounded-2xl bg-card/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-7 w-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            <span className="text-xs font-medium text-muted-foreground">Finding drivers…</span>
+          </div>
+        </div>
+      )}
       {/* Driver count badge */}
       <div className="absolute top-3 left-3 z-[1000] flex items-center gap-1.5 rounded-full bg-card/90 backdrop-blur-sm px-3 py-1.5 shadow-sm border border-border/30">
         <TabIcon className="h-3.5 w-3.5 text-primary" />
