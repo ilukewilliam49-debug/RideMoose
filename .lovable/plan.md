@@ -1,61 +1,29 @@
 
 
+## Rider Dashboard Audit — Status
+
+### Completed ✓
+1. ✅ **DashboardHome: Greeting + personalization** — Time-of-day greeting with first name
+2. ✅ **DashboardHome: Active ride banner** — Prominent banner showing active ride status, links to tracking
+3. ✅ **DashboardHome: Loading skeletons** — Saved places query shows skeleton placeholders
+4. ✅ **DashboardHome: Error states with retry** — ErrorRetry component on saved places failure
+5. ✅ **DashboardHome: Recent destinations** — Shows up to 3 deduplicated recent drop-offs from ride history
+6. ✅ **DashboardHome: Help/Support access** — SupportChatDialog accessible from quick actions
+7. ✅ **RiderActivity: Status filters** — All/Active/Completed/Cancelled filter chips
+8. ✅ **RiderActivity: Trip detail sheet** — Tap a ride to see full receipt with fare breakdown
+9. ✅ **RiderActivity: Realtime subscription** — Auto-refreshes when rides change
+10. ✅ **RiderActivity: Error state with retry** — ErrorRetry on query failure
+11. ✅ **RiderAccount: Avatar upload** — Camera button uploads to avatars bucket
+12. ✅ **RiderAccount: Editable name** — Pencil icon to edit full name inline
+13. ✅ **RiderAccount: Help/Support link** — SupportChatDialog in navigation links
+14. ✅ **SavedPlaceChips shared component** — Extracted from RiderDashboard, used for both pickup and dropoff
+15. ✅ **Rider types** — `src/types/rider.ts` with proper interfaces replacing `any` usage
+16. ✅ **RiderDashboard: Reduced duplication** — Replaced 60+ lines of duplicate saved place chips with shared component
+
+### Still Outstanding
+- **Full RiderDashboard split** — The booking form + active ride panel + ride history could be further extracted into separate files (RiderDashboard is still ~1390 lines). This is a large refactor best done incrementally.
+- **Saved places management UI** — CRUD interface for managing saved places from Account page
+
 ## Driver Dashboard — Remaining Gaps
 
-Here's what's been done vs. what's still outstanding from the Uber-level audit.
-
----
-
-### Already Implemented (13 items) ✓
-Loading skeletons, live-ticking online duration, shift summary dialog, shared constants, dispatch badge, decline hides requests, accept loading state, request age display, avatar upload, driver rating on account, help/support link, full 7-day chart, navigate button.
-
----
-
-### Still Outstanding (11 items)
-
-#### High Priority
-
-1. **Split DriverDispatch.tsx (1,030 lines)** — Still a god component. Should extract `ActiveTripPanel`, `IncomingRequestCard`, `OutstandingBalances`, `RecentDeliveries` into separate files.
-
-2. **Auto-decline countdown timer** — Requests sit indefinitely. Uber gives ~15 seconds with a visual countdown before auto-declining. Needs a circular progress indicator and timer logic.
-
-3. **Sound/vibration on new request** — No multi-sensory alert when a trip comes in. Should play an audio tone and trigger `navigator.vibrate()` when new requests appear.
-
-4. **TripStepper missing "arrived" status** — The stepper maps `accepted` → index 0 and `in_progress` → index 2, but skips "arrived at pickup" (index 1). No action button transitions to "arrived" status either.
-
-5. **Driver rating + acceptance rate on Dashboard header** — Rating is on Account page but not on the Dashboard home screen where Uber prominently shows it.
-
-#### Medium Priority
-
-6. **No per-trip earning breakdown** — Earnings only show net amount. Uber shows fare, tip, surge, commission for each trip.
-
-7. **No error states / retry prompts** — If any query fails, nothing renders. Should show an error message with a retry button.
-
-8. **Earnings chart empty state** — New drivers see empty bars with no message. Should show "No earnings yet" placeholder.
-
-9. **Account page has no editable fields** — Name, phone, vehicle info are read-only. Drivers can't update anything.
-
-10. **No notification preferences** — No toggles for push notifications or email alerts on Account page.
-
-#### Lower Priority
-
-11. **Type safety** — Heavy use of `any` types across all driver pages (ride objects, trip lists, earnings data). Should define proper TypeScript interfaces.
-
----
-
-### Recommended Build Order
-
-| Step | Task | Files |
-|------|------|-------|
-| 1 | Split DriverDispatch into sub-components | New: `ActiveTripPanel.tsx`, `IncomingRequestCard.tsx`, `OutstandingBalances.tsx`, `RecentDeliveries.tsx` |
-| 2 | Add auto-decline countdown (15s timer with circular progress) | `IncomingRequestCard.tsx` |
-| 3 | Add sound + vibration alerts on new requests | `DriverDispatch.tsx` |
-| 4 | Fix TripStepper to handle "arrived" status + add "I've arrived" action button | `ActiveTripPanel.tsx` |
-| 5 | Add rating + acceptance rate to Dashboard header | `DriverDashboard.tsx` |
-| 6 | Add error boundaries with retry across all driver pages | All driver pages |
-| 7 | Add per-trip breakdown in earnings | `DriverEarnings.tsx` |
-| 8 | Add empty state for earnings chart | `DriverEarnings.tsx` |
-| 9 | Make Account fields editable (name, phone, vehicle) | `DriverAccount.tsx` |
-| 10 | Add notification preference toggles | `DriverAccount.tsx` |
-| 11 | Replace `any` types with proper interfaces | `src/types/driver.ts` + all driver pages |
-
+(See previous plan entries — all 11 items completed)
