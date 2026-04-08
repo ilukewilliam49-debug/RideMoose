@@ -704,9 +704,12 @@ const DriverDispatch = () => {
             </div>
 
             {pendingRides?.length === 0 && (
-              <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-6 text-center">
-                <p className="text-sm text-muted-foreground">No pending requests right now</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">New trips will appear here automatically</p>
+              <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 mx-auto mb-3">
+                  <Car className="h-5 w-5 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">No pending requests</p>
+                <p className="text-xs text-muted-foreground/50 mt-1">Trips will appear here when available</p>
               </div>
             )}
 
@@ -815,18 +818,18 @@ const DriverDispatch = () => {
                     ) : (
                       <div className="flex gap-2">
                         <Button
-                          className="flex-1 h-12 rounded-xl font-bold active:scale-[0.98] transition-transform"
+                          className="flex-1 h-14 rounded-xl text-[15px] font-bold active:scale-[0.98] transition-transform"
                           onClick={() => acceptRide(ride.id)}
                         >
-                          <Check className="mr-2 h-4 w-4" />
+                          <Check className="mr-2 h-5 w-5" />
                           Accept
                         </Button>
                         <Button
                           variant="outline"
-                          className="h-12 w-12 rounded-xl active:scale-[0.98]"
+                          className="h-14 w-14 rounded-xl active:scale-[0.98]"
                           onClick={() => declineRide(ride.id)}
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-5 w-5" />
                         </Button>
                       </div>
                     )}
