@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DollarSign,
   TrendingUp,
@@ -16,10 +16,16 @@ import {
   ChevronUp,
   Clock,
   BarChart3,
+  ArrowUpRight,
+  Loader2,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { format, startOfMonth, startOfWeek, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -40,8 +46,10 @@ type Preset = "today" | "thisWeek" | "thisMonth" | "allTime";
 const DriverEarnings = () => {
   const { profile } = useAuth();
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [preset, setPreset] = useState<Preset>("today");
   const [showHistory, setShowHistory] = useState(true);
+  const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
 
   const getRange = (p: Preset) => {
     const now = new Date();
@@ -131,6 +139,42 @@ const DriverEarnings = () => {
     });
   }, [weeklyRides, weekDays]);
 
+  // Payout requests
+  const { data: payoutRequests } = useQuery({
+    queryKey: ["payout-requests", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("payout_requests")
+        .select("*")
+        .eq("driver_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
+  const hasPendingPayout = payoutRequests?.some((p: any) => p.status === "pending");
+
+  const requestPayout = useMutation({
+    mutationFn: async () => {
+      if (!profile?.id) throw new Error("No profile");
+      if (balance <= 0) throw new Error("No balance to withdraw");
+      const { error } = await supabase
+        .from("payout_requests")
+        .insert({ driver_id: profile.id, amount_cents: balance } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Payout request submitted");
+      setShowPayoutConfirm(false);
+      qc.invalidateQueries({ queryKey: ["payout-requests"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   // Commission ramp
   const launchStart = profile?.launch_start_date ? new Date(profile.launch_start_date) : null;
   const daysActive = launchStart ? (Date.now() - launchStart.getTime()) / 86400000 : Infinity;
@@ -181,9 +225,9 @@ const DriverEarnings = () => {
         </motion.div>
       )}
 
-      {/* Balance card */}
-      {balance !== 0 && (
-        <div className="flex items-center justify-between rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3">
+      {/* Balance card + Payout */}
+      <div className="rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3 space-y-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <CreditCard className="h-4 w-4 text-primary" />
             <div>
@@ -193,8 +237,101 @@ const DriverEarnings = () => {
               </p>
             </div>
           </div>
+          {balance > 0 && !hasPendingPayout && !showPayoutConfirm && (
+            <Button
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={() => setShowPayoutConfirm(true)}
+            >
+              <ArrowUpRight className="h-3.5 w-3.5" />
+              Request payout
+            </Button>
+          )}
+          {hasPendingPayout && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-500">
+              <Clock className="h-3.5 w-3.5" />
+              Payout pending
+            </span>
+          )}
         </div>
-      )}
+
+        {/* Payout confirmation */}
+        <AnimatePresence>
+          {showPayoutConfirm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-xl bg-secondary/50 p-3 space-y-2.5">
+                <p className="text-sm">
+                  Request withdrawal of <span className="font-bold">{fmt(balance)}</span>?
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  Payouts are typically processed within 1–3 business days.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1 h-10"
+                    onClick={() => requestPayout.mutate()}
+                    disabled={requestPayout.isPending}
+                  >
+                    {requestPayout.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Confirm"
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-10"
+                    onClick={() => setShowPayoutConfirm(false)}
+                    disabled={requestPayout.isPending}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Recent payout requests */}
+        {payoutRequests && payoutRequests.length > 0 && (
+          <div className="border-t border-border/50 pt-2.5 space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Payout history
+            </p>
+            {payoutRequests.map((pr: any) => (
+              <div key={pr.id} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  {pr.status === "paid" && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                  {pr.status === "pending" && <Clock className="h-3 w-3 text-amber-500" />}
+                  {pr.status === "approved" && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                  {pr.status === "rejected" && <XCircle className="h-3 w-3 text-destructive" />}
+                  <span className="font-medium tabular-nums">{fmt(pr.amount_cents)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-semibold uppercase ${
+                    pr.status === "paid" ? "text-green-500" :
+                    pr.status === "pending" ? "text-amber-500" :
+                    pr.status === "approved" ? "text-primary" :
+                    "text-destructive"
+                  }`}>
+                    {pr.status}
+                  </span>
+                  <span className="text-muted-foreground text-[10px]">
+                    {format(new Date(pr.created_at), "MMM d")}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Period selector */}
       <div className="flex gap-1.5">
