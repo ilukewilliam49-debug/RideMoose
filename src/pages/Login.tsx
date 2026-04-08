@@ -71,6 +71,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, hsl(220 30% 10%), hsl(220 30% 6%))' }}>
+      <button
+        onClick={() => navigate(-1)}
+        className="absolute top-4 left-4 z-10 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t("common.back", "Back")}
+      </button>
       {/* Subtle radial glow behind the form */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: 'radial-gradient(ellipse 60% 50% at 50% 40%, hsl(45 95% 55% / 0.06) 0%, transparent 70%)'
