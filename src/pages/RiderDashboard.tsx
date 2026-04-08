@@ -220,6 +220,9 @@ const RiderDashboard = () => {
   const showActiveMap = queries.activeRide && activeMarkers.length > 0;
   const showBookingMap = !queries.activeRide && mapMarkers.length > 0;
   const routePolyline = queries.directionsData?.polyline ?? null;
+  const routeInfo = queries.directionsData
+    ? { distanceKm: queries.directionsData.distance_km, durationText: queries.directionsData.duration_text }
+    : null;
 
   return (
     <div className="space-y-6 pt-4">
