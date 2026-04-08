@@ -13,14 +13,33 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-const driverIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-gold.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+// SVG paths for vehicle types
+const vehicleSvgs: Record<string, string> = {
+  sedan: `<path d="M5 17h1a2 2 0 0 0 4 0h4a2 2 0 0 0 4 0h1a1 1 0 0 0 1-1v-3a1 1 0 0 0-.4-.8l-2.6-2a1 1 0 0 0-.2-.1L15 9H9L6.2 10.1a1 1 0 0 0-.2.1l-2.6 2A1 1 0 0 0 3 13v3a1 1 0 0 0 1 1z" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="17" r="1.5" fill="white"/><circle cx="16" cy="17" r="1.5" fill="white"/>`,
+  suv: `<rect x="3" y="10" width="18" height="7" rx="1" fill="none" stroke="white" stroke-width="1.5"/><path d="M5 10V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2" fill="none" stroke="white" stroke-width="1.5"/><circle cx="7.5" cy="17" r="2" fill="white"/><circle cx="16.5" cy="17" r="2" fill="white"/>`,
+  van: `<rect x="2" y="8" width="14" height="9" rx="1" fill="none" stroke="white" stroke-width="1.5"/><path d="M16 8h3l3 4v5h-6V8z" fill="none" stroke="white" stroke-width="1.5"/><circle cx="7" cy="17" r="2" fill="white"/><circle cx="17" cy="17" r="2" fill="white"/>`,
+};
+
+const defaultVehicleSvg = vehicleSvgs.sedan;
+
+function getVehicleIcon(vehicleType?: string | null): L.DivIcon {
+  const type = (vehicleType || "").toLowerCase();
+  const svg = vehicleSvgs[type] || defaultVehicleSvg;
+  const label = type === "suv" ? "SUV" : type === "van" ? "Van" : "Sedan";
+
+  return L.divIcon({
+    className: "",
+    iconSize: [36, 44],
+    iconAnchor: [18, 44],
+    popupAnchor: [0, -44],
+    html: `<div style="display:flex;flex-direction:column;align-items:center">
+      <div style="width:36px;height:36px;border-radius:50%;background:hsl(45,93%,47%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid #fff">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">${svg}</svg>
+      </div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid hsl(45,93%,47%);margin-top:-1px"></div>
+    </div>`,
+  });
+}
 
 type Tab = "taxi" | "charter" | "delivery";
 
@@ -32,13 +51,14 @@ interface MockDriver {
   can_taxi: boolean;
   can_private_hire: boolean;
   can_courier: boolean;
+  vehicle_type: string;
 }
 
 const MOCK_DRIVERS: MockDriver[] = [
-  { id: "mock-1", full_name: "Alex Taylor", latitude: 62.457, longitude: -114.375, can_taxi: true, can_private_hire: false, can_courier: false },
-  { id: "mock-2", full_name: "Jordan Lee", latitude: 62.461, longitude: -114.365, can_taxi: true, can_private_hire: true, can_courier: false },
-  { id: "mock-3", full_name: "Morgan Chen", latitude: 62.450, longitude: -114.358, can_taxi: false, can_private_hire: true, can_courier: true },
-  { id: "mock-4", full_name: "Sam Rivera", latitude: 62.448, longitude: -114.380, can_taxi: false, can_private_hire: false, can_courier: true },
+  { id: "mock-1", full_name: "Alex Taylor", latitude: 62.457, longitude: -114.375, can_taxi: true, can_private_hire: false, can_courier: false, vehicle_type: "sedan" },
+  { id: "mock-2", full_name: "Jordan Lee", latitude: 62.461, longitude: -114.365, can_taxi: true, can_private_hire: true, can_courier: false, vehicle_type: "suv" },
+  { id: "mock-3", full_name: "Morgan Chen", latitude: 62.450, longitude: -114.358, can_taxi: false, can_private_hire: true, can_courier: true, vehicle_type: "van" },
+  { id: "mock-4", full_name: "Sam Rivera", latitude: 62.448, longitude: -114.380, can_taxi: false, can_private_hire: false, can_courier: true, vehicle_type: "sedan" },
 ];
 
 interface NearbyDriversMapProps {
