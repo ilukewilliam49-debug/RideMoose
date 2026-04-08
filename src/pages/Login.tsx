@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +16,14 @@ import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 import { lovable } from "@/integrations/lovable/index";
 
 const Login = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const preselectedRole = searchParams.get("role") === "driver" ? "driver" : "rider";
+  const preselectedSignup = searchParams.get("role") === "driver";
+  const [isLogin, setIsLogin] = useState(!preselectedSignup);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"rider" | "driver">("rider");
+  const [role, setRole] = useState<"rider" | "driver">(preselectedRole);
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
