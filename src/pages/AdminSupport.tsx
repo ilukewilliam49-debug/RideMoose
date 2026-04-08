@@ -81,6 +81,15 @@ const AdminSupport = () => {
 
   const selected = conversations?.find((c: any) => c.id === selectedId) as (ConversationRow & { user_name: string }) | undefined;
 
+  // Fix: sync adminNotes when selected conversation changes
+  const [prevSelectedId, setPrevSelectedId] = useState<string | null>(null);
+  if (selectedId !== prevSelectedId) {
+    setPrevSelectedId(selectedId);
+    if (selected) {
+      setAdminNotes(selected.admin_notes || "");
+    }
+  }
+
   const updateStatus = async (id: string, newStatus: string) => {
     setSaving(true);
     try {

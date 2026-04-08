@@ -11,6 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import ErrorRetry from "@/components/driver/ErrorRetry";
 
 interface Zone {
   id: string;
@@ -39,6 +44,13 @@ const AdminZones = () => {
   // Geo zone editing
   const [geoEditState, setGeoEditState] = useState<Record<string, Partial<GeoZone & { polygonText?: string }>>>({});
   const [newGeoZone, setNewGeoZone] = useState({ zone_key: "", zone_name: "", color: "#3b82f6", polygonText: "[[0, 0]]" });
+
+  // Confirmation dialog
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // ── Pricing zones ──
   const { data: zones, isLoading } = useQuery({
@@ -174,8 +186,31 @@ const AdminZones = () => {
 
   if (isLoading || geoLoading) return <div className="py-8 text-center text-muted-foreground">Loading zones…</div>;
 
+  const confirmDelete = (name: string, onConfirm: () => void) => {
+    setConfirmAction({
+      title: `Delete "${name}"?`,
+      description: "This action cannot be undone. The zone will be permanently removed.",
+      onConfirm,
+    });
+  };
+
   return (
     <div className="space-y-6 pt-4">
+      {/* Confirmation dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmAction?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmAction?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { confirmAction?.onConfirm(); setConfirmAction(null); }}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <h1 className="text-2xl font-bold">Private Hire Zones</h1>
 
       <Tabs defaultValue="pricing" className="w-full">
@@ -249,7 +284,7 @@ const AdminZones = () => {
                           <Button size="icon" variant="ghost" disabled={!isDirty(zone.id)} onClick={() => handleSave(zone)}>
                             <Save className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(zone.id)}>
+                          <Button size="icon" variant="ghost" onClick={() => confirmDelete(edited.zone_name, () => deleteMutation.mutate(zone.id))}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
@@ -356,7 +391,7 @@ const AdminZones = () => {
                         <Button size="sm" variant="outline" disabled={!isGeoDirty(zone.id)} onClick={() => handleGeoSave(zone)}>
                           <Save className="h-4 w-4 mr-1" /> Save
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => deleteGeoMutation.mutate(zone.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => confirmDelete(edited.zone_name, () => deleteGeoMutation.mutate(zone.id))}>
                           <Trash2 className="h-4 w-4 text-destructive mr-1" /> Delete
                         </Button>
                       </div>
