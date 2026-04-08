@@ -26,9 +26,6 @@ import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { format, startOfMonth, startOfWeek, subDays, eachDayOfInterval, isSameDay } from "date-fns";
-import { useTranslation } from "react-i18next";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
