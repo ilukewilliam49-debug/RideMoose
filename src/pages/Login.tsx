@@ -65,7 +65,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, hsl(220 30% 10%), hsl(220 30% 6%))' }}>
+      {/* Subtle radial glow behind the form */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse 60% 50% at 50% 40%, hsl(45 95% 55% / 0.06) 0%, transparent 70%)'
+      }} />
+      {/* Grid pattern overlay */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
+        backgroundImage: 'linear-gradient(hsl(0 0% 100%) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100%) 1px, transparent 1px)',
+        backgroundSize: '64px 64px'
+      }} />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
