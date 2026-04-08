@@ -391,7 +391,7 @@ const AdminZones = () => {
                         <Button size="sm" variant="outline" disabled={!isGeoDirty(zone.id)} onClick={() => handleGeoSave(zone)}>
                           <Save className="h-4 w-4 mr-1" /> Save
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => deleteGeoMutation.mutate(zone.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => confirmDelete(edited.zone_name, () => deleteGeoMutation.mutate(zone.id))}>
                           <Trash2 className="h-4 w-4 text-destructive mr-1" /> Delete
                         </Button>
                       </div>
