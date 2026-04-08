@@ -243,7 +243,7 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
   return (
     <div
       ref={containerRef}
-      className={`rounded-lg overflow-hidden border border-border ${className}`}
+      className={`rounded-lg overflow-hidden border border-border relative z-0 ${className}`}
       style={{ height: 300 }}
     />
   );
