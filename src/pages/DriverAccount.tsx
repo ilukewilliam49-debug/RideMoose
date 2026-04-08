@@ -409,13 +409,50 @@ const DriverAccount = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {verifications?.map((v, i) => (
-              <div key={i} className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
-                <span className="text-xs font-medium capitalize">{v.document_type.replace(/_/g, " ")}</span>
-                <VerificationBadge status={v.status} />
+            {verifications?.map((v: any, i: number) => (
+              <div key={i} className="rounded-xl bg-secondary/50 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium capitalize">{v.document_type.replace(/_/g, " ")}</span>
+                  <VerificationBadge status={v.status} />
+                </div>
+                {v.status === "rejected" && (
+                  <div className="mt-2 space-y-1.5">
+                    {v.reviewer_notes && (
+                      <p className="text-[10px] text-destructive">{v.reviewer_notes}</p>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5"
+                      disabled={reuploadingDoc === v.document_type}
+                      onClick={() => {
+                        setPendingDocType(v.document_type);
+                        docInputRef.current?.click();
+                      }}
+                    >
+                      {reuploadingDoc === v.document_type ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-3 w-3" />
+                      )}
+                      Re-upload
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
+          <input
+            ref={docInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file && pendingDocType) handleDocReupload(file, pendingDocType);
+              e.target.value = "";
+            }}
+          />
         )}
       </motion.div>
 
