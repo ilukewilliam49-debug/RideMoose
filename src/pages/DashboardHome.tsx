@@ -41,15 +41,14 @@ const DashboardHome = () => {
   const [showCustom, setShowCustom] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Get user location
-  useState(() => {
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         () => {}
       );
     }
-  });
+  }, []);
 
   const scheduleLabel = scheduledAt
     ? format(scheduledAt, "MMM d, h:mm a")
