@@ -34,6 +34,8 @@ import {
   CircleDot,
   CheckCircle2,
   Circle,
+  Plane,
+  Users,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
