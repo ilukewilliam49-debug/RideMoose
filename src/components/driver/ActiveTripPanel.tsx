@@ -429,14 +429,17 @@ export default function ActiveTripPanel({
                 </p>
               </div>
             </div>
-            {riderProfile?.phone && (
-              <a
-                href={`tel:${riderProfile.phone}`}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-transform shrink-0"
-              >
-                <Phone className="h-4 w-4" />
-              </a>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <RideChatSheet rideId={activeRide.id} otherPartyName={riderProfile?.full_name || undefined} />
+              {riderProfile?.phone && (
+                <a
+                  href={`tel:${riderProfile.phone}`}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-transform shrink-0"
+                >
+                  <Phone className="h-4 w-4" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
 
