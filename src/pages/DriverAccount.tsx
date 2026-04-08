@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
@@ -22,12 +22,20 @@ import {
   Camera,
   MessageCircle,
   Loader2,
+  Bell,
+  Save,
+  Edit3,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import SupportChatDialog from "@/components/SupportChatDialog";
+import ErrorRetry from "@/components/driver/ErrorRetry";
 
 const DriverAccount = () => {
   const { profile, signOut } = useAuth();
@@ -35,9 +43,13 @@ const DriverAccount = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editVehicle, setEditVehicle] = useState("");
 
   // Verification status
-  const { data: verifications, isLoading: verifLoading } = useQuery({
+  const { data: verifications, isLoading: verifLoading, isError: verifError, refetch: refetchVerif } = useQuery({
     queryKey: ["driver-verifications", profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
@@ -45,7 +57,7 @@ const DriverAccount = () => {
         .from("verifications")
         .select("document_type, status")
         .eq("driver_id", profile.id);
-      if (error) return [];
+      if (error) throw error;
       return data;
     },
     enabled: !!profile?.id,
@@ -90,6 +102,34 @@ const DriverAccount = () => {
     staleTime: 60_000,
   });
 
+  // Profile update mutation
+  const updateProfile = useMutation({
+    mutationFn: async (updates: { full_name?: string; phone?: string; vehicle_type?: string }) => {
+      if (!profile?.id) throw new Error("No profile");
+      const { error } = await supabase.from("profiles").update(updates).eq("id", profile.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Profile updated");
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["auth-profile"] });
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to update"),
+  });
+
+  // SMS notifications toggle
+  const toggleSmsNotifications = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!profile?.id) throw new Error("No profile");
+      const { error } = await supabase.from("profiles").update({ sms_notifications_enabled: enabled }).eq("id", profile.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth-profile"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const handleAvatarUpload = async (file: File) => {
     if (!profile?.id) return;
     setUploadingAvatar(true);
@@ -115,17 +155,27 @@ const DriverAccount = () => {
     }
   };
 
+  const startEditing = () => {
+    setEditName(profile?.full_name || "");
+    setEditPhone(profile?.phone || "");
+    setEditVehicle(profile?.vehicle_type || "");
+    setEditing(true);
+  };
+
+  const saveEdits = () => {
+    const updates: Record<string, string> = {};
+    if (editName && editName !== profile?.full_name) updates.full_name = editName;
+    if (editPhone !== (profile?.phone || "")) updates.phone = editPhone;
+    if (editVehicle !== (profile?.vehicle_type || "")) updates.vehicle_type = editVehicle;
+    if (Object.keys(updates).length === 0) { setEditing(false); return; }
+    updateProfile.mutate(updates);
+  };
+
   const initials = profile?.full_name
-    ? profile.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+    ? profile.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : "D";
 
   const approvedCount = verifications?.filter((v) => v.status === "approved").length ?? 0;
-  const pendingCount = verifications?.filter((v) => v.status === "pending").length ?? 0;
   const totalDocs = verifications?.length ?? 0;
 
   const services = [
@@ -144,64 +194,66 @@ const DriverAccount = () => {
   return (
     <div className="space-y-4 pb-6">
       {/* Header */}
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Account
-        </p>
-        <h1 className="text-xl font-bold tracking-tight">Your profile</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Account</p>
+          <h1 className="text-xl font-bold tracking-tight">Your profile</h1>
+        </div>
+        {!editing ? (
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={startEditing}>
+            <Edit3 className="h-3.5 w-3.5" /> Edit
+          </Button>
+        ) : (
+          <div className="flex gap-1.5">
+            <Button size="sm" className="gap-1.5" onClick={saveEdits} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Save
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditing(false)} disabled={updateProfile.isPending}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Profile card */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl bg-card ring-1 ring-border/50 p-4"
-      >
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-card ring-1 ring-border/50 p-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Avatar className="h-14 w-14">
               {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name} />}
-              <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
-                {initials}
-              </AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">{initials}</AvatarFallback>
             </Avatar>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
               className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-card active:scale-90 transition-transform"
             >
-              {uploadingAvatar ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Camera className="h-3.5 w-3.5" />
-              )}
+              {uploadingAvatar ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleAvatarUpload(file);
-              }}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleAvatarUpload(file); }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-lg font-bold truncate">{profile?.full_name || "Driver"}</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                Driver
-              </span>
-              {profile?.is_available ? (
-                <span className="flex items-center gap-1 text-[10px] font-semibold text-green-500">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Online
-                </span>
-              ) : (
-                <span className="text-[10px] text-muted-foreground">Offline</span>
-              )}
-            </div>
+            {editing ? (
+              <div className="space-y-1.5">
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Full name" className="h-8 text-sm" />
+                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone number" className="h-8 text-sm" />
+              </div>
+            ) : (
+              <>
+                <p className="text-lg font-bold truncate">{profile?.full_name || "Driver"}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">Driver</span>
+                  {profile?.is_available ? (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-green-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Online
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Offline</span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -214,64 +266,69 @@ const DriverAccount = () => {
               <span className="text-[10px] text-muted-foreground">({ratingData.count} ratings)</span>
             </div>
           )}
-          {profile?.phone && (
+          {!editing && profile?.phone && (
             <div className="flex items-center gap-1.5 ml-auto">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{profile.phone}</span>
-              {profile.phone_verified && (
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-              )}
+              {profile.phone_verified && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
             </div>
           )}
         </div>
       </motion.div>
 
       {/* Vehicle info */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-3"
-      >
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Car className="h-4 w-4 text-primary" />
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Vehicle
-          </span>
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Vehicle</span>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <InfoRow label="Type" value={profile?.vehicle_type || "Not set"} />
-          <InfoRow label="Seats" value={profile?.seat_capacity ? String(profile.seat_capacity) : "—"} />
-          <InfoRow label="Commission" value={`${commissionRate}%`} />
-          <InfoRow
-            label="Balance"
-            value={`$${((profile?.driver_balance_cents ?? 0) / 100).toFixed(2)}`}
+        {editing ? (
+          <div className="space-y-2">
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Vehicle type</Label>
+              <Input value={editVehicle} onChange={(e) => setEditVehicle(e.target.value)} placeholder="e.g. Sedan, SUV, Van" className="h-9 text-sm mt-1" />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <InfoRow label="Type" value={profile?.vehicle_type || "Not set"} />
+            <InfoRow label="Seats" value={profile?.seat_capacity ? String(profile.seat_capacity) : "—"} />
+            <InfoRow label="Commission" value={`${commissionRate}%`} />
+            <InfoRow label="Balance" value={`$${((profile?.driver_balance_cents ?? 0) / 100).toFixed(2)}`} />
+          </div>
+        )}
+      </motion.div>
+
+      {/* Notification preferences */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-primary" />
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Notifications</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">SMS notifications</p>
+            <p className="text-[10px] text-muted-foreground">Receive trip alerts via text message</p>
+          </div>
+          <Switch
+            checked={profile?.sms_notifications_enabled ?? true}
+            onCheckedChange={(checked) => toggleSmsNotifications.mutate(checked)}
+            disabled={toggleSmsNotifications.isPending}
           />
         </div>
       </motion.div>
 
       {/* Services */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-3"
-      >
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Briefcase className="h-4 w-4 text-primary" />
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Enabled services
-          </span>
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Enabled services</span>
         </div>
         {services.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {services.map((s) => (
-              <span
-                key={s.key}
-                className="flex items-center gap-1.5 rounded-full bg-secondary ring-1 ring-border/50 px-3 py-1.5 text-xs font-medium text-secondary-foreground"
-              >
-                <s.icon className="h-3 w-3" />
-                {s.label}
+              <span key={s.key} className="flex items-center gap-1.5 rounded-full bg-secondary ring-1 ring-border/50 px-3 py-1.5 text-xs font-medium text-secondary-foreground">
+                <s.icon className="h-3 w-3" /> {s.label}
               </span>
             ))}
           </div>
@@ -281,27 +338,19 @@ const DriverAccount = () => {
       </motion.div>
 
       {/* Verification status */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-3"
-      >
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="rounded-2xl bg-card ring-1 ring-border/50 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Verification
-            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Verification</span>
           </div>
           {totalDocs > 0 && (
-            <span className="text-[10px] text-muted-foreground">
-              {approvedCount}/{totalDocs} approved
-            </span>
+            <span className="text-[10px] text-muted-foreground">{approvedCount}/{totalDocs} approved</span>
           )}
         </div>
-
-        {verifLoading ? (
+        {verifError ? (
+          <ErrorRetry message="Failed to load verifications" onRetry={() => refetchVerif()} />
+        ) : verifLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-8 w-full rounded-xl" />
             <Skeleton className="h-8 w-full rounded-xl" />
@@ -311,18 +360,14 @@ const DriverAccount = () => {
             <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium">No documents uploaded</p>
-              <p className="text-[10px] text-muted-foreground">
-                Upload your license and vehicle documents to get verified.
-              </p>
+              <p className="text-[10px] text-muted-foreground">Upload your license and vehicle documents to get verified.</p>
             </div>
           </div>
         ) : (
           <div className="space-y-2">
             {verifications?.map((v, i) => (
               <div key={i} className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
-                <span className="text-xs font-medium capitalize">
-                  {v.document_type.replace(/_/g, " ")}
-                </span>
+                <span className="text-xs font-medium capitalize">{v.document_type.replace(/_/g, " ")}</span>
                 <VerificationBadge status={v.status} />
               </div>
             ))}
@@ -332,17 +377,10 @@ const DriverAccount = () => {
 
       {/* Shift stats */}
       {shiftStats && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-2xl bg-card ring-1 ring-border/50 p-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-2xl bg-card ring-1 ring-border/50 p-4">
           <div className="flex items-center gap-2 mb-3">
             <Clock className="h-4 w-4 text-primary" />
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Activity
-            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Activity</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <InfoRow label="Total shifts" value={String(shiftStats.totalSessions)} />
@@ -354,12 +392,8 @@ const DriverAccount = () => {
       {/* Help & support */}
       <SupportChatDialog
         trigger={
-          <Button
-            variant="outline"
-            className="w-full h-12 rounded-xl gap-2 active:scale-[0.98] transition-transform"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Help & Support
+          <Button variant="outline" className="w-full h-12 rounded-xl gap-2 active:scale-[0.98] transition-transform">
+            <MessageCircle className="h-4 w-4" /> Help & Support
           </Button>
         }
       />
@@ -368,13 +402,9 @@ const DriverAccount = () => {
       <Button
         variant="outline"
         className="w-full h-12 rounded-xl gap-2 active:scale-[0.98] transition-transform text-destructive hover:text-destructive"
-        onClick={async () => {
-          await signOut();
-          navigate("/login");
-        }}
+        onClick={async () => { await signOut(); navigate("/login"); }}
       >
-        <LogOut className="h-4 w-4" />
-        Sign out
+        <LogOut className="h-4 w-4" /> Sign out
       </Button>
     </div>
   );
@@ -390,24 +420,14 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function VerificationBadge({ status }: { status: string }) {
-  if (status === "approved") {
-    return (
-      <span className="flex items-center gap-1 text-[10px] font-semibold text-green-500">
-        <CheckCircle2 className="h-3 w-3" /> Approved
-      </span>
-    );
-  }
-  if (status === "pending") {
-    return (
-      <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-500">
-        <Clock className="h-3 w-3" /> Pending
-      </span>
-    );
-  }
+  if (status === "approved") return (
+    <span className="flex items-center gap-1 text-[10px] font-semibold text-green-500"><CheckCircle2 className="h-3 w-3" /> Approved</span>
+  );
+  if (status === "pending") return (
+    <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-500"><Clock className="h-3 w-3" /> Pending</span>
+  );
   return (
-    <span className="flex items-center gap-1 text-[10px] font-semibold text-destructive">
-      <AlertTriangle className="h-3 w-3" /> Rejected
-    </span>
+    <span className="flex items-center gap-1 text-[10px] font-semibold text-destructive"><AlertTriangle className="h-3 w-3" /> Rejected</span>
   );
 }
 
