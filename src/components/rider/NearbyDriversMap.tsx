@@ -24,6 +24,23 @@ const driverIcon = new L.Icon({
 
 type Tab = "taxi" | "charter" | "delivery";
 
+interface MockDriver {
+  id: string;
+  full_name: string;
+  latitude: number;
+  longitude: number;
+  can_taxi: boolean;
+  can_private_hire: boolean;
+  can_courier: boolean;
+}
+
+const MOCK_DRIVERS: MockDriver[] = [
+  { id: "mock-1", full_name: "Alex Taylor", latitude: 62.457, longitude: -114.375, can_taxi: true, can_private_hire: false, can_courier: false },
+  { id: "mock-2", full_name: "Jordan Lee", latitude: 62.461, longitude: -114.365, can_taxi: true, can_private_hire: true, can_courier: false },
+  { id: "mock-3", full_name: "Morgan Chen", latitude: 62.450, longitude: -114.358, can_taxi: false, can_private_hire: true, can_courier: true },
+  { id: "mock-4", full_name: "Sam Rivera", latitude: 62.448, longitude: -114.380, can_taxi: false, can_private_hire: false, can_courier: true },
+];
+
 interface NearbyDriversMapProps {
   activeTab: Tab;
   userLocation: { lat: number; lng: number } | null;
@@ -36,7 +53,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
   const userMarkerRef = useRef<L.CircleMarker | null>(null);
 
   // Query available drivers
-  const { data: drivers } = useQuery({
+  const { data: dbDrivers } = useQuery({
     queryKey: ["nearby-drivers", activeTab],
     queryFn: async () => {
       let query = supabase
@@ -62,7 +79,17 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     refetchInterval: 15000,
   });
 
-  const driverCount = drivers?.length ?? 0;
+  // Use DB drivers if available, otherwise fall back to filtered mock data
+  const drivers = useMemo(() => {
+    if (dbDrivers && dbDrivers.length > 0) return dbDrivers;
+    return MOCK_DRIVERS.filter((d) => {
+      if (activeTab === "taxi") return d.can_taxi;
+      if (activeTab === "charter") return d.can_private_hire;
+      return d.can_courier;
+    });
+  }, [dbDrivers, activeTab]);
+
+  const driverCount = drivers.length;
 
   const center: [number, number] = userLocation
     ? [userLocation.lat, userLocation.lng]
