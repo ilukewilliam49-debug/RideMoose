@@ -13,6 +13,9 @@ import {
   TrendingUp,
   AlertTriangle,
   Power,
+  Car,
+  Package,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +142,24 @@ const DriverDashboard = () => {
     },
     enabled: !!profile?.id,
     refetchInterval: 8000,
+  });
+
+  // Recent completed trips
+  const { data: recentTrips } = useQuery({
+    queryKey: ["driver-recent-trips", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("rides")
+        .select("id, pickup_address, dropoff_address, service_type, driver_earnings_cents, completed_at")
+        .eq("driver_id", profile.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(5);
+      if (error) return [];
+      return data;
+    },
+    enabled: !!profile?.id,
   });
 
   // ─── Online duration ───
@@ -371,8 +392,11 @@ const DriverDashboard = () => {
       {/* ── Quick action: No active trip prompt ── */}
       {!activeRide && isOnline && (
         <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-4 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/5 mx-auto mb-2">
+            <Car className="h-4 w-4 text-muted-foreground/40" />
+          </div>
           <p className="text-sm text-muted-foreground">
-            You're online and waiting for trips.
+            You're online and waiting for trips
           </p>
           <Button
             variant="ghost"
@@ -383,6 +407,45 @@ const DriverDashboard = () => {
             Check dispatch board
             <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </Button>
+        </div>
+      )}
+
+      {/* ── Recent trips ── */}
+      {recentTrips && recentTrips.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Recent trips
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-primary h-auto p-0"
+              onClick={() => navigate("/driver/earnings")}
+            >
+              View all <ChevronRight className="ml-0.5 h-3 w-3" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {recentTrips.map((ride: any) => (
+              <div
+                key={ride.id}
+                className="flex items-center justify-between rounded-2xl bg-card ring-1 ring-border/50 px-4 py-3"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wider bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded shrink-0">
+                    {serviceLabels[ride.service_type] || ride.service_type}
+                  </span>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {ride.pickup_address?.split(",")[0]} → {ride.dropoff_address?.split(",")[0]}
+                  </p>
+                </div>
+                <span className="text-sm font-bold tabular-nums text-green-500 shrink-0 ml-2">
+                  {fmt(ride.driver_earnings_cents || 0)}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
