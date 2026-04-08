@@ -701,12 +701,43 @@ const DriverDispatch = () => {
                   <div className="px-4 py-2 space-y-1.5">
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                      <p className="text-sm leading-tight line-clamp-1">{ride.pickup_address}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-tight line-clamp-1">{ride.pickup_address}</p>
+                        {ride.pickup_notes && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.pickup_notes}</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
-                      <p className="text-sm leading-tight line-clamp-1">{ride.dropoff_address}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-tight line-clamp-1">{ride.dropoff_address}</p>
+                        {ride.dropoff_notes && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.dropoff_notes}</p>
+                        )}
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Contextual metadata row */}
+                  <div className="px-4 pb-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                    {ride.scheduled_at && (
+                      <span className="flex items-center gap-1 bg-secondary/80 px-2 py-0.5 rounded-full">
+                        <Clock className="h-3 w-3" />
+                        {new Date(ride.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                    {(ride.service_type === "taxi" || ride.service_type === "private_hire" || ride.service_type === "shuttle") && ride.passenger_count > 1 && (
+                      <span className="bg-secondary/80 px-2 py-0.5 rounded-full">{ride.passenger_count} passengers</span>
+                    )}
+                    {ride.distance_km && (
+                      <span className="tabular-nums">{Number(ride.distance_km).toFixed(1)} km</span>
+                    )}
+                    {ride.payment_option === "pay_driver" && (
+                      <span className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-medium">
+                        <Banknote className="h-3 w-3" /> Cash
+                      </span>
+                    )}
                   </div>
 
                   {/* Extra details */}
