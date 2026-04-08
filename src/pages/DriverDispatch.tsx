@@ -34,6 +34,8 @@ import {
   CircleDot,
   CheckCircle2,
   Circle,
+  Plane,
+  Users,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
@@ -73,6 +75,12 @@ const ServiceIcon = ({ type, className = "h-4 w-4" }: { type: string; className?
 
 const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+/** Check if a ride involves an airport based on address keywords */
+const isAirportTrip = (ride: any): boolean => {
+  const keywords = ["airport", "keflavík", "keflavik", "terminal", "arrivals", "departures", "flugvöllur"];
+  const combined = `${ride.pickup_address || ""} ${ride.dropoff_address || ""}`.toLowerCase();
+  return keywords.some((k) => combined.includes(k));
+};
 // ─── Trip lifecycle steps ───
 const TRIP_STEPS = [
   { key: "accepted", label: "Heading to pickup" },
@@ -517,12 +525,19 @@ const DriverDispatch = () => {
                   <ServiceIcon type={activeRide.service_type} className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold">{serviceLabels[activeRide.service_type] || activeRide.service_type}</span>
-                  {activeRide.estimated_price && (
-                    <span className="ml-2 text-sm font-semibold text-primary tabular-nums">
-                      {fmt(Number(activeRide.estimated_price) * 100)}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold">{serviceLabels[activeRide.service_type] || activeRide.service_type}</span>
+                    {isAirportTrip(activeRide) && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                        <Plane className="h-2.5 w-2.5" /> Airport
+                      </span>
+                    )}
+                    {activeRide.estimated_price && (
+                      <span className="text-sm font-semibold text-primary tabular-nums ml-1">
+                        {fmt(Number(activeRide.estimated_price) * 100)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
@@ -696,9 +711,12 @@ const DriverDispatch = () => {
             </div>
 
             {pendingRides?.length === 0 && (
-              <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-6 text-center">
-                <p className="text-sm text-muted-foreground">No pending requests right now</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">New trips will appear here automatically</p>
+              <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 mx-auto mb-3">
+                  <Car className="h-5 w-5 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">No pending requests</p>
+                <p className="text-xs text-muted-foreground/50 mt-1">Trips will appear here when available</p>
               </div>
             )}
 
@@ -712,17 +730,45 @@ const DriverDispatch = () => {
                   className="rounded-2xl bg-card ring-1 ring-border/50 overflow-hidden"
                 >
                   {/* Request header */}
-                  <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                    <div className="flex items-center gap-2">
-                      <ServiceIcon type={ride.service_type} className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-bold">{serviceLabels[ride.service_type] || ride.service_type}</span>
-                      {ride.service_type === "shuttle" && (
-                        <span className="text-[10px] text-muted-foreground">{ride.passenger_count} pax</span>
+                  <div className="flex items-center justify-between px-4 pt-3.5 pb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+                        <ServiceIcon type={ride.service_type} className="h-4.5 w-4.5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold">{serviceLabels[ride.service_type] || ride.service_type}</span>
+                          {isAirportTrip(ride) && (
+                            <span className="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                              <Plane className="h-2.5 w-2.5" /> Airport
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                          {ride.service_type === "shuttle" && <span>{ride.passenger_count} pax</span>}
+                          {(ride.service_type === "taxi" || ride.service_type === "private_hire") && ride.passenger_count > 1 && (
+                            <span className="flex items-center gap-0.5"><Users className="h-2.5 w-2.5" />{ride.passenger_count}</span>
+                          )}
+                          {isDeliveryType(ride.service_type) && ride.package_size && (
+                            <span className="capitalize">{ride.package_size} pkg</span>
+                          )}
+                          {ride.scheduled_at && (
+                            <span className="flex items-center gap-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {new Date(ride.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-base font-bold text-primary tabular-nums">
+                        {fmt(Number(ride.estimated_price || 0) * 100)}
+                      </span>
+                      {ride.distance_km && (
+                        <p className="text-[10px] text-muted-foreground tabular-nums">{Number(ride.distance_km).toFixed(1)} km</p>
                       )}
                     </div>
-                    <span className="text-base font-bold text-primary tabular-nums">
-                      {fmt(Number(ride.estimated_price || 0) * 100)}
-                    </span>
                   </div>
 
                   {/* Addresses */}
@@ -747,26 +793,21 @@ const DriverDispatch = () => {
                     </div>
                   </div>
 
-                  {/* Contextual metadata row */}
-                  <div className="px-4 pb-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                    {ride.scheduled_at && (
-                      <span className="flex items-center gap-1 bg-secondary/80 px-2 py-0.5 rounded-full">
-                        <Clock className="h-3 w-3" />
-                        {new Date(ride.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    )}
-                    {(ride.service_type === "taxi" || ride.service_type === "private_hire" || ride.service_type === "shuttle") && ride.passenger_count > 1 && (
-                      <span className="bg-secondary/80 px-2 py-0.5 rounded-full">{ride.passenger_count} passengers</span>
-                    )}
-                    {ride.distance_km && (
-                      <span className="tabular-nums">{Number(ride.distance_km).toFixed(1)} km</span>
-                    )}
-                    {ride.payment_option === "pay_driver" && (
-                      <span className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-medium">
-                        <Banknote className="h-3 w-3" /> Cash
-                      </span>
-                    )}
-                  </div>
+                  {/* Payment & context chips */}
+                  {(ride.payment_option === "pay_driver" || ride.billed_to === "organization") && (
+                    <div className="px-4 pb-1 flex flex-wrap items-center gap-1.5">
+                      {ride.payment_option === "pay_driver" && (
+                        <span className="flex items-center gap-1 text-[10px] font-medium bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full">
+                          <Banknote className="h-3 w-3" /> Cash
+                        </span>
+                      )}
+                      {ride.billed_to === "organization" && (
+                        <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                          Corporate
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Extra details */}
                   <RequestDetails ride={ride} t={t} />
@@ -784,18 +825,18 @@ const DriverDispatch = () => {
                     ) : (
                       <div className="flex gap-2">
                         <Button
-                          className="flex-1 h-12 rounded-xl font-bold active:scale-[0.98] transition-transform"
+                          className="flex-1 h-14 rounded-xl text-[15px] font-bold active:scale-[0.98] transition-transform"
                           onClick={() => acceptRide(ride.id)}
                         >
-                          <Check className="mr-2 h-4 w-4" />
+                          <Check className="mr-2 h-5 w-5" />
                           Accept
                         </Button>
                         <Button
                           variant="outline"
-                          className="h-12 w-12 rounded-xl active:scale-[0.98]"
+                          className="h-14 w-14 rounded-xl active:scale-[0.98]"
                           onClick={() => declineRide(ride.id)}
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-5 w-5" />
                         </Button>
                       </div>
                     )}
