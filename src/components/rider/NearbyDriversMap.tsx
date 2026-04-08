@@ -273,7 +273,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     if (allPoints.length > 1) {
       map.fitBounds(L.latLngBounds(allPoints), { padding: [30, 30], maxZoom: 14 });
     }
-  }, [drivers, userLocation]);
+  }, [drivers, userLocation, etas]);
 
   const tabLabel = activeTab === "taxi" ? "taxis" : activeTab === "charter" ? "PickYou drivers" : "couriers";
   const TabIcon = activeTab === "taxi" ? Car : activeTab === "charter" ? Briefcase : Package;
