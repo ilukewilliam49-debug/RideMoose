@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Car, Briefcase, Package } from "lucide-react";
+import { useDriverETAs } from "@/hooks/useDriverETAs";
 
 // Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -39,25 +40,6 @@ function getVehicleIcon(vehicleType?: string | null): L.DivIcon {
       <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid hsl(45,93%,47%);margin-top:-1px"></div>
     </div>`,
   });
-}
-
-// Haversine distance in km
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-// Estimate ETA string from straight-line distance (assumes ~30 km/h avg city speed, 1.3x road factor)
-function estimateEta(driverLat: number, driverLng: number, userLat: number, userLng: number): string {
-  const distKm = haversineKm(driverLat, driverLng, userLat, userLng) * 1.3;
-  const mins = Math.max(1, Math.round((distKm / 30) * 60));
-  if (mins < 2) return "~1 min";
-  return `~${mins} min`;
 }
 
 type Tab = "taxi" | "charter" | "delivery";
@@ -160,6 +142,16 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     });
   }, [allDrivers, activeFilters]);
 
+  // Fetch live traffic-based ETAs for filtered drivers
+  const driverCoords = useMemo(
+    () =>
+      drivers
+        .filter((d) => d.latitude && d.longitude)
+        .map((d) => ({ id: d.id, latitude: d.latitude!, longitude: d.longitude! })),
+    [drivers]
+  );
+  const etas = useDriverETAs(driverCoords, userLocation);
+
   // Count per vehicle type for filter badges
   const vehicleCounts = useMemo(() => {
     const counts: Record<VehicleFilter, number> = { sedan: 0, suv: 0, van: 0 };
@@ -250,13 +242,13 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
       const icon = getVehicleIcon(vType);
       const label = (vType || "").toLowerCase();
       const vehicleLabel = label === "suv" ? "SUV" : label === "van" ? "Van" : "Sedan";
-      const etaStr = userLocation
-        ? estimateEta(d.latitude, d.longitude, userLocation.lat, userLocation.lng)
-        : "";
+      const eta = etas[d.id];
+      const etaStr = eta ? eta.duration_text : "";
+      const trafficIcon = eta?.traffic ? "🚦" : "🕐";
       const popupHtml = `<div style="text-align:center;font-family:system-ui,sans-serif;line-height:1.4">
         <div style="font-weight:600;font-size:13px">${d.full_name || "Driver"}</div>
         <div style="font-size:11px;color:#666">${vehicleLabel}</div>
-        ${etaStr ? `<div style="margin-top:4px;font-size:12px;font-weight:700;color:hsl(142,71%,45%)">🕐 ${etaStr} away</div>` : ""}
+        ${etaStr ? `<div style="margin-top:4px;font-size:12px;font-weight:700;color:hsl(142,71%,45%)">${trafficIcon} ${etaStr} away</div>` : ""}
       </div>`;
       const marker = L.marker([d.latitude, d.longitude], { icon })
         .addTo(map)
@@ -276,7 +268,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     if (allPoints.length > 1) {
       map.fitBounds(L.latLngBounds(allPoints), { padding: [30, 30], maxZoom: 14 });
     }
-  }, [drivers, userLocation]);
+  }, [drivers, userLocation, etas]);
 
   const tabLabel = activeTab === "taxi" ? "taxis" : activeTab === "charter" ? "PickYou drivers" : "couriers";
   const TabIcon = activeTab === "taxi" ? Car : activeTab === "charter" ? Briefcase : Package;
