@@ -50,7 +50,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-  const userMarkerRef = useRef<L.CircleMarker | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
 
   // Query available drivers
   const { data: dbDrivers } = useQuery({
@@ -125,14 +125,29 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
     if (userMarkerRef.current) {
       userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
     } else {
-      userMarkerRef.current = L.circleMarker([userLocation.lat, userLocation.lng], {
-        radius: 8,
-        fillColor: "hsl(var(--primary))",
-        color: "#fff",
-        weight: 3,
-        opacity: 1,
-        fillOpacity: 0.9,
-      }).addTo(map).bindPopup("You");
+      // Pulsing ring behind the dot
+      const pulseIcon = L.divIcon({
+        className: "",
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        html: `<div style="position:relative;width:40px;height:40px">
+          <div style="position:absolute;inset:0;border-radius:50%;background:hsl(var(--primary));opacity:0.25;animation:ld-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite"></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:hsl(var(--primary));border:3px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.3)"></div>
+        </div>`,
+      });
+      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
+        icon: pulseIcon,
+        interactive: false,
+        zIndexOffset: 1000,
+      }).addTo(map);
+
+      // Inject keyframes once
+      if (!document.getElementById("ld-pulse-style")) {
+        const style = document.createElement("style");
+        style.id = "ld-pulse-style";
+        style.textContent = `@keyframes ld-pulse{0%,100%{transform:scale(1);opacity:0.25}50%{transform:scale(1.6);opacity:0}}`;
+        document.head.appendChild(style);
+      }
     }
 
     map.setView([userLocation.lat, userLocation.lng], 13);
