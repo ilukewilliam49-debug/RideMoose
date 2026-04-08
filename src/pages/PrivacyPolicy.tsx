@@ -1,9 +1,23 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const PrivacyPolicy = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Privacy Policy | PickYou";
+    const setMeta = (name: string, content: string) => {
+      let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      if (!el) { el = document.createElement("meta"); el.name = name; document.head.appendChild(el); }
+      el.content = content;
+    };
+    setMeta("description", "Learn how PickYou collects, uses, and protects your personal data including location, payment, and ride history.");
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
+    link.href = "https://ridemoose.com/privacy";
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
