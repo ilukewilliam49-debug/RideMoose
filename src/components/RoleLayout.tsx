@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import BottomTabBar from "@/components/BottomTabBar";
 import DriverBottomTabBar from "@/components/DriverBottomTabBar";
@@ -31,6 +32,9 @@ const RoleLayout = () => {
             <span className={`text-sm text-muted-foreground font-medium ${hasMobileNav ? "hidden md:inline" : ""}`}>
               Dashboard
             </span>
+            <div className="ml-auto">
+              <NotificationBell />
+            </div>
           </header>
           <main className={`flex-1 p-4 md:p-6 overflow-auto ${hasMobileNav ? "pb-20 md:pb-6" : ""}`}>
             <div className="max-w-5xl mx-auto">
