@@ -75,7 +75,7 @@ const Login = () => {
           <div className="inline-flex items-center justify-center mb-5">
             <img src={logoImg} alt="PickYou" className="h-20 rounded-xl drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight mb-1">PickYou</h1>
+          
           <p className="text-sm text-muted-foreground">
             {isLogin ? t("auth.signInTitle") : t("auth.signUpTitle")}
           </p>
