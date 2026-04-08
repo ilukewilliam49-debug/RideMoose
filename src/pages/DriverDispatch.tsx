@@ -763,6 +763,9 @@ const DriverDispatch = () => {
                       {ride.distance_km && (
                         <p className="text-[10px] text-muted-foreground tabular-nums">{Number(ride.distance_km).toFixed(1)} km</p>
                       )}
+                      <p className="text-[9px] text-muted-foreground mt-0.5">
+                        {formatDistanceToNowStrict(new Date(ride.created_at), { addSuffix: true })}
+                      </p>
                     </div>
                   </div>
 
