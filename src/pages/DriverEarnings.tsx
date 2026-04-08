@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -15,9 +15,11 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  BarChart3,
 } from "lucide-react";
-import { format, startOfMonth, startOfWeek, subDays } from "date-fns";
+import { format, startOfMonth, startOfWeek, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 
 const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
