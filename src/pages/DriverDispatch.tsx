@@ -698,14 +698,14 @@ const DriverDispatch = () => {
               <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                 Incoming requests
               </h2>
-              {(pendingRides?.length ?? 0) > 0 && (
+              {visiblePendingRides.length > 0 && (
                 <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
-                  {pendingRides?.length}
+                  {visiblePendingRides.length}
                 </span>
               )}
             </div>
 
-            {pendingRides?.length === 0 && (
+            {visiblePendingRides.length === 0 && (
               <div className="rounded-2xl bg-card/50 ring-1 ring-border/30 p-8 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 mx-auto mb-3">
                   <Car className="h-5 w-5 text-muted-foreground/40" />
@@ -716,7 +716,7 @@ const DriverDispatch = () => {
             )}
 
             <div className="space-y-3">
-              {pendingRides?.map((ride, i) => (
+              {visiblePendingRides.map((ride, i) => (
                 <motion.div
                   key={ride.id}
                   initial={{ opacity: 0, y: 10 }}
