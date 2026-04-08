@@ -139,6 +139,42 @@ const DriverEarnings = () => {
     });
   }, [weeklyRides, weekDays]);
 
+  // Payout requests
+  const { data: payoutRequests } = useQuery({
+    queryKey: ["payout-requests", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("payout_requests")
+        .select("*")
+        .eq("driver_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
+  const hasPendingPayout = payoutRequests?.some((p: any) => p.status === "pending");
+
+  const requestPayout = useMutation({
+    mutationFn: async () => {
+      if (!profile?.id) throw new Error("No profile");
+      if (balance <= 0) throw new Error("No balance to withdraw");
+      const { error } = await supabase
+        .from("payout_requests")
+        .insert({ driver_id: profile.id, amount_cents: balance } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Payout request submitted");
+      setShowPayoutConfirm(false);
+      qc.invalidateQueries({ queryKey: ["payout-requests"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   // Commission ramp
   const launchStart = profile?.launch_start_date ? new Date(profile.launch_start_date) : null;
   const daysActive = launchStart ? (Date.now() - launchStart.getTime()) / 86400000 : Infinity;
