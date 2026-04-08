@@ -196,6 +196,23 @@ const DriverAccount = () => {
         });
       if (insertError) throw insertError;
 
+      // Notify all admin users about the re-upload
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin");
+
+      if (admins && admins.length > 0) {
+        await supabase.from("notifications").insert(
+          admins.map((admin) => ({
+            user_id: admin.id,
+            title: "Document Re-uploaded",
+            body: `${profile.full_name || "A driver"} re-uploaded their ${docType.replace(/_/g, " ")}. Please review.`,
+            type: "verification_reupload",
+          }))
+        );
+      }
+
       toast.success(`${docType.replace(/_/g, " ")} re-uploaded successfully`);
       queryClient.invalidateQueries({ queryKey: ["driver-verifications", profile.id] });
     } catch (err: any) {
