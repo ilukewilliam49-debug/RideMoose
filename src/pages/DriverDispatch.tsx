@@ -26,6 +26,7 @@ import {
   UtensilsCrossed,
   PawPrint,
   Clock,
+  Phone,
   Navigation,
   ChevronDown,
   ChevronUp,
