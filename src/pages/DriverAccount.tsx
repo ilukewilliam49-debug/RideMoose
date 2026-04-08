@@ -26,6 +26,7 @@ import {
   Save,
   Edit3,
   X,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,9 @@ const DriverAccount = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [reuploadingDoc, setReuploadingDoc] = useState<string | null>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const [pendingDocType, setPendingDocType] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editVehicle, setEditVehicle] = useState("");
@@ -55,7 +59,7 @@ const DriverAccount = () => {
       if (!profile?.id) return [];
       const { data, error } = await supabase
         .from("verifications")
-        .select("document_type, status")
+        .select("id, document_type, status, reviewer_notes")
         .eq("driver_id", profile.id);
       if (error) throw error;
       return data;
@@ -160,6 +164,46 @@ const DriverAccount = () => {
     setEditPhone(profile?.phone || "");
     setEditVehicle(profile?.vehicle_type || "");
     setEditing(true);
+  };
+
+  const handleDocReupload = async (file: File, docType: string) => {
+    if (!profile?.id) return;
+    setReuploadingDoc(docType);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${profile.id}/${docType}_${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("proof-photos")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
+
+      // Delete old rejected verification and insert new one
+      await supabase
+        .from("verifications")
+        .delete()
+        .eq("driver_id", profile.id)
+        .eq("document_type", docType);
+
+      const { error: insertError } = await supabase
+        .from("verifications")
+        .insert({
+          driver_id: profile.id,
+          document_type: docType,
+          document_url: urlData.publicUrl,
+          status: "pending",
+        });
+      if (insertError) throw insertError;
+
+      toast.success(`${docType.replace(/_/g, " ")} re-uploaded successfully`);
+      queryClient.invalidateQueries({ queryKey: ["driver-verifications", profile.id] });
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setReuploadingDoc(null);
+      setPendingDocType(null);
+    }
   };
 
   const saveEdits = () => {
@@ -364,14 +408,53 @@ const DriverAccount = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            {verifications?.map((v, i) => (
-              <div key={i} className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
-                <span className="text-xs font-medium capitalize">{v.document_type.replace(/_/g, " ")}</span>
-                <VerificationBadge status={v.status} />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="space-y-2">
+              {verifications?.map((v: any, i: number) => (
+                <div key={i} className="rounded-xl bg-secondary/50 px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium capitalize">{v.document_type.replace(/_/g, " ")}</span>
+                    <VerificationBadge status={v.status} />
+                  </div>
+                  {v.status === "rejected" && (
+                    <div className="mt-2 space-y-1.5">
+                      {v.reviewer_notes && (
+                        <p className="text-[10px] text-destructive">{v.reviewer_notes}</p>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1.5"
+                        disabled={reuploadingDoc === v.document_type}
+                        onClick={() => {
+                          setPendingDocType(v.document_type);
+                          docInputRef.current?.click();
+                        }}
+                      >
+                        {reuploadingDoc === v.document_type ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Upload className="h-3 w-3" />
+                        )}
+                        Re-upload
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <input
+              ref={docInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && pendingDocType) handleDocReupload(file, pendingDocType);
+                e.target.value = "";
+              }}
+            />
+          </>
         )}
       </motion.div>
 
