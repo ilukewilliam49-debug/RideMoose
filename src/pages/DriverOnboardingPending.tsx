@@ -60,7 +60,7 @@ const DriverOnboardingPending = () => {
       const { error: insertError } = await supabase.from("verifications").insert({
         driver_id: profile.id,
         document_type: docType,
-        document_url: urlData.publicUrl,
+        document_url: urlData?.signedUrl || filePath,
         status: "pending",
       });
       if (insertError) throw insertError;
