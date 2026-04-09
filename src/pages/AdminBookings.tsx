@@ -56,10 +56,10 @@ const AdminBookings = () => {
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
+        query = query.eq("status", statusFilter as any);
       }
       if (serviceFilter !== "all") {
-        query = query.eq("service_type", serviceFilter);
+        query = query.eq("service_type", serviceFilter as any);
       }
 
       const { data: rides, count, error } = await query;

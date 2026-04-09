@@ -17,7 +17,7 @@ import AdminPricing from "./pages/AdminPricing";
 import AdminZones from "./pages/AdminZones";
 import AdminCorporate from "./pages/AdminCorporate";
 import AdminSupport from "./pages/AdminSupport";
-
+import AdminBookings from "./pages/AdminBookings";
 import AdminRideDetail from "./pages/AdminRideDetail";
 import AdminSimulator from "./pages/AdminSimulator";
 import DriverDashboard from "./pages/DriverDashboard";
