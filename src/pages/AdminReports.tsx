@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import RideTrendsChart from "@/components/admin/RideTrendsChart";
 import RevenueChart from "@/components/admin/RevenueChart";
+import ServiceBreakdownChart from "@/components/admin/ServiceBreakdownChart";
 
 const PAGE_SIZE = 25;
 
@@ -156,6 +157,7 @@ const AdminReports = () => {
           <RideTrendsChart rides={filtered} />
           <RevenueChart rides={filtered} />
         </div>
+        <ServiceBreakdownChart rides={filtered} />
       )}
 
       {isError ? (
