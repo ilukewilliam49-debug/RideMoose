@@ -51,7 +51,7 @@ const services: { key: ServiceType; labelKey: string; desc: string; icon: React.
   },
 ];
 
-const ServiceSelector = ({ selected, onSelect, prices, etaText }: ServiceSelectorProps) => {
+const ServiceSelector = ({ selected, onSelect, prices, etaText, driverETAs }: ServiceSelectorProps) => {
   const { t } = useTranslation();
 
   return (
@@ -86,9 +86,17 @@ const ServiceSelector = ({ selected, onSelect, prices, etaText }: ServiceSelecto
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold">{t(svc.labelKey, svc.key)}</span>
-                  {etaText && svc.key !== "courier" && (
-                    <span className="text-[10px] text-muted-foreground">{etaText}</span>
-                  )}
+                  {(() => {
+                    const driverEta = driverETAs?.[svc.key as keyof typeof driverETAs];
+                    return driverEta ? (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                        {driverEta}
+                      </span>
+                    ) : etaText && svc.key !== "courier" ? (
+                      <span className="text-[10px] text-muted-foreground">{etaText}</span>
+                    ) : null;
+                  })()}
                 </div>
                 <p className="text-[11px] text-muted-foreground">{svc.desc}</p>
               </div>
