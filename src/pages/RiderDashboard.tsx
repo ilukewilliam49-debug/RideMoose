@@ -294,50 +294,7 @@ const RiderDashboard = () => {
             </div>
           )}
 
-          {/* Courier fields */}
-          {state.serviceType === "courier" && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2"><Package className="h-4 w-4 text-muted-foreground" />{t("rider.packageSize")}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["small", "medium", "large"] as const).map((size) => (
-                    <button key={size} type="button" onClick={() => state.setPackageSize(size)}
-                      className={`p-2 rounded-lg border text-xs font-medium capitalize transition-all ${state.packageSize === size ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"}`}>
-                      {t(`rider.package_${size}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.itemDescription")}</Label>
-                <Input value={state.itemDescription} onChange={(e) => state.setItemDescription(e.target.value)} placeholder={t("rider.describeItem")} className="bg-secondary" />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border border-border bg-secondary p-3">
-                <div className="flex items-center gap-2">
-                  <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">{t("rider.marketplaceDelivery")}</p>
-                    <p className="text-[10px] text-muted-foreground">{t("rider.marketplaceDeliveryDesc")}</p>
-                  </div>
-                </div>
-                <Switch checked={state.marketplaceDelivery} onCheckedChange={state.setMarketplaceDelivery} />
-              </div>
-              {state.marketplaceDelivery && (
-                <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
-                  <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-                  <p className="text-xs text-yellow-500">{t("rider.ensureCapacity")}</p>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label>{t("rider.pickupNotes")}</Label>
-                <Input value={state.pickupNotes} onChange={(e) => state.setPickupNotes(e.target.value)} placeholder={t("rider.pickupNotesPlaceholder")} className="bg-secondary" />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("rider.dropoffNotes")}</Label>
-                <Input value={state.dropoffNotes} onChange={(e) => state.setDropoffNotes(e.target.value)} placeholder={t("rider.dropoffNotesPlaceholder")} className="bg-secondary" />
-              </div>
-            </div>
-          )}
+          {/* Courier fields moved to dedicated /rider/courier page */}
 
           {/* Pickup & Dropoff – hidden; values come from URL params set on the home screen */}
 
