@@ -4,17 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Download, TrendingUp, DollarSign, CheckCircle, BarChart3 } from "lucide-react";
+import { Download, TrendingUp, DollarSign, CheckCircle, BarChart3, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const PAGE_SIZE = 25;
 
 const AdminReports = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("all");
+  const [scheduledFilter, setScheduledFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(0);
@@ -37,8 +40,10 @@ const AdminReports = () => {
     if (serviceFilter !== "all") result = result.filter((r: any) => r.service_type === serviceFilter);
     if (dateFrom) result = result.filter((r: any) => r.created_at >= dateFrom);
     if (dateTo) result = result.filter((r: any) => r.created_at.slice(0, 10) <= dateTo);
+    if (scheduledFilter === "scheduled") result = result.filter((r: any) => r.scheduled_at);
+    if (scheduledFilter === "now") result = result.filter((r: any) => !r.scheduled_at);
     return result;
-  }, [rides, statusFilter, serviceFilter, dateFrom, dateTo]);
+  }, [rides, statusFilter, serviceFilter, dateFrom, dateTo, scheduledFilter]);
 
   const stats = useMemo(() => {
     const completed = filtered.filter((r: any) => r.status === "completed");
@@ -53,10 +58,11 @@ const AdminReports = () => {
 
   const exportCSV = () => {
     if (!filtered.length) { toast.error("No data to export"); return; }
-    const headers = ["ID", "Rider", "Driver", "Service", "Status", "Pickup", "Dropoff", "Est. Price", "Final Price", "Created"];
+    const headers = ["ID", "Rider", "Driver", "Service", "Status", "Pickup", "Dropoff", "Est. Price", "Final Price", "Scheduled At", "Created"];
     const rows = filtered.map((r: any) => [
       r.id, r.rider?.full_name || "", r.driver?.full_name || "", r.service_type, r.status,
-      r.pickup_address, r.dropoff_address, r.estimated_price || "", r.final_price || "", r.created_at,
+      r.pickup_address, r.dropoff_address, r.estimated_price || "", r.final_price || "",
+      r.scheduled_at ? format(new Date(r.scheduled_at), "yyyy-MM-dd HH:mm") : "", r.created_at,
     ]);
     const csv = [headers, ...rows].map((row) => row.map((v: any) => `"${v}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -129,6 +135,14 @@ const AdminReports = () => {
             ))}
           </SelectContent>
         </Select>
+        <Select value={scheduledFilter} onValueChange={(v) => { setScheduledFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Booking" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All bookings</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="now">Immediate</SelectItem>
+          </SelectContent>
+        </Select>
         <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="w-[150px]" placeholder="From" />
         <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="w-[150px]" placeholder="To" />
       </div>
@@ -149,31 +163,42 @@ const AdminReports = () => {
                   <th className="py-3 px-2">Driver</th>
                   <th className="py-3 px-2">Service</th>
                   <th className="py-3 px-2">Route</th>
-                  <th className="py-3 px-2">Status</th>
-                  <th className="py-3 px-2 text-right">Price</th>
-                  <th className="py-3 px-2">Date</th>
+                   <th className="py-3 px-2">Status</th>
+                   <th className="py-3 px-2">Scheduled</th>
+                   <th className="py-3 px-2 text-right">Price</th>
+                   <th className="py-3 px-2">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {paginated.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground">No trip data found.</td>
-                  </tr>
-                )}
-                {paginated.map((ride: any) => (
-                  <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                    <td className="py-3 px-2">{ride.rider?.full_name || "—"}</td>
-                    <td className="py-3 px-2">{ride.driver?.full_name || "—"}</td>
-                    <td className="py-3 px-2 capitalize text-xs">{ride.service_type.replace("_", " ")}</td>
-                    <td className="py-3 px-2 max-w-[200px] truncate">{ride.pickup_address} → {ride.dropoff_address}</td>
-                    <td className="py-3 px-2">
-                      <span className={`font-mono text-xs uppercase ${statusColor[ride.status] || ""}`}>
-                        {ride.status.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-right font-mono">${Number(ride.final_price || ride.estimated_price || 0).toFixed(2)}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()}</td>
-                  </motion.tr>
+                     <td colSpan={8} className="py-8 text-center text-muted-foreground">No trip data found.</td>
+                   </tr>
+                 )}
+                 {paginated.map((ride: any) => (
+                   <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
+                     <td className="py-3 px-2">{ride.rider?.full_name || "—"}</td>
+                     <td className="py-3 px-2">{ride.driver?.full_name || "—"}</td>
+                     <td className="py-3 px-2 capitalize text-xs">{ride.service_type.replace("_", " ")}</td>
+                     <td className="py-3 px-2 max-w-[200px] truncate">{ride.pickup_address} → {ride.dropoff_address}</td>
+                     <td className="py-3 px-2">
+                       <span className={`font-mono text-xs uppercase ${statusColor[ride.status] || ""}`}>
+                         {ride.status.replace("_", " ")}
+                       </span>
+                     </td>
+                     <td className="py-3 px-2">
+                       {ride.scheduled_at ? (
+                         <Badge variant="outline" className="gap-1 text-xs font-normal">
+                           <Clock className="h-3 w-3" />
+                           {format(new Date(ride.scheduled_at), "MMM d, HH:mm")}
+                         </Badge>
+                       ) : (
+                         <span className="text-muted-foreground text-xs">Now</span>
+                       )}
+                     </td>
+                     <td className="py-3 px-2 text-right font-mono">${Number(ride.final_price || ride.estimated_price || 0).toFixed(2)}</td>
+                     <td className="py-3 px-2 text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()}</td>
+                   </motion.tr>
                 ))}
               </tbody>
             </table>
