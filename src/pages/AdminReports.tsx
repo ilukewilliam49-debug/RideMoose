@@ -153,11 +153,13 @@ const AdminReports = () => {
       </div>
 
       {!isLoading && !isError && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <RideTrendsChart rides={filtered} />
-          <RevenueChart rides={filtered} />
-        </div>
-        <ServiceBreakdownChart rides={filtered} />
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <RideTrendsChart rides={filtered} />
+            <RevenueChart rides={filtered} />
+          </div>
+          <ServiceBreakdownChart rides={filtered} />
+        </>
       )}
 
       {isError ? (
