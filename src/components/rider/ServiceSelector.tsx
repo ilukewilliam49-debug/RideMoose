@@ -1,6 +1,7 @@
 import { Car, Package, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ServiceType } from "@/hooks/useRideBookingState";
 
 interface ServiceSelectorProps {
@@ -53,6 +54,8 @@ const services: { key: ServiceType; labelKey: string; desc: string; icon: React.
 
 const ServiceSelector = ({ selected, onSelect, prices, etaText, driverETAs }: ServiceSelectorProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   return (
     <div className="space-y-2">
@@ -67,7 +70,15 @@ const ServiceSelector = ({ selected, onSelect, prices, etaText, driverETAs }: Se
             <button
               key={svc.key}
               type="button"
-              onClick={() => onSelect(svc.key)}
+              onClick={() => {
+                if (svc.key === "courier") {
+                  const params = new URLSearchParams(searchParams);
+                  params.set("service", "courier");
+                  navigate(`/rider/courier?${params.toString()}`);
+                  return;
+                }
+                onSelect(svc.key);
+              }}
               className={cn(
                 "w-full flex items-center gap-3 rounded-xl p-3 border-2 transition-all duration-200 text-left",
                 isActive
