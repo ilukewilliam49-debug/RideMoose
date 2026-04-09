@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 
 const AdminVerifications = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState("all");
