@@ -1,4 +1,4 @@
-import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +46,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
     { icon: Building2, title: t("nav.corporate"), url: "/admin/corporate" },
     { icon: MessageSquare, title: "Support", url: "/admin/support" },
     { icon: CalendarCheck, title: "Bookings", url: "/admin/bookings" },
+    { icon: Zap, title: "Simulator", url: "/admin/simulator" },
   ],
 });
 
