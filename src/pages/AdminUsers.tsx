@@ -59,6 +59,8 @@ const AdminUsers = () => {
   const [onlineFilter, setOnlineFilter] = useState<string>("all");
   const [capabilityFilter, setCapabilityFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   // Confirmation dialog state
   const [confirmAction, setConfirmAction] = useState<{
