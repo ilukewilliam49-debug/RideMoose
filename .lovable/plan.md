@@ -1,33 +1,26 @@
 
 
-# Plan: Transfer "Where to?" address to /rider/rides dropoff
+## Plan: Show Scheduled Time in Admin Trip Reports
 
-## Problem
-When a user enters a destination in the "Where to?" field on `/rider`, the app navigates to `/rider/rides` with `dropoff`, `dlat`, and `dlng` URL parameters — but `useRideBookingState` never reads those parameters. So the dropoff field arrives empty.
+### What's missing
+The rider's scheduling popover saves `scheduled_at` to the `rides` table, but the Admin Reports page (`/admin/reports`) does not display or export this information.
 
-## Solution
-Add a `useEffect` in `useRideBookingState.ts` that reads the `dropoff`, `dlat`, and `dlng` search params on mount and initializes the dropoff state accordingly.
+### Changes
 
-## Technical Details
+**File: `src/pages/AdminReports.tsx`**
 
-**File: `src/hooks/useRideBookingState.ts`**
+1. **Add a "Scheduled" column** to the trip table between "Date" and "Status" (or after "Date"):
+   - Display the `scheduled_at` value formatted as date + time if present, or "—" if null (meaning it was a "Now" ride).
 
-Add after the existing `useEffect` for geolocation (~line 63):
+2. **Add a "Scheduled" badge/indicator** — rides with a `scheduled_at` value get a small badge so admins can quickly spot pre-scheduled trips.
 
-```typescript
-// Pre-fill dropoff from URL params (passed from DashboardHome "Where to?")
-useEffect(() => {
-  const dropoffParam = searchParams.get("dropoff");
-  const dlatParam = searchParams.get("dlat");
-  const dlngParam = searchParams.get("dlng");
-  if (dropoffParam) {
-    setDropoff(decodeURIComponent(dropoffParam));
-    if (dlatParam && dlngParam) {
-      setDropoffCoords({ lat: parseFloat(dlatParam), lng: parseFloat(dlngParam) });
-    }
-  }
-}, []); // Run once on mount
-```
+3. **Update CSV export** — add a "Scheduled At" column to the exported CSV so the data is included in reports.
 
-This is a single-file, ~10-line change. No other files need modification since DashboardHome already passes the correct URL parameters.
+4. **Optional filter** — add a filter option (e.g., "Scheduled only" toggle or a dropdown) so admins can filter to see only pre-scheduled rides.
+
+### Technical details
+- The `rides` table already has a `scheduled_at` column (nullable timestamp).
+- The existing query (`select("*, rider:rider_id(full_name), driver:driver_id(full_name)")`) already fetches all columns including `scheduled_at` — no query change needed.
+- Format using `date-fns` `format()` which is already imported.
+- No database migrations required.
 
