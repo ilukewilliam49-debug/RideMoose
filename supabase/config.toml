@@ -51,3 +51,6 @@ verify_jwt = false
 [functions.pet-arrival-notify]
 verify_jwt = false
 
+[functions.match-driver]
+verify_jwt = false
+
