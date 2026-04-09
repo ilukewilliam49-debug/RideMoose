@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import {
   MessageSquare,
   Clock,
@@ -314,9 +314,7 @@ const AdminSupport = () => {
 
   return (
     <div className="space-y-4">
-      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </button>
+      <AdminBreadcrumb />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold flex items-center gap-2">
           <MessageSquare className="h-5 w-5" /> Support Conversations

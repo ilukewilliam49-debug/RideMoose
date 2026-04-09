@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Download, TrendingUp, DollarSign, CheckCircle, BarChart3, Clock, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Download, TrendingUp, DollarSign, CheckCircle, BarChart3, Clock } from "lucide-react";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -126,9 +126,7 @@ const AdminReports = () => {
 
   return (
     <div className="space-y-6 pt-4">
-      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </button>
+      <AdminBreadcrumb />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Trip Reports</h1>
         <Button size="sm" variant="outline" onClick={exportCSV}>

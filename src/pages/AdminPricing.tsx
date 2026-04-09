@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Save, Car, Briefcase, Bus, Gauge, Percent, Settings, PawPrint, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Save, Car, Briefcase, Bus, Gauge, Percent, Settings, PawPrint } from "lucide-react";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,9 +179,7 @@ const AdminPricing = () => {
 
   return (
     <div className="space-y-8 pt-4">
-      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </button>
+      <AdminBreadcrumb />
       <h1 className="text-2xl font-bold">{t("pricing.title")}</h1>
 
       {/* Platform Financial Settings */}

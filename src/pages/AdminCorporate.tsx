@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Plus, FileText, Loader2, Users, ChevronDown, ChevronUp, ClipboardList, CheckCircle, XCircle, HelpCircle, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Building2, Plus, FileText, Loader2, Users, ChevronDown, ChevronUp, ClipboardList, CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import {
   Dialog,
   DialogContent,
@@ -312,9 +312,7 @@ const AdminCorporate = () => {
 
   return (
     <div className="space-y-6 pt-4">
-      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </button>
+      <AdminBreadcrumb />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Building2 className="h-6 w-6" /> Corporate Accounts

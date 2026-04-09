@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Save, Plus, Trash2, MapPinned, Pencil, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Save, Plus, Trash2, MapPinned, Pencil } from "lucide-react";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -213,9 +213,7 @@ const AdminZones = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </button>
+      <AdminBreadcrumb pageTitle="Private Hire Zones" />
       <h1 className="text-2xl font-bold">Private Hire Zones</h1>
 
       <Tabs defaultValue="pricing" className="w-full">
