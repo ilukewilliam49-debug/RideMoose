@@ -156,9 +156,21 @@ export const useRideQueries = ({
   // Dynamic price estimate
   const estimatedPrice = useMemo(() => {
     if (serviceType === "private_hire") {
-      if (!pickup || !dropoff) return null;
-      const fareCents = matchedZone ? matchedZone.flat_fare_cents : 5000;
-      return (fareCents / 100).toFixed(2);
+      const routeKm = directionsData?.distance_km ?? distanceKm;
+      const routeDurationMin = directionsData
+        ? Math.max((directionsData.duration_in_traffic_sec ?? directionsData.duration_sec ?? 0) / 60, 0)
+        : 0;
+
+      if (!pickup || !dropoff || !routeKm || !currentPricing) return null;
+
+      let price =
+        Number(currentPricing.base_fare) +
+        routeKm * Number(currentPricing.per_km_rate) +
+        routeDurationMin * Number(currentPricing.per_min_rate);
+
+      price *= Number(currentPricing.surge_multiplier ?? 1);
+
+      return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
     }
     if (serviceType === "courier") {
       const routeKm = directionsData?.distance_km ?? distanceKm;
