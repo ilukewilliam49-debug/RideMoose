@@ -58,10 +58,11 @@ const AdminReports = () => {
 
   const exportCSV = () => {
     if (!filtered.length) { toast.error("No data to export"); return; }
-    const headers = ["ID", "Rider", "Driver", "Service", "Status", "Pickup", "Dropoff", "Est. Price", "Final Price", "Created"];
+    const headers = ["ID", "Rider", "Driver", "Service", "Status", "Pickup", "Dropoff", "Est. Price", "Final Price", "Scheduled At", "Created"];
     const rows = filtered.map((r: any) => [
       r.id, r.rider?.full_name || "", r.driver?.full_name || "", r.service_type, r.status,
-      r.pickup_address, r.dropoff_address, r.estimated_price || "", r.final_price || "", r.created_at,
+      r.pickup_address, r.dropoff_address, r.estimated_price || "", r.final_price || "",
+      r.scheduled_at ? format(new Date(r.scheduled_at), "yyyy-MM-dd HH:mm") : "", r.created_at,
     ]);
     const csv = [headers, ...rows].map((row) => row.map((v: any) => `"${v}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
