@@ -8,8 +8,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Home } from "lucide-react";
+import React from "react";
 
-const PAGE_LABELS: Record<string, string> = {
+const SEGMENT_LABELS: Record<string, string> = {
   verifications: "Verifications",
   reports: "Reports",
   users: "Users",
@@ -22,14 +23,25 @@ const PAGE_LABELS: Record<string, string> = {
 };
 
 interface AdminBreadcrumbProps {
-  /** Override the auto-detected page label */
+  /** Override the label for the last segment */
   pageTitle?: string;
+  /** Override labels for intermediate segments: { "users": "User Management" } */
+  segmentLabels?: Record<string, string>;
 }
 
-export default function AdminBreadcrumb({ pageTitle }: AdminBreadcrumbProps) {
+export default function AdminBreadcrumb({ pageTitle, segmentLabels }: AdminBreadcrumbProps) {
   const { pathname } = useLocation();
-  const segment = pathname.split("/").filter(Boolean).pop() || "";
-  const label = pageTitle || PAGE_LABELS[segment] || segment;
+
+  // Split path into segments after "/admin"
+  const segments = pathname
+    .replace(/^\/admin\/?/, "")
+    .split("/")
+    .filter(Boolean);
+
+  const resolveLabel = (segment: string, index: number, isLast: boolean) => {
+    if (isLast && pageTitle) return pageTitle;
+    return segmentLabels?.[segment] ?? SEGMENT_LABELS[segment] ?? decodeURIComponent(segment);
+  };
 
   return (
     <Breadcrumb>
@@ -42,10 +54,27 @@ export default function AdminBreadcrumb({ pageTitle }: AdminBreadcrumbProps) {
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbPage>{label}</BreadcrumbPage>
-        </BreadcrumbItem>
+
+        {segments.map((segment, index) => {
+          const isLast = index === segments.length - 1;
+          const href = "/admin/" + segments.slice(0, index + 1).join("/");
+          const label = resolveLabel(segment, index, isLast);
+
+          return (
+            <React.Fragment key={href}>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>{label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link to={href}>{label}</Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </React.Fragment>
+          );
+        })}
       </BreadcrumbList>
     </Breadcrumb>
   );
