@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 import {
   MessageSquare,
   Clock,
@@ -41,6 +42,7 @@ const statusConfig: Record<string, { label: string; icon: any; variant: "default
 };
 
 const AdminSupport = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
@@ -312,6 +314,9 @@ const AdminSupport = () => {
 
   return (
     <div className="space-y-4">
+      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+      </button>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold flex items-center gap-2">
           <MessageSquare className="h-5 w-5" /> Support Conversations
