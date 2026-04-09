@@ -6,7 +6,6 @@ export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery"
 export const useRideBookingState = () => {
   const [searchParams] = useSearchParams();
   const serviceParam = searchParams.get("service");
-  const mode = serviceParam === "courier" ? "delivery" : "rides";
 
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
@@ -14,8 +13,9 @@ export const useRideBookingState = () => {
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [serviceType, setServiceType] = useState<ServiceType>(
-    serviceParam === "private_hire" ? "private_hire" : mode === "delivery" ? "courier" : "taxi"
+    serviceParam === "private_hire" ? "private_hire" : serviceParam === "courier" ? "courier" : "taxi"
   );
+  const mode = serviceType === "courier" ? "delivery" : "rides";
   const [paymentOption, setPaymentOption] = useState<"in_app" | "pay_driver">("in_app");
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);

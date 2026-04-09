@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route, HelpCircle, LocateFixed } from "lucide-react";
+import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, HelpCircle, LocateFixed } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -19,7 +19,7 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 import SupportChatDialog from "@/components/SupportChatDialog";
 import NearbyDriversMap from "@/components/rider/NearbyDriversMap";
 
-type Tab = "taxi" | "charter" | "delivery";
+
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -32,7 +32,7 @@ const DashboardHome = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<Tab>("taxi");
+  
   const [destination, setDestination] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
@@ -130,22 +130,11 @@ const DashboardHome = () => {
     enabled: !!profile?.id,
   });
 
-  const suggestions =
-    activeTab === "taxi"
-      ? [
-          { icon: Car, label: t("dashboard.localTaxi"), path: "/rider/rides?service=taxi" },
-          { icon: Plane, label: t("dashboard.airportRides"), path: "/rider/rides?service=private_hire" },
-        ]
-      : activeTab === "charter"
-      ? [
-          { icon: Briefcase, label: t("dashboard.privateHire"), path: "/rider/rides?service=private_hire" },
-          { icon: Plane, label: t("dashboard.airportTransfer"), path: "/rider/rides?service=private_hire" },
-          { icon: Route, label: t("dashboard.longDistance"), path: "/rider/rides?service=private_hire" },
-          { icon: Bus, label: t("dashboard.shuttle"), path: "/rider/rides?service=shuttle" },
-        ]
-      : [
-          { icon: Package, label: t("dashboard.delivery"), path: "/rider/rides?service=courier" },
-        ];
+  const suggestions = [
+    { icon: Car, label: t("dashboard.localTaxi"), path: "/rider/rides?service=taxi" },
+    { icon: Plane, label: t("dashboard.airportRides"), path: "/rider/rides?service=private_hire" },
+    { icon: Package, label: t("dashboard.delivery"), path: "/rider/rides?service=courier" },
+  ];
 
   const placeIcon = (icon: string) => {
     if (icon === "home") return HomeIcon;
@@ -173,53 +162,6 @@ const DashboardHome = () => {
         <ActiveRideBanner />
       </div>
 
-      {/* ── Top tabs ── */}
-      <div className="flex items-center gap-2 pb-5">
-        {([
-          {
-            key: "taxi" as Tab,
-            label: t("dashboard.taxi"),
-            icon: (
-              <Car className="h-4 w-4" />
-            ),
-          },
-          {
-            key: "charter" as Tab,
-            label: t("dashboard.charter"),
-            icon: (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 13h1l1.5-4.5A1 1 0 0 1 6.45 8h11.1a1 1 0 0 1 .95.68L20 13h1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1.05a2.5 2.5 0 0 1-4.9 0h-6.1a2.5 2.5 0 0 1-4.9 0H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z" />
-                <path d="M6 13V9.5" />
-                <path d="M18 13V9.5" />
-                <path d="M9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                <circle cx="7" cy="17" r="1.5" />
-                <circle cx="17" cy="17" r="1.5" />
-              </svg>
-            ),
-          },
-          {
-            key: "delivery" as Tab,
-            label: t("dashboard.delivery"),
-            icon: (
-              <Package className="h-4 w-4" />
-            ),
-          },
-        ]).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "relative flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-all duration-200",
-              activeTab === tab.key
-                ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {/* ── Pickup & Dropoff fields ── */}
       <motion.div
@@ -344,14 +286,13 @@ const DashboardHome = () => {
             className="ml-auto rounded-full px-5"
             disabled={!destination}
             onClick={() => {
-              const base = activeTab === "delivery" ? "/rider/rides?service=courier" : activeTab === "charter" ? "/rider/rides?service=private_hire" : "/rider/rides?service=taxi";
-              const sep = base.includes("?") ? "&" : "?";
+              const base = "/rider/rides";
               let params = "";
               if (pickupAddress && pickupAddressCoords) {
-                params += `${sep}pickup=${encodeURIComponent(pickupAddress)}&plat=${pickupAddressCoords.lat}&plng=${pickupAddressCoords.lng}`;
+                params += `?pickup=${encodeURIComponent(pickupAddress)}&plat=${pickupAddressCoords.lat}&plng=${pickupAddressCoords.lng}`;
               }
               if (destination && dropoffAddressCoords) {
-                const sep2 = params ? "&" : sep;
+                const sep2 = params ? "&" : "?";
                 params += `${sep2}dropoff=${encodeURIComponent(destination)}&dlat=${dropoffAddressCoords.lat}&dlng=${dropoffAddressCoords.lng}`;
               }
               navigate(withSchedule(`${base}${params}`));
@@ -363,7 +304,7 @@ const DashboardHome = () => {
       </motion.div>
 
       {/* ── Nearby drivers map ── */}
-      <NearbyDriversMap activeTab={activeTab} userLocation={userLocation} />
+      <NearbyDriversMap activeTab={"taxi"} userLocation={userLocation} />
 
       {/* ── Saved places ── */}
       {savedPlacesLoading && (
@@ -433,11 +374,10 @@ const DashboardHome = () => {
             <button
               key={i}
               onClick={() => {
-                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides?service=taxi";
-                const sep = base.includes("?") ? "&" : "?";
+                const base = "/rider/rides";
                 const params = rd.dropoff_lat && rd.dropoff_lng
-                  ? `${sep}dropoff=${encodeURIComponent(rd.dropoff_address)}&dlat=${rd.dropoff_lat}&dlng=${rd.dropoff_lng}`
-                  : `${sep}dropoff=${encodeURIComponent(rd.dropoff_address)}`;
+                  ? `?dropoff=${encodeURIComponent(rd.dropoff_address)}&dlat=${rd.dropoff_lat}&dlng=${rd.dropoff_lng}`
+                  : `?dropoff=${encodeURIComponent(rd.dropoff_address)}`;
                 navigate(withSchedule(`${base}${params}`));
               }}
               className="flex w-full items-center gap-4 py-3 text-left hover:bg-accent/30 transition-colors -mx-1 px-1 rounded-lg"
