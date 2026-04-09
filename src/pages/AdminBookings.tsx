@@ -5,13 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Calendar, Users, AlertTriangle, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { RefreshCw, Calendar, Users, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function AdminBookings() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: syncStatus } = useQuery({
@@ -72,9 +71,7 @@ export default function AdminBookings() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-      </button>
+      <AdminBreadcrumb pageTitle="Bókun Bookings" />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Bókun Bookings</h1>
         <Button onClick={() => syncMutation.mutate()} disabled={isSyncing}>
