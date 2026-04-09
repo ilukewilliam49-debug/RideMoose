@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route, HelpCircle } from "lucide-react";
+import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route, HelpCircle, LocateFixed } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -40,6 +40,9 @@ const DashboardHome = () => {
   const [customTime, setCustomTime] = useState("12:00");
   const [showCustom, setShowCustom] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [pickupAddressCoords, setPickupAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [dropoffAddressCoords, setDropoffAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -218,79 +221,145 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* ── "Where to?" address field ── */}
+      {/* ── Pickup & Dropoff fields ── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex items-center gap-2 rounded-full bg-card px-2 py-1"
+        className="rounded-2xl bg-card p-3 space-y-2"
         style={{ boxShadow: "0 1px 4px 0 hsl(0 0% 0%/0.15)" }}
       >
-        <div className="flex-1 [&_input]:rounded-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[15px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground">
-          <AddressAutocomplete
-            value={destination}
-            onChange={(value, lat, lng) => {
-              setDestination(value);
-              if (lat && lng) {
-                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : activeTab === "charter" ? "/rider/rides?service=private_hire" : "/rider/rides?service=taxi";
-                const sep = base.includes("?") ? "&" : "?";
-                navigate(withSchedule(`${base}${sep}dropoff=${encodeURIComponent(value)}&dlat=${lat}&dlng=${lng}`));
-              }
+        {/* Pickup */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+            <div className="h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-green-500/20" />
+          </div>
+          <div className="flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[14px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground [&_input]:h-9 [&_input]:px-0">
+            <AddressAutocomplete
+              value={pickupAddress}
+              onChange={(value, lat, lng) => {
+                setPickupAddress(value);
+                if (lat && lng) setPickupAddressCoords({ lat, lng });
+              }}
+              placeholder={t("rider.pickupLocation", "Pickup location")}
+              iconColor="text-green-400"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+                  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+                );
+                const { latitude, longitude } = pos.coords;
+                setPickupAddressCoords({ lat: latitude, lng: longitude });
+                setUserLocation({ lat: latitude, lng: longitude });
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+                const geo = await res.json();
+                setPickupAddress(geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+              } catch {}
             }}
-            placeholder={t("dashboard.whereTo")}
-            iconColor="text-muted-foreground"
-          />
+            className="shrink-0 text-primary hover:text-primary/80 transition-colors"
+          >
+            <LocateFixed className="h-4 w-4" />
+          </button>
         </div>
-        <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
-          <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 shrink-0 hover:bg-accent transition-colors">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-semibold max-w-[100px] truncate">{scheduleLabel}</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-3" align="end">
-            {!showCustom ? (
-              <div className="space-y-1">
-                <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
-                  Now
-                </button>
-                {[{ m: 15, label: "In 15 mins" }, { m: 30, label: "In 30 mins" }, { m: 60, label: "In 1 hour" }].map(({ m, label }) => (
-                  <button key={m} onClick={() => handlePreset(m)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
-                    {label}
+
+        <div className="ml-3 h-3 border-l-2 border-dashed border-border/50" />
+
+        {/* Dropoff */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+            <div className="h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-primary/20" />
+          </div>
+          <div className="flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[14px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground [&_input]:h-9 [&_input]:px-0">
+            <AddressAutocomplete
+              value={destination}
+              onChange={(value, lat, lng) => {
+                setDestination(value);
+                if (lat && lng) setDropoffAddressCoords({ lat, lng });
+              }}
+              placeholder={t("dashboard.whereTo")}
+              iconColor="text-primary"
+            />
+          </div>
+        </div>
+
+        {/* Schedule + Go button row */}
+        <div className="flex items-center gap-2 pt-1">
+          <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 shrink-0 hover:bg-accent transition-colors">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-semibold max-w-[100px] truncate">{scheduleLabel}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3" align="start">
+              {!showCustom ? (
+                <div className="space-y-1">
+                  <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
+                    Now
                   </button>
-                ))}
-                <button onClick={() => setShowCustom(true)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors flex items-center gap-2">
-                  <CalendarIcon className="h-3.5 w-3.5" />
-                  Custom date &amp; time
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Calendar
-                  mode="single"
-                  selected={customDate}
-                  onSelect={setCustomDate}
-                  disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                  className={cn("p-2 pointer-events-auto")}
-                />
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="time"
-                    value={customTime}
-                    onChange={(e) => setCustomTime(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button size="sm" onClick={handleCustomConfirm} disabled={!customDate}>
-                    Set
-                  </Button>
+                  {[{ m: 15, label: "In 15 mins" }, { m: 30, label: "In 30 mins" }, { m: 60, label: "In 1 hour" }].map(({ m, label }) => (
+                    <button key={m} onClick={() => handlePreset(m)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
+                      {label}
+                    </button>
+                  ))}
+                  <button onClick={() => setShowCustom(true)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors flex items-center gap-2">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    Custom date &amp; time
+                  </button>
                 </div>
-                <button onClick={() => setShowCustom(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  ← Back
-                </button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
+              ) : (
+                <div className="space-y-3">
+                  <Calendar
+                    mode="single"
+                    selected={customDate}
+                    onSelect={setCustomDate}
+                    disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                    className={cn("p-2 pointer-events-auto")}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      value={customTime}
+                      onChange={(e) => setCustomTime(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button size="sm" onClick={handleCustomConfirm} disabled={!customDate}>
+                      Set
+                    </Button>
+                  </div>
+                  <button onClick={() => setShowCustom(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    ← Back
+                  </button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            size="sm"
+            className="ml-auto rounded-full px-5"
+            disabled={!destination}
+            onClick={() => {
+              const base = activeTab === "delivery" ? "/rider/rides?service=courier" : activeTab === "charter" ? "/rider/rides?service=private_hire" : "/rider/rides?service=taxi";
+              const sep = base.includes("?") ? "&" : "?";
+              let params = "";
+              if (pickupAddress && pickupAddressCoords) {
+                params += `${sep}pickup=${encodeURIComponent(pickupAddress)}&plat=${pickupAddressCoords.lat}&plng=${pickupAddressCoords.lng}`;
+              }
+              if (destination && dropoffAddressCoords) {
+                const sep2 = params ? "&" : sep;
+                params += `${sep2}dropoff=${encodeURIComponent(destination)}&dlat=${dropoffAddressCoords.lat}&dlng=${dropoffAddressCoords.lng}`;
+              }
+              navigate(withSchedule(`${base}${params}`));
+            }}
+          >
+            {t("dashboard.go", "Go")} <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
       </motion.div>
 
       {/* ── Nearby drivers map ── */}
