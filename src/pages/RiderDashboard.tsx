@@ -334,24 +334,7 @@ const RiderDashboard = () => {
             </div>
           )}
 
-          {/* Pickup */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>{t("rider.pickupLocation")}</Label>
-              <button type="button" onClick={useMyLocation} disabled={state.locatingUser}
-                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50">
-                <LocateFixed className={`h-3.5 w-3.5 ${state.locatingUser ? "animate-spin" : ""}`} />
-                {state.locatingUser ? t("rider.locating", "Locating...") : t("rider.useMyLocation", "Use my location")}
-              </button>
-            </div>
-            <AddressAutocomplete value={state.pickup} onChange={(val, lat, lng) => { state.setPickup(val); if (lat && lng) state.setPickupCoords({ lat, lng }); }} placeholder={t("rider.searchPickup")} iconColor="text-green-400" />
-          </div>
-
-          {/* Dropoff */}
-          <div className="space-y-2">
-            <Label>{t("rider.dropoffLocation")}</Label>
-            <AddressAutocomplete value={state.dropoff} onChange={(val, lat, lng) => { state.setDropoff(val); if (lat && lng) state.setDropoffCoords({ lat, lng }); }} placeholder={t("rider.searchDropoff")} iconColor="text-primary" />
-          </div>
+          {/* Pickup & Dropoff – hidden; values come from URL params set on the home screen */}
 
           {/* Route info */}
           {queries.directionsData && state.pickupCoords && state.dropoffCoords && (
