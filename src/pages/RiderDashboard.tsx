@@ -188,7 +188,28 @@ const RiderDashboard = () => {
         return;
       }
 
-      toast.success(state.billToOrg ? t("rider.rideRequestedOrg") : t("rider.rideRequested"));
+      // Trigger automated driver matching
+      if (rideData) {
+        toast.info(t("rider.findingDriver", "Finding your driver..."));
+        supabase.functions.invoke("match-driver", { body: { ride_id: rideData.id } })
+          .then(({ data: matchData }) => {
+            if (matchData?.matched) {
+              toast.success(t("rider.driverFound", "Driver found! {{name}} is {{eta}} away", {
+                name: matchData.driver_name,
+                eta: matchData.eta_text,
+              }));
+            } else {
+              toast.info(t("rider.noDriverYet", "No driver matched yet — your ride is visible to all nearby drivers."));
+            }
+            queries.refetch();
+          })
+          .catch(() => {
+            // Matching failed silently; ride remains in requested state for broadcast
+            queries.refetch();
+          });
+      } else {
+        toast.success(state.billToOrg ? t("rider.rideRequestedOrg") : t("rider.rideRequested"));
+      }
       state.resetBookingForm();
       queries.refetch();
     } catch (err: any) {
