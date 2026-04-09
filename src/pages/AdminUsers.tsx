@@ -200,7 +200,7 @@ const AdminUsers = () => {
               </TableHeader>
               <TableBody>
                 {paginated.map((p) => (
-                  <TableRow key={p.id}>
+                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/users/${p.id}`)}>
                     <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{p.phone || "—"}</TableCell>
                     <TableCell>

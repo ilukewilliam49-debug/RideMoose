@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminVerifications from "./pages/AdminVerifications";
 import AdminReports from "./pages/AdminReports";
 import AdminUsers from "./pages/AdminUsers";
+import AdminUserDetail from "./pages/AdminUserDetail";
 import AdminPricing from "./pages/AdminPricing";
 import AdminZones from "./pages/AdminZones";
 import AdminCorporate from "./pages/AdminCorporate";
@@ -72,6 +73,7 @@ const AppContent = () => {
           <Route path="verifications" element={<AdminVerifications />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="users/:id" element={<AdminUserDetail />} />
           <Route path="pricing" element={<AdminPricing />} />
           <Route path="zones" element={<AdminZones />} />
           <Route path="corporate" element={<AdminCorporate />} />
