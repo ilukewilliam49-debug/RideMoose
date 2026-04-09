@@ -36,6 +36,7 @@ const MockDriverSimulator = () => {
   const [stepIndex, setStepIndex] = useState(0);
   const [totalSteps, setTotalSteps] = useState(0);
   const [speedMs, setSpeedMs] = useState(3000);
+  const [returnTrip, setReturnTrip] = useState(false);
   const [currentPos, setCurrentPos] = useState<{ lat: number; lng: number } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const routeRef = useRef<{ lat: number; lng: number }[]>([]);
@@ -87,15 +88,19 @@ const MockDriverSimulator = () => {
     }
 
     const steps = 40;
-    const route = interpolateRoute(
+    const outbound = interpolateRoute(
       { lat: pickup_lat, lng: pickup_lng },
       { lat: dropoff_lat, lng: dropoff_lng },
       steps
     );
+    const route = returnTrip
+      ? [...outbound, ...interpolateRoute({ lat: dropoff_lat, lng: dropoff_lng }, { lat: pickup_lat, lng: pickup_lng }, steps)]
+      : outbound;
+
     routeRef.current = route;
     setVisibleRoute(route);
     setCurrentPos(route[0]);
-    setTotalSteps(steps);
+    setTotalSteps(route.length - 1);
     setStepIndex(0);
     setIsRunning(true);
 
@@ -103,7 +108,7 @@ const MockDriverSimulator = () => {
     intervalRef.current = setInterval(async () => {
       if (idx >= route.length) {
         stop();
-        toast.success("Simulation complete — driver arrived at dropoff");
+        toast.success(returnTrip ? "Round trip complete — driver back at pickup" : "Simulation complete — driver arrived at dropoff");
         return;
       }
 
