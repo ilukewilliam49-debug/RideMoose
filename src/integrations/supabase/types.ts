@@ -988,6 +988,8 @@ export type Database = {
           cost_center: string | null
           created_at: string
           delivery_fee_cents: number | null
+          dispatch_expires_at: string | null
+          dispatched_to_driver_id: string | null
           distance_km: number | null
           driver_collected_outstanding_at: string | null
           driver_earnings_cents: number
@@ -1064,6 +1066,8 @@ export type Database = {
           cost_center?: string | null
           created_at?: string
           delivery_fee_cents?: number | null
+          dispatch_expires_at?: string | null
+          dispatched_to_driver_id?: string | null
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
           driver_earnings_cents?: number
@@ -1140,6 +1144,8 @@ export type Database = {
           cost_center?: string | null
           created_at?: string
           delivery_fee_cents?: number | null
+          dispatch_expires_at?: string | null
+          dispatched_to_driver_id?: string | null
           distance_km?: number | null
           driver_collected_outstanding_at?: string | null
           driver_earnings_cents?: number
@@ -1205,6 +1211,13 @@ export type Database = {
           weight_estimate_kg?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rides_dispatched_to_driver_id_fkey"
+            columns: ["dispatched_to_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rides_driver_id_fkey"
             columns: ["driver_id"]
