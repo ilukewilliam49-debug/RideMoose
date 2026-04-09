@@ -135,6 +135,14 @@ const AdminReports = () => {
             ))}
           </SelectContent>
         </Select>
+        <Select value={scheduledFilter} onValueChange={(v) => { setScheduledFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Booking" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All bookings</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="now">Immediate</SelectItem>
+          </SelectContent>
+        </Select>
         <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="w-[150px]" placeholder="From" />
         <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="w-[150px]" placeholder="To" />
       </div>
