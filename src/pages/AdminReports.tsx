@@ -38,6 +38,12 @@ const AdminReports = () => {
     } else if (preset === "month") {
       setDateFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
       setDateTo(today);
+    } else if (preset === "90d") {
+      setDateFrom(format(subDays(new Date(), 90), "yyyy-MM-dd"));
+      setDateTo(today);
+    } else if (preset === "year") {
+      setDateFrom(format(subDays(new Date(), 365), "yyyy-MM-dd"));
+      setDateTo(today);
     } else {
       setDateFrom("");
       setDateTo("");
@@ -175,6 +181,8 @@ const AdminReports = () => {
             <SelectItem value="7d">Last 7 days</SelectItem>
             <SelectItem value="30d">Last 30 days</SelectItem>
             <SelectItem value="month">This month</SelectItem>
+            <SelectItem value="90d">Last 90 days</SelectItem>
+            <SelectItem value="year">Last year</SelectItem>
           </SelectContent>
         </Select>
         <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setDatePreset("custom"); setPage(0); }} className="w-[150px]" placeholder="From" />
