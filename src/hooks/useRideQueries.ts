@@ -342,7 +342,7 @@ export const useRideQueries = ({
     directionsData, directionsFetching, trafficDelayMin,
     petPricingConfig, privateHireZones, geoZones,
     currentPricing, pickupZoneKey, dropoffZoneKey, matchedZone,
-    estimatedPrice,
+    estimatedPrice, allServicePrices,
     activeRide, driverProfile, activeRideDirections, activeRoutePolyline,
     liveEta, activeTrafficDelayMin,
     rides, refetch, outstandingRide,
