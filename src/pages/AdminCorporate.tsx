@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Plus, FileText, Loader2, Users, ChevronDown, ChevronUp, ClipboardList, CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import { Building2, Plus, FileText, Loader2, Users, ChevronDown, ChevronUp, ClipboardList, CheckCircle, XCircle, HelpCircle, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,

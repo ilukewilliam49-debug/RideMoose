@@ -7,7 +7,8 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Play, Square, MapPin, Navigation, Zap } from "lucide-react";
+import { Play, Square, MapPin, Navigation, Zap, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import SimulatorMap from "@/components/admin/SimulatorMap";
 
 /**
