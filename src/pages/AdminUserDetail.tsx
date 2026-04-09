@@ -304,7 +304,6 @@ export default function AdminUserDetail() {
                 </div>
               ))}
               <div className="pt-2 border-t space-y-1 text-sm text-muted-foreground">
-                <p>Commission: {((profile.commission_rate || 0) * 100).toFixed(1)}%</p>
                 <p>Balance: {(profile.driver_balance_cents / 100).toLocaleString()} ISK</p>
                 {profile.seat_capacity && <p>Seats: {profile.seat_capacity}</p>}
               </div>
