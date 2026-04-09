@@ -211,6 +211,15 @@ const MockDriverSimulator = () => {
           </p>
         </div>
 
+        {/* Return trip toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="text-sm font-medium text-foreground">Return trip</label>
+            <p className="text-xs text-muted-foreground">Reverse route back to pickup after dropoff</p>
+          </div>
+          <Switch checked={returnTrip} onCheckedChange={setReturnTrip} disabled={isRunning} />
+        </div>
+
         {/* Progress */}
         {isRunning && (
           <div className="space-y-1">
