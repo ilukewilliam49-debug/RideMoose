@@ -281,10 +281,45 @@ const AdminUsers = () => {
         </div>
       ) : (
         <>
+          {/* Bulk Action Toolbar */}
+          {selected.size > 0 && (
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2 flex-wrap">
+              <span className="text-sm font-medium">{selected.size} selected</span>
+              <div className="h-4 w-px bg-border" />
+              <Select onValueChange={(val) => handleBulkAction("role", val, `role → ${val}`)} disabled={bulkSaving}>
+                <SelectTrigger className="w-[130px] h-8 text-xs">
+                  <SelectValue placeholder="Set role…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={bulkSaving}
+                onClick={() => handleBulkAction("can_courier", true, "courier → enabled")}>
+                Enable Courier
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={bulkSaving}
+                onClick={() => handleBulkAction("pet_approved", true, "pet approved → enabled")}>
+                Enable Pet
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={() => setSelected(new Set())}>
+                <X className="h-3 w-3 mr-1" /> Clear
+              </Button>
+            </div>
+          )}
+
           <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={paginated.length > 0 && selected.size === paginated.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Role</TableHead>
@@ -297,10 +332,16 @@ const AdminUsers = () => {
               </TableHeader>
               <TableBody>
                 {paginated.map((p) => (
-                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/users/${p.id}`)}>
+                  <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${selected.has(p.id) ? "bg-muted/30" : ""}`} onClick={() => navigate(`/admin/users/${p.id}`)}>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.has(p.id)}
+                        onCheckedChange={() => toggleSelect(p.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{p.phone || "—"}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={p.role}
                         onValueChange={(val) => handleRoleChange(p.id, val)}
@@ -316,7 +357,7 @@ const AdminUsers = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {p.role === "driver" ? (
                         <Select
                           value={p.vehicle_type || "none"}
@@ -336,7 +377,7 @@ const AdminUsers = () => {
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {p.role === "driver" ? (
                         <Switch
                           checked={p.can_courier}
@@ -347,7 +388,7 @@ const AdminUsers = () => {
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {p.role === "driver" ? (
                         <Switch
                           checked={p.pet_approved}
@@ -366,7 +407,7 @@ const AdminUsers = () => {
                 ))}
                 {paginated.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       No users found
                     </TableCell>
                   </TableRow>
