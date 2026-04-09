@@ -282,8 +282,21 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
       />
       {/* Loading overlay */}
       {isLoading && (
-        <div className="absolute inset-0 z-[1001] flex items-center justify-center rounded-2xl bg-card/70 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-2">
+        <div className="absolute inset-0 z-[1001] flex items-center justify-center rounded-2xl bg-card/70 backdrop-blur-sm overflow-hidden">
+          {/* Shimmer sweep */}
+          <div className="absolute inset-0 animate-[shimmer-sweep_1.8s_ease-in-out_infinite]"
+            style={{
+              background: "linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.08) 40%, hsl(var(--primary) / 0.15) 50%, hsl(var(--primary) / 0.08) 60%, transparent 100%)",
+              backgroundSize: "200% 100%",
+            }}
+          />
+          {/* Ripple rings */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="absolute h-16 w-16 rounded-full border border-primary/20 animate-[ripple-out_2s_ease-out_infinite]" />
+            <span className="absolute h-16 w-16 rounded-full border border-primary/15 animate-[ripple-out_2s_ease-out_0.6s_infinite]" />
+            <span className="absolute h-16 w-16 rounded-full border border-primary/10 animate-[ripple-out_2s_ease-out_1.2s_infinite]" />
+          </div>
+          <div className="relative flex flex-col items-center gap-2">
             <div className="h-7 w-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             <span className="text-xs font-medium text-muted-foreground">Finding drivers…</span>
           </div>
