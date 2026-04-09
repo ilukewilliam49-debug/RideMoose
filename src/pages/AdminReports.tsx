@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Download, TrendingUp, DollarSign, CheckCircle, BarChart3 } from "lucide-react";
+import { Download, TrendingUp, DollarSign, CheckCircle, BarChart3, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const PAGE_SIZE = 25;
 
