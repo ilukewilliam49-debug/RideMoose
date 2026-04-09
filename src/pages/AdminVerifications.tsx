@@ -2,8 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, FileText, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { CheckCircle, XCircle, FileText } from "lucide-react";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
@@ -12,7 +12,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 
 const AdminVerifications = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState("all");
@@ -105,13 +104,7 @@ const AdminVerifications = () => {
 
   return (
     <div className="space-y-6 pt-4">
-      <button
-        onClick={() => navigate("/admin")}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </button>
+      <AdminBreadcrumb />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Driver Verification Hub</h1>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
