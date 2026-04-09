@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Search } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,9 @@ const AdminUsers = () => {
   const [saving, setSaving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [vehicleFilter, setVehicleFilter] = useState<string>("all");
+  const [onlineFilter, setOnlineFilter] = useState<string>("all");
+  const [capabilityFilter, setCapabilityFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
 
   // Confirmation dialog state
@@ -85,6 +88,23 @@ const AdminUsers = () => {
   const filtered = useMemo(() => {
     let result = profiles;
     if (roleFilter !== "all") result = result.filter((p) => p.role === roleFilter);
+    if (vehicleFilter !== "all") {
+      result = result.filter((p) =>
+        vehicleFilter === "none" ? !p.vehicle_type : p.vehicle_type === vehicleFilter
+      );
+    }
+    if (onlineFilter !== "all") {
+      result = result.filter((p) =>
+        onlineFilter === "online" ? p.is_available : !p.is_available
+      );
+    }
+    if (capabilityFilter !== "all") {
+      result = result.filter((p) => {
+        if (capabilityFilter === "courier") return p.can_courier;
+        if (capabilityFilter === "pet") return p.pet_approved;
+        return true;
+      });
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -95,12 +115,12 @@ const AdminUsers = () => {
       );
     }
     return result;
-  }, [profiles, roleFilter, search]);
+  }, [profiles, roleFilter, vehicleFilter, onlineFilter, capabilityFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  useEffect(() => { setPage(0); }, [search, roleFilter]);
+  useEffect(() => { setPage(0); }, [search, roleFilter, vehicleFilter, onlineFilter, capabilityFilter]);
 
   const handleUpdate = async (profileId: string, field: string, value: any) => {
     setSaving(profileId);
@@ -162,7 +182,7 @@ const AdminUsers = () => {
           />
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="All roles" />
           </SelectTrigger>
           <SelectContent>
@@ -170,6 +190,37 @@ const AdminUsers = () => {
             {ROLES.map((r) => (
               <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Vehicle" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All vehicles</SelectItem>
+            {VEHICLE_TYPES.map((vt) => (
+              <SelectItem key={vt.value} value={vt.value}>{vt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={onlineFilter} onValueChange={setOnlineFilter}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All status</SelectItem>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={capabilityFilter} onValueChange={setCapabilityFilter}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Capability" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All capabilities</SelectItem>
+            <SelectItem value="courier">Courier</SelectItem>
+            <SelectItem value="pet">Pet Approved</SelectItem>
           </SelectContent>
         </Select>
       </div>
