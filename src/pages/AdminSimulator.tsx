@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Play, Square, MapPin, Navigation, Zap } from "lucide-react";
+import SimulatorMap from "@/components/admin/SimulatorMap";
 
 /**
  * Interpolate `steps` evenly-spaced points between two lat/lng pairs.
@@ -35,8 +36,10 @@ const MockDriverSimulator = () => {
   const [stepIndex, setStepIndex] = useState(0);
   const [totalSteps, setTotalSteps] = useState(0);
   const [speedMs, setSpeedMs] = useState(3000);
+  const [currentPos, setCurrentPos] = useState<{ lat: number; lng: number } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const routeRef = useRef<{ lat: number; lng: number }[]>([]);
+  const [visibleRoute, setVisibleRoute] = useState<{ lat: number; lng: number }[]>([]);
 
   // Fetch active rides (accepted or in_progress) with driver assigned
   const { data: activeRides, isLoading } = useQuery({
@@ -90,6 +93,8 @@ const MockDriverSimulator = () => {
       steps
     );
     routeRef.current = route;
+    setVisibleRoute(route);
+    setCurrentPos(route[0]);
     setTotalSteps(steps);
     setStepIndex(0);
     setIsRunning(true);
@@ -114,6 +119,7 @@ const MockDriverSimulator = () => {
 
       idx++;
       setStepIndex(idx);
+      setCurrentPos(point);
     }, speedMs);
   }, [selectedRide, speedMs, stop]);
 
