@@ -182,7 +182,7 @@ const CourierBooking = () => {
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("rider.pickupAddress", "Pickup address")}</Label>
             <AddressAutocomplete
               value={pickup}
-              onChange={(val, coords) => { setPickup(val); if (coords) setPickupCoords(coords); }}
+              onChange={(val, lat, lng) => { setPickup(val); if (lat !== undefined && lng !== undefined) setPickupCoords({ lat, lng }); }}
               placeholder={t("rider.pickupPlaceholder", "Where to pick up")}
             />
           </div>
@@ -190,7 +190,7 @@ const CourierBooking = () => {
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("rider.dropoffAddress", "Dropoff address")}</Label>
             <AddressAutocomplete
               value={dropoff}
-              onChange={(val, coords) => { setDropoff(val); if (coords) setDropoffCoords(coords); }}
+              onChange={(val, lat, lng) => { setDropoff(val); if (lat !== undefined && lng !== undefined) setDropoffCoords({ lat, lng }); }}
               placeholder={t("rider.dropoffPlaceholder", "Where to deliver")}
             />
           </div>

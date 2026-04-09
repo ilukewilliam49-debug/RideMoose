@@ -28,6 +28,7 @@ import DriverOnboarding from "./pages/DriverOnboarding";
 import DriverOnboardingPending from "./pages/DriverOnboardingPending";
 import DashboardHome from "./pages/DashboardHome";
 import RiderDashboard from "./pages/RiderDashboard";
+import CourierBooking from "./pages/CourierBooking";
 import CorporateApply from "./pages/CorporateApply";
 import RiderActivity from "./pages/RiderActivity";
 import RiderAccount from "./pages/RiderAccount";
@@ -97,6 +98,7 @@ const AppContent = () => {
         <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>
           <Route index element={<DashboardHome />} />
           <Route path="rides" element={<RiderDashboard />} />
+          <Route path="courier" element={<CourierBooking />} />
           <Route path="activity" element={<RiderActivity />} />
           <Route path="account" element={<RiderAccount />} />
           <Route path="corporate-apply" element={<CorporateApply />} />
