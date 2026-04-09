@@ -232,7 +232,7 @@ const AdminReports = () => {
                    </tr>
                  )}
                  {paginated.map((ride: any) => (
-                   <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
+                   <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => navigate(`/admin/rides/${ride.id}`)}>
                      <td className="py-3 px-2">{ride.rider?.full_name || "—"}</td>
                      <td className="py-3 px-2">{ride.driver?.full_name || "—"}</td>
                      <td className="py-3 px-2 capitalize text-xs">{ride.service_type.replace("_", " ")}</td>

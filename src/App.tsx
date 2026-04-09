@@ -18,6 +18,7 @@ import AdminZones from "./pages/AdminZones";
 import AdminCorporate from "./pages/AdminCorporate";
 import AdminSupport from "./pages/AdminSupport";
 import AdminBookings from "./pages/AdminBookings";
+import AdminRideDetail from "./pages/AdminRideDetail";
 import AdminSimulator from "./pages/AdminSimulator";
 import DriverDashboard from "./pages/DriverDashboard";
 import DriverDispatch from "./pages/DriverDispatch";
@@ -76,6 +77,7 @@ const AppContent = () => {
           <Route path="users/:id" element={<AdminUserDetail />} />
           <Route path="pricing" element={<AdminPricing />} />
           <Route path="zones" element={<AdminZones />} />
+          <Route path="rides/:id" element={<AdminRideDetail />} />
           <Route path="corporate" element={<AdminCorporate />} />
           <Route path="support" element={<AdminSupport />} />
           <Route path="bookings" element={<AdminBookings />} />
