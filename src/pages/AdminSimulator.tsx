@@ -234,6 +234,24 @@ const MockDriverSimulator = () => {
           )}
         </div>
       </div>
+
+      {/* Mini-map */}
+      {selectedRide && (
+        <SimulatorMap
+          pickup={
+            (selectedRide as any).pickup_lat
+              ? { lat: (selectedRide as any).pickup_lat, lng: (selectedRide as any).pickup_lng }
+              : null
+          }
+          dropoff={
+            (selectedRide as any).dropoff_lat
+              ? { lat: (selectedRide as any).dropoff_lat, lng: (selectedRide as any).dropoff_lng }
+              : null
+          }
+          driverPos={currentPos}
+          route={visibleRoute}
+        />
+      )}
     </div>
   );
 };
