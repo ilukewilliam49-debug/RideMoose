@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import RideTrendsChart from "@/components/admin/RideTrendsChart";
 
 const PAGE_SIZE = 25;
 
