@@ -72,6 +72,9 @@ export default function AdminBookings() {
 
   return (
     <div className="space-y-6">
+      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+      </button>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Bókun Bookings</h1>
         <Button onClick={() => syncMutation.mutate()} disabled={isSyncing}>

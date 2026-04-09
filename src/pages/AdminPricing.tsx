@@ -179,6 +179,9 @@ const AdminPricing = () => {
 
   return (
     <div className="space-y-8 pt-4">
+      <button onClick={() => navigate("/admin")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+      </button>
       <h1 className="text-2xl font-bold">{t("pricing.title")}</h1>
 
       {/* Platform Financial Settings */}
