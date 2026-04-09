@@ -167,11 +167,11 @@ const MockDriverSimulator = () => {
         {selectedRide && (
           <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-green-500" />
+              <MapPin className="h-4 w-4 text-emerald-500" />
               <span className="truncate">{(selectedRide as any).pickup_address}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Navigation className="h-4 w-4 text-red-500" />
+              <Navigation className="h-4 w-4 text-destructive" />
               <span className="truncate">{(selectedRide as any).dropoff_address}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
