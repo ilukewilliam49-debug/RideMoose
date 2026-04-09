@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { User, Phone, Car, CalendarDays, MapPin, Shield, PawPrint, Package, Utensils, Bus, Briefcase, Pencil, Check, X, Percent } from "lucide-react";
+import { User, Phone, Car, CalendarDays, MapPin, Shield, PawPrint, Package, Utensils, Bus, Briefcase, Pencil, Check, X, Percent, Wallet, Armchair } from "lucide-react";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { useState, useCallback } from "react";
@@ -303,9 +303,22 @@ export default function AdminUserDetail() {
                   />
                 </div>
               ))}
-              <div className="pt-2 border-t space-y-1 text-sm text-muted-foreground">
-                <p>Balance: {(profile.driver_balance_cents / 100).toLocaleString()} ISK</p>
-                {profile.seat_capacity && <p>Seats: {profile.seat_capacity}</p>}
+              <div className="pt-2 border-t space-y-4">
+                <InlineEdit
+                  icon={Wallet}
+                  label="Balance"
+                  type="number"
+                  suffix="ISK"
+                  value={String(profile.driver_balance_cents / 100)}
+                  onSave={(val) => handleUpdate("driver_balance_cents", Math.round(parseFloat(val) * 100))}
+                />
+                <InlineEdit
+                  icon={Armchair}
+                  label="Seat Capacity"
+                  type="number"
+                  value={String(profile.seat_capacity ?? "")}
+                  onSave={(val) => handleUpdate("seat_capacity", val ? parseInt(val) : null)}
+                />
               </div>
             </CardContent>
           </Card>
