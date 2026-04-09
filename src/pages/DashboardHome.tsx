@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route, HelpCircle } from "lucide-react";
+import { Car, Package, Plane, Briefcase, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, Bus, Route, HelpCircle, LocateFixed } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -40,6 +40,9 @@ const DashboardHome = () => {
   const [customTime, setCustomTime] = useState("12:00");
   const [showCustom, setShowCustom] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [pickupAddressCoords, setPickupAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [dropoffAddressCoords, setDropoffAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
