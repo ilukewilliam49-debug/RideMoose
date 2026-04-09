@@ -197,11 +197,21 @@ export default function AdminUserDetail() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Basic Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{profile?.phone || "No phone"}</span>
+            <InlineEdit
+              icon={User}
+              label="Name"
+              value={profile?.full_name || ""}
+              onSave={(val) => handleUpdate("full_name", val)}
+            />
+            <div className="flex items-center gap-1">
+              <InlineEdit
+                icon={Phone}
+                label="Phone"
+                value={profile?.phone || ""}
+                onSave={(val) => handleUpdate("phone", val)}
+              />
               {profile?.phone_verified && (
-                <Badge variant="outline" className="text-xs">Verified</Badge>
+                <Badge variant="outline" className="text-xs ml-1">Verified</Badge>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -216,6 +226,14 @@ export default function AdminUserDetail() {
                 </span>
               </div>
             )}
+            <InlineEdit
+              icon={Percent}
+              label="Commission"
+              type="number"
+              suffix="%"
+              value={((profile?.commission_rate || 0) * 100).toFixed(1)}
+              onSave={(val) => handleUpdate("commission_rate", parseFloat(val) / 100)}
+            />
             <div className="flex items-center justify-between pt-2">
               <Label htmlFor="role-select" className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-muted-foreground" />
