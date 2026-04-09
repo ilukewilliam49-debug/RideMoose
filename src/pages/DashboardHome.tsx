@@ -304,7 +304,7 @@ const DashboardHome = () => {
       </motion.div>
 
       {/* ── Nearby drivers map ── */}
-      <NearbyDriversMap activeTab={activeTab} userLocation={userLocation} />
+      <NearbyDriversMap activeTab={"taxi"} userLocation={userLocation} />
 
       {/* ── Saved places ── */}
       {savedPlacesLoading && (
@@ -374,11 +374,10 @@ const DashboardHome = () => {
             <button
               key={i}
               onClick={() => {
-                const base = activeTab === "delivery" ? "/rider/rides?service=courier" : "/rider/rides?service=taxi";
-                const sep = base.includes("?") ? "&" : "?";
+                const base = "/rider/rides";
                 const params = rd.dropoff_lat && rd.dropoff_lng
-                  ? `${sep}dropoff=${encodeURIComponent(rd.dropoff_address)}&dlat=${rd.dropoff_lat}&dlng=${rd.dropoff_lng}`
-                  : `${sep}dropoff=${encodeURIComponent(rd.dropoff_address)}`;
+                  ? `?dropoff=${encodeURIComponent(rd.dropoff_address)}&dlat=${rd.dropoff_lat}&dlng=${rd.dropoff_lng}`
+                  : `?dropoff=${encodeURIComponent(rd.dropoff_address)}`;
                 navigate(withSchedule(`${base}${params}`));
               }}
               className="flex w-full items-center gap-4 py-3 text-left hover:bg-accent/30 transition-colors -mx-1 px-1 rounded-lg"
