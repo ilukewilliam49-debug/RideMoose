@@ -237,12 +237,11 @@ const DriverDispatch = () => {
     setAcceptingId(rideId);
     try {
       // Try accepting dispatched ride first, then fall back to requested
-      const { error: dispatchErr } = await supabase
+      const { error: dispatchErr, count } = await supabase
         .from("rides")
-        .update({ driver_id: profile.id, status: "accepted" })
+        .update({ driver_id: profile.id, status: "accepted" } as any)
         .eq("id", rideId)
-        .eq("status", "dispatched")
-        .eq("dispatched_to_driver_id" as any, profile.id);
+        .eq("status", "dispatched");
 
       if (dispatchErr) {
         // Fall back to broadcast accept
