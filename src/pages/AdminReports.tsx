@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
-import { format } from "date-fns";
+import { format, subDays, startOfMonth } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import RideTrendsChart from "@/components/admin/RideTrendsChart";
 import RevenueChart from "@/components/admin/RevenueChart";
@@ -23,7 +23,27 @@ const AdminReports = () => {
   const [scheduledFilter, setScheduledFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [datePreset, setDatePreset] = useState("all");
   const [page, setPage] = useState(0);
+
+  const applyDatePreset = (preset: string) => {
+    setDatePreset(preset);
+    const today = format(new Date(), "yyyy-MM-dd");
+    if (preset === "7d") {
+      setDateFrom(format(subDays(new Date(), 7), "yyyy-MM-dd"));
+      setDateTo(today);
+    } else if (preset === "30d") {
+      setDateFrom(format(subDays(new Date(), 30), "yyyy-MM-dd"));
+      setDateTo(today);
+    } else if (preset === "month") {
+      setDateFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+      setDateTo(today);
+    } else {
+      setDateFrom("");
+      setDateTo("");
+    }
+    setPage(0);
+  };
 
   const { data: rides, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-all-rides"],
@@ -148,8 +168,17 @@ const AdminReports = () => {
             <SelectItem value="now">Immediate</SelectItem>
           </SelectContent>
         </Select>
-        <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="w-[150px]" placeholder="From" />
-        <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="w-[150px]" placeholder="To" />
+        <Select value={datePreset} onValueChange={applyDatePreset}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Date range" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All time</SelectItem>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="month">This month</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setDatePreset("custom"); setPage(0); }} className="w-[150px]" placeholder="From" />
+        <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setDatePreset("custom"); setPage(0); }} className="w-[150px]" placeholder="To" />
       </div>
 
       {!isLoading && !isError && (
