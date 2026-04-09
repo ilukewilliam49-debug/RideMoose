@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   PieChart,
   Pie,
@@ -25,6 +26,8 @@ const COLORS = [
 ];
 
 const ServiceBreakdownChart = ({ rides }: ServiceBreakdownChartProps) => {
+  const isMobile = useIsMobile();
+
   const chartData = useMemo(() => {
     const counts: Record<string, number> = {};
     rides.forEach((r: any) => {
@@ -47,22 +50,23 @@ const ServiceBreakdownChart = ({ rides }: ServiceBreakdownChartProps) => {
   return (
     <div className="rounded-xl border border-border/50 bg-card/70 p-4">
       <h3 className="text-sm font-semibold mb-4 text-foreground">Service Breakdown</h3>
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={isMobile ? 300 : 260}>
         <PieChart>
           <Pie
             data={chartData}
             dataKey="value"
             nameKey="name"
             cx="50%"
-            cy="50%"
-            outerRadius={90}
-            innerRadius={45}
+            cy="45%"
+            outerRadius={isMobile ? 70 : 90}
+            innerRadius={isMobile ? 35 : 45}
             paddingAngle={2}
-            label={({ name, percent }) =>
-              `${name} ${(percent * 100).toFixed(0)}%`
+            label={isMobile
+              ? ({ percent }) => `${(percent * 100).toFixed(0)}%`
+              : ({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`
             }
             labelLine={{ strokeWidth: 1 }}
-            style={{ fontSize: 10 }}
+            style={{ fontSize: isMobile ? 9 : 10 }}
           >
             {chartData.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -77,6 +81,14 @@ const ServiceBreakdownChart = ({ rides }: ServiceBreakdownChartProps) => {
             }}
             formatter={(value: number, name: string) => [`${value} rides`, name]}
           />
+          {isMobile && (
+            <Legend
+              wrapperStyle={{ fontSize: 10, paddingTop: 8 }}
+              iconSize={8}
+              layout="horizontal"
+              align="center"
+            />
+          )}
         </PieChart>
       </ResponsiveContainer>
     </div>
