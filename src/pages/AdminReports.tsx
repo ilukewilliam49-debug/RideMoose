@@ -163,9 +163,10 @@ const AdminReports = () => {
                   <th className="py-3 px-2">Driver</th>
                   <th className="py-3 px-2">Service</th>
                   <th className="py-3 px-2">Route</th>
-                  <th className="py-3 px-2">Status</th>
-                  <th className="py-3 px-2 text-right">Price</th>
-                  <th className="py-3 px-2">Date</th>
+                   <th className="py-3 px-2">Status</th>
+                   <th className="py-3 px-2">Scheduled</th>
+                   <th className="py-3 px-2 text-right">Price</th>
+                   <th className="py-3 px-2">Date</th>
                 </tr>
               </thead>
               <tbody>
