@@ -123,7 +123,50 @@ const AdminUsers = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  useEffect(() => { setPage(0); }, [search, roleFilter, vehicleFilter, onlineFilter, capabilityFilter]);
+  useEffect(() => { setPage(0); setSelected(new Set()); }, [search, roleFilter, vehicleFilter, onlineFilter, capabilityFilter]);
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === paginated.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(paginated.map((p) => p.id)));
+    }
+  };
+
+  const handleBulkUpdate = async (field: string, value: any) => {
+    const ids = Array.from(selected).filter((id) => id !== profile?.id);
+    if (!ids.length) return;
+    setBulkSaving(true);
+    const { error: err } = await supabase
+      .from("profiles")
+      .update({ [field]: value })
+      .in("id", ids);
+    if (err) {
+      toast({ title: `Bulk update failed`, description: err.message, variant: "destructive" });
+    } else {
+      setProfiles((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, [field]: value } : p));
+      toast({ title: `Updated ${ids.length} user${ids.length > 1 ? "s" : ""}` });
+      setSelected(new Set());
+    }
+    setBulkSaving(false);
+  };
+
+  const handleBulkAction = (field: string, value: any, label: string) => {
+    const count = Array.from(selected).filter((id) => id !== profile?.id).length;
+    setConfirmAction({
+      title: `Apply to ${count} user${count > 1 ? "s" : ""}?`,
+      description: `This will set ${label} for ${count} selected user${count > 1 ? "s" : ""}.`,
+      onConfirm: () => handleBulkUpdate(field, value),
+    });
+  };
 
   const handleUpdate = async (profileId: string, field: string, value: any) => {
     setSaving(profileId);
