@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Clock, AlertTriangle, CreditCard, Banknote, Building2,
-  Package, ShoppingBag, MapPinned, MapPin, LocateFixed, Car,
+  Package, ShoppingBag, MapPinned, MapPin, LocateFixed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
