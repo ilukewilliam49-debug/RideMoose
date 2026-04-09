@@ -81,6 +81,14 @@ const ServiceBreakdownChart = ({ rides }: ServiceBreakdownChartProps) => {
             }}
             formatter={(value: number, name: string) => [`${value} rides`, name]}
           />
+          {isMobile && (
+            <Legend
+              wrapperStyle={{ fontSize: 10, paddingTop: 8 }}
+              iconSize={8}
+              layout="horizontal"
+              align="center"
+            />
+          )}
         </PieChart>
       </ResponsiveContainer>
     </div>
