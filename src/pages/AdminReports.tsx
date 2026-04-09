@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import RideTrendsChart from "@/components/admin/RideTrendsChart";
 
 const PAGE_SIZE = 25;
 
@@ -148,6 +149,9 @@ const AdminReports = () => {
         <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(0); }} className="w-[150px]" placeholder="From" />
         <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="w-[150px]" placeholder="To" />
       </div>
+
+      {/* Ride Trends Chart */}
+      {!isLoading && !isError && <RideTrendsChart rides={filtered} />}
 
       {isError ? (
         <ErrorRetry message="Failed to load ride data" onRetry={() => refetch()} />
