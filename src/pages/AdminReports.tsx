@@ -38,6 +38,12 @@ const AdminReports = () => {
     } else if (preset === "month") {
       setDateFrom(format(startOfMonth(new Date()), "yyyy-MM-dd"));
       setDateTo(today);
+    } else if (preset === "90d") {
+      setDateFrom(format(subDays(new Date(), 90), "yyyy-MM-dd"));
+      setDateTo(today);
+    } else if (preset === "year") {
+      setDateFrom(format(subDays(new Date(), 365), "yyyy-MM-dd"));
+      setDateTo(today);
     } else {
       setDateFrom("");
       setDateTo("");
