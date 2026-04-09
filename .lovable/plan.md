@@ -1,26 +1,24 @@
 
 
-## Plan: Show Scheduled Time in Admin Trip Reports
+## Remove Bókun Integration
 
-### What's missing
-The rider's scheduling popover saves `scheduled_at` to the `rides` table, but the Admin Reports page (`/admin/reports`) does not display or export this information.
+The Bókun booking sync feature is unused. Here's what needs to be removed:
 
-### Changes
+### Files to delete
+- `src/pages/AdminBookings.tsx` — the admin bookings page
+- `supabase/functions/sync-bokun-bookings/index.ts` — the edge function
 
-**File: `src/pages/AdminReports.tsx`**
+### Files to edit
 
-1. **Add a "Scheduled" column** to the trip table between "Date" and "Status" (or after "Date"):
-   - Display the `scheduled_at` value formatted as date + time if present, or "—" if null (meaning it was a "Now" ride).
+1. **`src/App.tsx`** — Remove the `AdminBookings` import and the `/admin/bookings` route
 
-2. **Add a "Scheduled" badge/indicator** — rides with a `scheduled_at` value get a small badge so admins can quickly spot pre-scheduled trips.
+2. **`src/pages/AdminDashboard.tsx`** — Remove the Bókun bookings stat card, the `bokun_bookings` query from the `Promise.all`, and the `syncedBookings` references
 
-3. **Update CSV export** — add a "Scheduled At" column to the exported CSV so the data is included in reports.
+3. **`supabase/config.toml`** — Remove the `[functions.sync-bokun-bookings]` block
 
-4. **Optional filter** — add a filter option (e.g., "Scheduled only" toggle or a dropdown) so admins can filter to see only pre-scheduled rides.
+### Database migration
+- Drop the `bokun_bookings` and `bokun_sync_status` tables
 
-### Technical details
-- The `rides` table already has a `scheduled_at` column (nullable timestamp).
-- The existing query (`select("*, rider:rider_id(full_name), driver:driver_id(full_name)")`) already fetches all columns including `scheduled_at` — no query change needed.
-- Format using `date-fns` `format()` which is already imported.
-- No database migrations required.
+### Secrets (optional cleanup)
+- `BOKUN_ACCESS_KEY` and `BOKUN_SECRET_KEY` can be removed if no longer needed elsewhere
 
