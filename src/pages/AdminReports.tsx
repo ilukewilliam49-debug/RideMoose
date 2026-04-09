@@ -40,6 +40,8 @@ const AdminReports = () => {
     if (serviceFilter !== "all") result = result.filter((r: any) => r.service_type === serviceFilter);
     if (dateFrom) result = result.filter((r: any) => r.created_at >= dateFrom);
     if (dateTo) result = result.filter((r: any) => r.created_at.slice(0, 10) <= dateTo);
+    if (scheduledFilter === "scheduled") result = result.filter((r: any) => r.scheduled_at);
+    if (scheduledFilter === "now") result = result.filter((r: any) => !r.scheduled_at);
     return result;
   }, [rides, statusFilter, serviceFilter, dateFrom, dateTo]);
 
