@@ -24,7 +24,7 @@ import CancelRideDialog from "@/components/rider/CancelRideDialog";
 import ActiveRideMap from "@/components/rider/ActiveRideMap";
 import ActiveRideCard from "@/components/rider/ActiveRideCard";
 import RideHistory from "@/components/rider/RideHistory";
-import PriceEstimate from "@/components/rider/PriceEstimate";
+import ServiceSelector from "@/components/rider/ServiceSelector";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
 import { useRideQueries } from "@/hooks/useRideQueries";
 
@@ -253,43 +253,6 @@ const RiderDashboard = () => {
         )}
       </div>
 
-      {/* ── Service tabs ── */}
-      {!queries.activeRide && (
-        <div className="flex items-center gap-2">
-          {([
-            { key: "taxi" as const, label: t("dashboard.taxi", "Taxi"), icon: <Car className="h-4 w-4" /> },
-            {
-              key: "private_hire" as const,
-              label: t("dashboard.charter", "PickYou"),
-              icon: (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 13h1l1.5-4.5A1 1 0 0 1 6.45 8h11.1a1 1 0 0 1 .95.68L20 13h1a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-1.05a2.5 2.5 0 0 1-4.9 0h-6.1a2.5 2.5 0 0 1-4.9 0H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z" />
-                  <path d="M6 13V9.5" />
-                  <path d="M18 13V9.5" />
-                  <path d="M9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                  <circle cx="7" cy="17" r="1.5" />
-                  <circle cx="17" cy="17" r="1.5" />
-                </svg>
-              ),
-            },
-            { key: "courier" as const, label: t("dashboard.delivery", "Courier"), icon: <Package className="h-4 w-4" /> },
-          ]).map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => state.setServiceType(tab.key)}
-              className={cn(
-                "relative flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold transition-all duration-200",
-                state.serviceType === tab.key
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Active ride map */}
       {showActiveMap && (
@@ -395,17 +358,12 @@ const RiderDashboard = () => {
             </div>
           )}
 
-          {/* Price estimates */}
-          <PriceEstimate
-            serviceType={state.serviceType}
-            estimatedPrice={queries.estimatedPrice}
-            matchedZone={queries.matchedZone}
-            pickupZoneKey={queries.pickupZoneKey}
-            dropoffZoneKey={queries.dropoffZoneKey}
-            geoZones={queries.geoZones}
-            directionsData={queries.directionsData}
-            trafficDelayMin={queries.trafficDelayMin}
-            directionsFetching={queries.directionsFetching}
+          {/* Service selection cards with prices */}
+          <ServiceSelector
+            selected={state.serviceType}
+            onSelect={state.setServiceType}
+            prices={queries.allServicePrices}
+            etaText={queries.directionsData?.duration_in_traffic_text || null}
           />
 
           {/* Payment option selector for taxi */}
