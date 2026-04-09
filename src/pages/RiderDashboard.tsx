@@ -27,6 +27,7 @@ import RideHistory from "@/components/rider/RideHistory";
 import ServiceSelector from "@/components/rider/ServiceSelector";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
 import { useRideQueries } from "@/hooks/useRideQueries";
+import { useNearestDriverETAs } from "@/hooks/useNearestDriverETAs";
 
 const STATUS_COLORS: Record<string, string> = {
   requested: "text-yellow-400",
@@ -55,6 +56,8 @@ const RiderDashboard = () => {
     estimatedItemCostCents: state.estimatedItemCostCents,
     petMode: state.petMode,
   });
+
+  const driverETAs = useNearestDriverETAs(state.userLocation);
 
   // Auto-open rating dialog when unrated ride found
   useEffect(() => {
@@ -364,6 +367,7 @@ const RiderDashboard = () => {
             onSelect={state.setServiceType}
             prices={queries.allServicePrices}
             etaText={queries.directionsData?.duration_in_traffic_text || null}
+            driverETAs={driverETAs}
           />
 
           {/* Payment option selector for taxi */}
