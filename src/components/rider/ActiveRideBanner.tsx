@@ -54,17 +54,22 @@ export default function ActiveRideBanner() {
       ? `${driverName ?? t("rider.driver")} ${t("rider.isOnTheWay", "is on the way")}`
       : t("rider.rideInProgress", "Ride in progress");
 
+  const isSearching = activeRide.status === "requested";
+
   return (
     <motion.button
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={() => navigate("/rider/rides")}
-      className="flex w-full items-center gap-3 rounded-2xl bg-primary/10 border border-primary/20 p-4 text-left active:scale-[0.99] transition-transform"
+      className={`relative flex w-full items-center gap-3 rounded-2xl bg-primary/10 border border-primary/20 p-4 text-left active:scale-[0.99] transition-transform overflow-hidden ${isSearching ? "animate-[pulse-glow_2s_ease-in-out_infinite]" : ""}`}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+      {isSearching && (
+        <span className="absolute inset-0 rounded-2xl animate-[pulse-glow-ring_2s_ease-in-out_infinite] pointer-events-none" />
+      )}
+      <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 ${isSearching ? "animate-pulse" : ""}`}>
         <Car className="h-5 w-5 text-primary" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="relative flex-1 min-w-0">
         <p className="text-sm font-bold text-primary">{statusLabel}</p>
         <div className="flex items-center gap-1 mt-0.5">
           <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -73,7 +78,7 @@ export default function ActiveRideBanner() {
           </p>
         </div>
       </div>
-      <ChevronRight className="h-4 w-4 text-primary/60 shrink-0" />
+      <ChevronRight className="h-4 w-4 text-primary/60 shrink-0 relative" />
     </motion.button>
   );
 }
