@@ -43,7 +43,7 @@ const AdminReports = () => {
     if (scheduledFilter === "scheduled") result = result.filter((r: any) => r.scheduled_at);
     if (scheduledFilter === "now") result = result.filter((r: any) => !r.scheduled_at);
     return result;
-  }, [rides, statusFilter, serviceFilter, dateFrom, dateTo]);
+  }, [rides, statusFilter, serviceFilter, dateFrom, dateTo, scheduledFilter]);
 
   const stats = useMemo(() => {
     const completed = filtered.filter((r: any) => r.status === "completed");
