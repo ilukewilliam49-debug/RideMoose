@@ -12,6 +12,11 @@ interface ServiceSelectorProps {
     courier: string | null;
   };
   etaText?: string | null;
+  driverETAs?: {
+    taxi: string | null;
+    private_hire: string | null;
+    courier: string | null;
+  };
 }
 
 const PickYouIcon = ({ className }: { className?: string }) => (
