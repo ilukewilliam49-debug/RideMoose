@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Search, Filter } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,8 @@ const AdminUsers = () => {
   const [onlineFilter, setOnlineFilter] = useState<string>("all");
   const [capabilityFilter, setCapabilityFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   // Confirmation dialog state
   const [confirmAction, setConfirmAction] = useState<{
@@ -120,7 +123,50 @@ const AdminUsers = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  useEffect(() => { setPage(0); }, [search, roleFilter, vehicleFilter, onlineFilter, capabilityFilter]);
+  useEffect(() => { setPage(0); setSelected(new Set()); }, [search, roleFilter, vehicleFilter, onlineFilter, capabilityFilter]);
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === paginated.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(paginated.map((p) => p.id)));
+    }
+  };
+
+  const handleBulkUpdate = async (field: string, value: any) => {
+    const ids = Array.from(selected).filter((id) => id !== profile?.id);
+    if (!ids.length) return;
+    setBulkSaving(true);
+    const { error: err } = await supabase
+      .from("profiles")
+      .update({ [field]: value })
+      .in("id", ids);
+    if (err) {
+      toast({ title: `Bulk update failed`, description: err.message, variant: "destructive" });
+    } else {
+      setProfiles((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, [field]: value } : p));
+      toast({ title: `Updated ${ids.length} user${ids.length > 1 ? "s" : ""}` });
+      setSelected(new Set());
+    }
+    setBulkSaving(false);
+  };
+
+  const handleBulkAction = (field: string, value: any, label: string) => {
+    const count = Array.from(selected).filter((id) => id !== profile?.id).length;
+    setConfirmAction({
+      title: `Apply to ${count} user${count > 1 ? "s" : ""}?`,
+      description: `This will set ${label} for ${count} selected user${count > 1 ? "s" : ""}.`,
+      onConfirm: () => handleBulkUpdate(field, value),
+    });
+  };
 
   const handleUpdate = async (profileId: string, field: string, value: any) => {
     setSaving(profileId);
@@ -235,10 +281,45 @@ const AdminUsers = () => {
         </div>
       ) : (
         <>
+          {/* Bulk Action Toolbar */}
+          {selected.size > 0 && (
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2 flex-wrap">
+              <span className="text-sm font-medium">{selected.size} selected</span>
+              <div className="h-4 w-px bg-border" />
+              <Select onValueChange={(val) => handleBulkAction("role", val, `role → ${val}`)} disabled={bulkSaving}>
+                <SelectTrigger className="w-[130px] h-8 text-xs">
+                  <SelectValue placeholder="Set role…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={bulkSaving}
+                onClick={() => handleBulkAction("can_courier", true, "courier → enabled")}>
+                Enable Courier
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={bulkSaving}
+                onClick={() => handleBulkAction("pet_approved", true, "pet approved → enabled")}>
+                Enable Pet
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={() => setSelected(new Set())}>
+                <X className="h-3 w-3 mr-1" /> Clear
+              </Button>
+            </div>
+          )}
+
           <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={paginated.length > 0 && selected.size === paginated.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Role</TableHead>
@@ -251,10 +332,16 @@ const AdminUsers = () => {
               </TableHeader>
               <TableBody>
                 {paginated.map((p) => (
-                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/users/${p.id}`)}>
+                  <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${selected.has(p.id) ? "bg-muted/30" : ""}`} onClick={() => navigate(`/admin/users/${p.id}`)}>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.has(p.id)}
+                        onCheckedChange={() => toggleSelect(p.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{p.phone || "—"}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={p.role}
                         onValueChange={(val) => handleRoleChange(p.id, val)}
@@ -270,7 +357,7 @@ const AdminUsers = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {p.role === "driver" ? (
                         <Select
                           value={p.vehicle_type || "none"}
@@ -290,7 +377,7 @@ const AdminUsers = () => {
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {p.role === "driver" ? (
                         <Switch
                           checked={p.can_courier}
@@ -301,7 +388,7 @@ const AdminUsers = () => {
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {p.role === "driver" ? (
                         <Switch
                           checked={p.pet_approved}
@@ -320,7 +407,7 @@ const AdminUsers = () => {
                 ))}
                 {paginated.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       No users found
                     </TableCell>
                   </TableRow>
