@@ -38,6 +38,7 @@ interface GeoZone {
 }
 
 const AdminZones = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editState, setEditState] = useState<Record<string, Partial<Zone>>>({});
   const [newZone, setNewZone] = useState({ zone_name: "", pickup_zone: "", dropoff_zone: "", flat_fare_cents: 5000 });

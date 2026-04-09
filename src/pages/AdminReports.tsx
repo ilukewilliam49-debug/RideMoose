@@ -19,6 +19,7 @@ import ServiceBreakdownChart from "@/components/admin/ServiceBreakdownChart";
 const PAGE_SIZE = 25;
 
 const AdminReports = () => {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("all");
   const [scheduledFilter, setScheduledFilter] = useState("all");

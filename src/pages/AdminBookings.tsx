@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function AdminBookings() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: syncStatus } = useQuery({

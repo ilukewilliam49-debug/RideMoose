@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminCorporate = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [newOrg, setNewOrg] = useState({ name: "", billing_email: "", credit_limit_cents: 500000, payment_terms_days: 30 });

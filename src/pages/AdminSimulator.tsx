@@ -33,6 +33,7 @@ function interpolateRoute(
 }
 
 const MockDriverSimulator = () => {
+  const navigate = useNavigate();
   const [selectedRideId, setSelectedRideId] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
