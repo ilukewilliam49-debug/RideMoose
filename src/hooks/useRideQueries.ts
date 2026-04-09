@@ -153,50 +153,43 @@ export const useRideQueries = ({
     return privateHireZones.find((z) => z.pickup_zone === pickupZoneKey && z.dropoff_zone === dropoffZoneKey) || null;
   }, [serviceType, pickupZoneKey, dropoffZoneKey, privateHireZones]);
 
-  // Dynamic price estimate
-  const estimatedPrice = useMemo(() => {
-    if (serviceType === "private_hire") {
-      const routeKm = directionsData?.distance_km ?? distanceKm;
-      const routeDurationMin = directionsData
-        ? Math.max((directionsData.duration_in_traffic_sec ?? directionsData.duration_sec ?? 0) / 60, 0)
-        : 0;
+  // Helper to compute price for a given service type
+  const computePrice = (svcType: string): string | null => {
+    const routeKm = directionsData?.distance_km ?? distanceKm;
+    const routeDurationMin = directionsData
+      ? Math.max((directionsData.duration_in_traffic_sec ?? directionsData.duration_sec ?? 0) / 60, 0)
+      : 0;
 
-      if (!pickup || !dropoff || !routeKm || !currentPricing) return null;
-
+    if (svcType === "private_hire") {
+      const pricing = servicePricing?.find((p) => p.service_type === "private_hire");
+      if (!pickup || !dropoff || !routeKm || !pricing) return null;
       let price =
-        Number(currentPricing.base_fare) +
-        routeKm * Number(currentPricing.per_km_rate) +
-        routeDurationMin * Number(currentPricing.per_min_rate);
-
-      price *= Number(currentPricing.surge_multiplier ?? 1);
-
-      return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
+        Number(pricing.base_fare) +
+        routeKm * Number(pricing.per_km_rate) +
+        routeDurationMin * Number(pricing.per_min_rate);
+      price *= Number(pricing.surge_multiplier ?? 1);
+      return Math.max(Number(pricing.minimum_fare), price).toFixed(2);
     }
-    if (serviceType === "courier") {
-      const routeKm = directionsData?.distance_km ?? distanceKm;
+    if (svcType === "courier") {
       if (!routeKm) return null;
       return (Math.max(1200, 800 + Math.round(routeKm * 150)) / 100).toFixed(2);
     }
-    if (serviceType === "large_delivery") {
-      const routeKm = directionsData?.distance_km ?? distanceKm;
+    if (svcType === "large_delivery") {
       if (!routeKm) return null;
       return (Math.max(3000, 2500 + Math.round(routeKm * 200)) / 100).toFixed(2);
     }
-    if (serviceType === "retail_delivery") {
-      const routeKm = directionsData?.distance_km ?? distanceKm;
+    if (svcType === "retail_delivery") {
       if (!routeKm) return null;
       return (Math.max(1200, 1000 + Math.round(routeKm * 150)) / 100).toFixed(2);
     }
-    if (serviceType === "personal_shopper") {
-      const routeKm = directionsData?.distance_km ?? distanceKm;
+    if (svcType === "personal_shopper") {
       if (!routeKm) return null;
       const deliveryFeeCents = Math.max(1200, 1200 + Math.round(routeKm * 150));
       const shopperFeeCents = estimatedItemCostCents ? Math.round(Number(estimatedItemCostCents) * 0.10) : 0;
       const totalCents = deliveryFeeCents + shopperFeeCents + Number(estimatedItemCostCents || 0);
       return (totalCents / 100).toFixed(2);
     }
-    if (serviceType === "pet_transport") {
-      const routeKm = directionsData?.distance_km ?? distanceKm;
+    if (svcType === "pet_transport") {
       if (!routeKm) return null;
       const surcharge = petPricingConfig?.pet_surcharge_cents ?? 500;
       const petBase = petPricingConfig?.pet_only_base_cents ?? 2000;
@@ -209,8 +202,7 @@ export const useRideQueries = ({
         return (Math.max(petMin, petBase + Math.round(routeKm * petPerKm)) / 100).toFixed(2);
       }
     }
-    if (serviceType === "taxi") {
-      const routeKm = directionsData?.distance_km ?? distanceKm;
+    if (svcType === "taxi") {
       if (!routeKm || !taxiRates) return null;
       return ((taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100).toFixed(2);
     }
@@ -219,7 +211,18 @@ export const useRideQueries = ({
     if (currentPricing.per_seat_rate) price += passengerCount * Number(currentPricing.per_seat_rate);
     price *= Number(currentPricing.surge_multiplier);
     return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
-  }, [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone, directionsData, petMode, petPricingConfig, estimatedItemCostCents]);
+  };
+
+  // Dynamic price estimate for current service
+  const estimatedPrice = useMemo(() => computePrice(serviceType),
+    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone, directionsData, petMode, petPricingConfig, estimatedItemCostCents, servicePricing]);
+
+  // All main service prices for the selection cards
+  const allServicePrices = useMemo(() => ({
+    taxi: computePrice("taxi"),
+    private_hire: computePrice("private_hire"),
+    courier: computePrice("courier"),
+  }), [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing]);
 
   // Active ride
   const { data: activeRide } = useQuery({
