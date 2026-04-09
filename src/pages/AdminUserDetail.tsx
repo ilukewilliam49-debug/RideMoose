@@ -9,13 +9,63 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { User, Phone, Car, CalendarDays, MapPin, Shield, PawPrint, Package, Utensils, Bus, Briefcase } from "lucide-react";
+import { User, Phone, Car, CalendarDays, MapPin, Shield, PawPrint, Package, Utensils, Bus, Briefcase, Pencil, Check, X, Percent } from "lucide-react";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { Input } from "@/components/ui/input";
 
 const ROLES = ["rider", "driver", "admin"] as const;
 const VEHICLE_TYPES = ["sedan", "SUV", "van", "truck"] as const;
+
+function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }: {
+  value: string;
+  onSave: (val: string) => void;
+  icon: React.ElementType;
+  label: string;
+  type?: string;
+  suffix?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== value) onSave(draft);
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setDraft(value);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Input
+          autoFocus
+          type={type}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
+          className="h-8 text-sm"
+        />
+        {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
+        <button onClick={commit} className="text-primary"><Check className="h-4 w-4" /></button>
+        <button onClick={cancel} className="text-muted-foreground"><X className="h-4 w-4" /></button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setDraft(value); setEditing(true); }}>
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      <span className="text-sm">{value || `No ${label.toLowerCase()}`}</span>
+      <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+}
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -147,11 +197,21 @@ export default function AdminUserDetail() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Basic Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{profile?.phone || "No phone"}</span>
+            <InlineEdit
+              icon={User}
+              label="Name"
+              value={profile?.full_name || ""}
+              onSave={(val) => handleUpdate("full_name", val)}
+            />
+            <div className="flex items-center gap-1">
+              <InlineEdit
+                icon={Phone}
+                label="Phone"
+                value={profile?.phone || ""}
+                onSave={(val) => handleUpdate("phone", val)}
+              />
               {profile?.phone_verified && (
-                <Badge variant="outline" className="text-xs">Verified</Badge>
+                <Badge variant="outline" className="text-xs ml-1">Verified</Badge>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -166,6 +226,14 @@ export default function AdminUserDetail() {
                 </span>
               </div>
             )}
+            <InlineEdit
+              icon={Percent}
+              label="Commission"
+              type="number"
+              suffix="%"
+              value={((profile?.commission_rate || 0) * 100).toFixed(1)}
+              onSave={(val) => handleUpdate("commission_rate", parseFloat(val) / 100)}
+            />
             <div className="flex items-center justify-between pt-2">
               <Label htmlFor="role-select" className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-muted-foreground" />
@@ -236,7 +304,6 @@ export default function AdminUserDetail() {
                 </div>
               ))}
               <div className="pt-2 border-t space-y-1 text-sm text-muted-foreground">
-                <p>Commission: {((profile.commission_rate || 0) * 100).toFixed(1)}%</p>
                 <p>Balance: {(profile.driver_balance_cents / 100).toLocaleString()} ISK</p>
                 {profile.seat_capacity && <p>Seats: {profile.seat_capacity}</p>}
               </div>
