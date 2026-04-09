@@ -79,6 +79,7 @@ const AppContent = () => {
           <Route path="zones" element={<AdminZones />} />
           <Route path="rides/:id" element={<AdminRideDetail />} />
           <Route path="corporate" element={<AdminCorporate />} />
+          <Route path="bookings" element={<AdminBookings />} />
           <Route path="support" element={<AdminSupport />} />
           
           <Route path="simulator" element={<AdminSimulator />} />
