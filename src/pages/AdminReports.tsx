@@ -50,7 +50,8 @@ const AdminReports = () => {
     const totalRevenue = completed.reduce((s: number, r: any) => s + Number(r.final_price || r.estimated_price || 0), 0);
     const avgFare = completed.length ? totalRevenue / completed.length : 0;
     const completionRate = filtered.length ? (completed.length / filtered.length) * 100 : 0;
-    return { totalRevenue, avgFare, completionRate, completedCount: completed.length };
+    const scheduledCount = filtered.filter((r: any) => r.scheduled_at).length;
+    return { totalRevenue, avgFare, completionRate, completedCount: completed.length, scheduledCount };
   }, [filtered]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -89,6 +90,7 @@ const AdminReports = () => {
     { label: "Avg Fare", value: `$${stats.avgFare.toFixed(2)}`, icon: TrendingUp },
     { label: "Completed", value: stats.completedCount, icon: CheckCircle },
     { label: "Completion Rate", value: `${stats.completionRate.toFixed(1)}%`, icon: BarChart3 },
+    { label: "Scheduled", value: stats.scheduledCount, icon: Clock },
   ];
 
   return (
@@ -101,7 +103,7 @@ const AdminReports = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
           : statCards.map((s) => (
