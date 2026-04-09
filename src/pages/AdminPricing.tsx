@@ -33,6 +33,7 @@ const serviceConfig = {
 } as const;
 
 const AdminPricing = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [editState, setEditState] = useState<Record<string, Partial<ServicePricing>>>({});

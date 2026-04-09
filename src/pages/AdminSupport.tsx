@@ -42,6 +42,7 @@ const statusConfig: Record<string, { label: string; icon: any; variant: "default
 };
 
 const AdminSupport = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
