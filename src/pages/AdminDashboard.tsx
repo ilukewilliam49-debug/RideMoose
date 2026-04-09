@@ -27,7 +27,6 @@ const AdminDashboard = () => {
         usersRes,
         ridesRes,
         supportRes,
-        bookingsRes,
         revenueRes,
       ] = await Promise.all([
         supabase
@@ -46,9 +45,6 @@ const AdminDashboard = () => {
           .select("id", { count: "exact", head: true })
           .in("status", ["open", "in_progress"]),
         supabase
-          .from("bokun_bookings" as any)
-          .select("id", { count: "exact", head: true }),
-        supabase
           .from("rides")
           .select("final_price")
           .eq("status", "completed"),
@@ -64,7 +60,6 @@ const AdminDashboard = () => {
         totalUsers: usersRes.count || 0,
         activeRides: ridesRes.count || 0,
         openSupport: supportRes.count || 0,
-        syncedBookings: bookingsRes.count || 0,
         totalRevenue,
       };
     },
@@ -115,15 +110,6 @@ const AdminDashboard = () => {
       icon: MessageSquare,
       path: "/admin/support",
       cta: "Open support",
-      format: "count" as const,
-    },
-    {
-      title: "Bókun bookings",
-      description: "Review synced tour bookings and trigger a manual sync when needed.",
-      value: stats?.syncedBookings ?? 0,
-      icon: CalendarCheck,
-      path: "/admin/bookings",
-      cta: "Open bookings",
       format: "count" as const,
     },
   ];
