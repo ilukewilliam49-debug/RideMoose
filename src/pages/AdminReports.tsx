@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Download, TrendingUp, DollarSign, CheckCircle, BarChart3, Clock } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";

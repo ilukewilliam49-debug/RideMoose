@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Play, Square, MapPin, Navigation, Zap } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
+import { useNavigate } from "react-router-dom";
 import SimulatorMap from "@/components/admin/SimulatorMap";
 
 /**
