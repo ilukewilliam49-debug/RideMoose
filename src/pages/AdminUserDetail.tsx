@@ -18,6 +18,55 @@ import { Input } from "@/components/ui/input";
 const ROLES = ["rider", "driver", "admin"] as const;
 const VEHICLE_TYPES = ["sedan", "SUV", "van", "truck"] as const;
 
+function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }: {
+  value: string;
+  onSave: (val: string) => void;
+  icon: React.ElementType;
+  label: string;
+  type?: string;
+  suffix?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== value) onSave(draft);
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setDraft(value);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+        <Input
+          autoFocus
+          type={type}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
+          className="h-8 text-sm"
+        />
+        {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
+        <button onClick={commit} className="text-primary"><Check className="h-4 w-4" /></button>
+        <button onClick={cancel} className="text-muted-foreground"><X className="h-4 w-4" /></button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setDraft(value); setEditing(true); }}>
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      <span className="text-sm">{value || `No ${label.toLowerCase()}`}</span>
+      <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+}
+
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
