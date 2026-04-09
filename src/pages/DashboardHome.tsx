@@ -234,7 +234,7 @@ const DashboardHome = () => {
           <div className="flex h-6 w-6 shrink-0 items-center justify-center">
             <div className="h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-green-500/20" />
           </div>
-          <div className="flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[14px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground [&_input]:h-9 [&_input]:px-0">
+          <div className="flex-1 [&_.absolute]:hidden [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[14px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground [&_input]:h-9 [&_input]:px-0 [&_input]:pl-0">
             <AddressAutocomplete
               value={pickupAddress}
               onChange={(value, lat, lng) => {
@@ -273,7 +273,7 @@ const DashboardHome = () => {
           <div className="flex h-6 w-6 shrink-0 items-center justify-center">
             <div className="h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-primary/20" />
           </div>
-          <div className="flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[14px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground [&_input]:h-9 [&_input]:px-0">
+          <div className="flex-1 [&_.absolute]:hidden [&_input]:border-0 [&_input]:bg-transparent [&_input]:shadow-none [&_input]:focus-visible:ring-0 [&_input]:focus-visible:ring-offset-0 [&_input]:text-[14px] [&_input]:font-semibold [&_input]:placeholder:text-muted-foreground [&_input]:h-9 [&_input]:px-0 [&_input]:pl-0">
             <AddressAutocomplete
               value={destination}
               onChange={(value, lat, lng) => {
