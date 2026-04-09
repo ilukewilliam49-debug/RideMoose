@@ -172,23 +172,33 @@ const AdminReports = () => {
               <tbody>
                 {paginated.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground">No trip data found.</td>
-                  </tr>
-                )}
-                {paginated.map((ride: any) => (
-                  <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                    <td className="py-3 px-2">{ride.rider?.full_name || "—"}</td>
-                    <td className="py-3 px-2">{ride.driver?.full_name || "—"}</td>
-                    <td className="py-3 px-2 capitalize text-xs">{ride.service_type.replace("_", " ")}</td>
-                    <td className="py-3 px-2 max-w-[200px] truncate">{ride.pickup_address} → {ride.dropoff_address}</td>
-                    <td className="py-3 px-2">
-                      <span className={`font-mono text-xs uppercase ${statusColor[ride.status] || ""}`}>
-                        {ride.status.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-right font-mono">${Number(ride.final_price || ride.estimated_price || 0).toFixed(2)}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()}</td>
-                  </motion.tr>
+                     <td colSpan={8} className="py-8 text-center text-muted-foreground">No trip data found.</td>
+                   </tr>
+                 )}
+                 {paginated.map((ride: any) => (
+                   <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
+                     <td className="py-3 px-2">{ride.rider?.full_name || "—"}</td>
+                     <td className="py-3 px-2">{ride.driver?.full_name || "—"}</td>
+                     <td className="py-3 px-2 capitalize text-xs">{ride.service_type.replace("_", " ")}</td>
+                     <td className="py-3 px-2 max-w-[200px] truncate">{ride.pickup_address} → {ride.dropoff_address}</td>
+                     <td className="py-3 px-2">
+                       <span className={`font-mono text-xs uppercase ${statusColor[ride.status] || ""}`}>
+                         {ride.status.replace("_", " ")}
+                       </span>
+                     </td>
+                     <td className="py-3 px-2">
+                       {ride.scheduled_at ? (
+                         <Badge variant="outline" className="gap-1 text-xs font-normal">
+                           <Clock className="h-3 w-3" />
+                           {format(new Date(ride.scheduled_at), "MMM d, HH:mm")}
+                         </Badge>
+                       ) : (
+                         <span className="text-muted-foreground text-xs">Now</span>
+                       )}
+                     </td>
+                     <td className="py-3 px-2 text-right font-mono">${Number(ride.final_price || ride.estimated_price || 0).toFixed(2)}</td>
+                     <td className="py-3 px-2 text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()}</td>
+                   </motion.tr>
                 ))}
               </tbody>
             </table>
