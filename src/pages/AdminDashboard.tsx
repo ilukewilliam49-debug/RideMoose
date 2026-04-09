@@ -6,7 +6,7 @@ import {
   FileCheck,
   Users,
   BarChart3,
-  CalendarCheck,
+  
   MessageSquare,
   ArrowRight,
   DollarSign,
