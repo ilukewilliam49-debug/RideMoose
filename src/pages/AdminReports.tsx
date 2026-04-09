@@ -12,6 +12,7 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import RideTrendsChart from "@/components/admin/RideTrendsChart";
+import RevenueChart from "@/components/admin/RevenueChart";
 
 const PAGE_SIZE = 25;
 
@@ -150,8 +151,12 @@ const AdminReports = () => {
         <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} className="w-[150px]" placeholder="To" />
       </div>
 
-      {/* Ride Trends Chart */}
-      {!isLoading && !isError && <RideTrendsChart rides={filtered} />}
+      {!isLoading && !isError && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RideTrendsChart rides={filtered} />
+          <RevenueChart rides={filtered} />
+        </div>
+      )}
 
       {isError ? (
         <ErrorRetry message="Failed to load ride data" onRetry={() => refetch()} />
