@@ -236,13 +236,25 @@ const DriverDispatch = () => {
     if (!profile?.id) return;
     setAcceptingId(rideId);
     try {
-      const { error } = await supabase
+      // Try accepting dispatched ride first, then fall back to requested
+      const { error: dispatchErr, count } = await supabase
         .from("rides")
-        .update({ driver_id: profile.id, status: "accepted" })
+        .update({ driver_id: profile.id, status: "accepted" } as any)
         .eq("id", rideId)
-        .eq("status", "requested");
-      if (error) toast.error(t("dispatch.couldNotAccept"));
-      else toast.success(t("dispatch.rideAccepted"));
+        .eq("status", "dispatched");
+
+      if (dispatchErr) {
+        // Fall back to broadcast accept
+        const { error } = await supabase
+          .from("rides")
+          .update({ driver_id: profile.id, status: "accepted" })
+          .eq("id", rideId)
+          .eq("status", "requested");
+        if (error) toast.error(t("dispatch.couldNotAccept"));
+        else toast.success(t("dispatch.rideAccepted"));
+      } else {
+        toast.success(t("dispatch.rideAccepted"));
+      }
     } finally {
       setAcceptingId(null);
     }
