@@ -1,10 +1,11 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import type { Ride } from "@/types/rider";
+import logoSrc from "@/assets/logo.png";
 
 interface RideReceiptProps {
   ride: Ride;
@@ -12,6 +13,16 @@ interface RideReceiptProps {
 
 function cents(v: number) {
   return `$${(v / 100).toFixed(2)}`;
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
 }
 
 export default function RideReceipt({ ride }: RideReceiptProps) {
@@ -25,11 +36,13 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
   const captured = ride.captured_amount_cents || 0;
   const outstanding = ride.outstanding_amount_cents || 0;
   const tip = ride.tip_cents || 0;
+  const tripId = ride.id.slice(0, 8).toUpperCase();
+  const dateStr = format(new Date(ride.created_at), "MMM d, yyyy · h:mm a");
 
   const receiptText = [
     `PickYou — Trip Receipt`,
-    `Date: ${format(new Date(ride.created_at), "MMM d, yyyy · h:mm a")}`,
-    `Trip ID: ${ride.id.slice(0, 8).toUpperCase()}`,
+    `Date: ${dateStr}`,
+    `Trip ID: ${tripId}`,
     ``,
     `From: ${ride.pickup_address}`,
     `To: ${ride.dropoff_address}`,
@@ -48,29 +61,171 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
     `Payment: ${ride.payment_option.replace("_", " ")}`,
   ].filter(Boolean).join("\n");
 
-  const handleShare = async () => {
+  const generatePdf = useCallback(async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ unit: "mm", format: [80, 200] }); // receipt-width
+
+    const w = 80;
+    const margin = 6;
+    const contentW = w - margin * 2;
+    let y = 8;
+
+    // Logo
+    try {
+      const img = await loadImage(logoSrc);
+      const logoH = 10;
+      const logoW = (img.width / img.height) * logoH;
+      doc.addImage(img, "PNG", (w - logoW) / 2, y, logoW, logoH);
+      y += logoH + 2;
+    } catch {
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("PickYou", w / 2, y + 6, { align: "center" });
+      y += 10;
+    }
+
+    // Title
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120);
+    doc.text("TRIP RECEIPT", w / 2, y, { align: "center" });
+    y += 5;
+
+    // Dashed line helper
+    const dashLine = (atY: number) => {
+      doc.setDrawColor(180);
+      doc.setLineDashPattern([1, 1], 0);
+      doc.line(margin, atY, w - margin, atY);
+      doc.setLineDashPattern([], 0);
+    };
+
+    dashLine(y);
+    y += 4;
+
+    // Trip info rows
+    const infoRow = (label: string, value: string) => {
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120);
+      doc.text(label, margin, y);
+      doc.setTextColor(40);
+      doc.setFont("helvetica", "bold");
+      doc.text(value, w - margin, y, { align: "right" });
+      y += 4;
+    };
+
+    infoRow("Date", dateStr);
+    infoRow("Trip ID", tripId);
+    infoRow("Service", (ride.service_type || "").replace("_", " "));
+    if (ride.distance_km) {
+      infoRow("Distance", `${Number(ride.distance_km).toFixed(1)} km`);
+    }
+
+    y += 1;
+    dashLine(y);
+    y += 4;
+
+    // Route
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "normal");
+
+    // Pickup dot
+    doc.setFillColor(34, 197, 94);
+    doc.circle(margin + 1.5, y - 0.8, 1, "F");
+    doc.setTextColor(60);
+    const pickupLines = doc.splitTextToSize(ride.pickup_address, contentW - 6);
+    doc.text(pickupLines, margin + 5, y);
+    y += pickupLines.length * 3 + 2;
+
+    // Dropoff dot
+    doc.setFillColor(124, 58, 237);
+    doc.circle(margin + 1.5, y - 0.8, 1, "F");
+    doc.setTextColor(60);
+    const dropoffLines = doc.splitTextToSize(ride.dropoff_address, contentW - 6);
+    doc.text(dropoffLines, margin + 5, y);
+    y += dropoffLines.length * 3 + 2;
+
+    y += 1;
+    dashLine(y);
+    y += 4;
+
+    // Fare breakdown
+    const fareRow = (label: string, value: string, bold = false, color?: [number, number, number]) => {
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120);
+      doc.text(label, margin, y);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      if (color) doc.setTextColor(...color);
+      else doc.setTextColor(40);
+      doc.text(value, w - margin, y, { align: "right" });
+      y += 4;
+    };
+
+    fareRow("Subtotal", cents(subtotal));
+    if (serviceFee > 0) fareRow("Service fee", cents(serviceFee));
+    if (tax > 0) fareRow("GST (5%)", cents(tax));
+    if (tip > 0) fareRow("Tip", cents(tip));
+
+    y += 1;
+    doc.setDrawColor(40);
+    doc.setLineWidth(0.3);
+    doc.line(margin, y, w - margin, y);
+    y += 4;
+
+    fareRow("Total", cents(totalFare + tip), true, [124, 58, 237]);
+
+    y += 1;
+    dashLine(y);
+    y += 4;
+
+    // Payment info
+    fareRow("Payment", ride.payment_option.replace("_", " "));
+    if (captured > 0) fareRow("Paid in-app", cents(captured));
+    if (outstanding > 0) fareRow("Due to driver", cents(outstanding), true, [234, 179, 8]);
+
+    y += 3;
+
+    // Footer
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150);
+    doc.text("Thank you for riding with PickYou!", w / 2, y, { align: "center" });
+    y += 8;
+
+    // Trim page to content height
+    const pageHeight = y;
+    (doc as any).internal.pageSize.height = pageHeight;
+
+    return doc;
+  }, [ride, totalFare, serviceFee, tax, subtotal, captured, outstanding, tip, tripId, dateStr]);
+
+  const handleDownload = useCallback(async () => {
+    try {
+      const doc = await generatePdf();
+      doc.save(`PickYou-Receipt-${tripId}.pdf`);
+      toast.success(t("receipt.downloaded", "Receipt downloaded"));
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      toast.error("Failed to generate receipt");
+    }
+  }, [generatePdf, tripId, t]);
+
+  const handleShare = useCallback(async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Trip Receipt", text: receiptText });
+        const doc = await generatePdf();
+        const blob = doc.output("blob");
+        const file = new File([blob], `PickYou-Receipt-${tripId}.pdf`, { type: "application/pdf" });
+        await navigator.share({ title: "Trip Receipt", files: [file] });
+        return;
       } catch {
-        // user cancelled
+        // fallback
       }
-    } else {
-      await navigator.clipboard.writeText(receiptText);
-      toast.success(t("receipt.copiedToClipboard", "Receipt copied to clipboard"));
     }
-  };
-
-  const handleDownload = () => {
-    const blob = new Blob([receiptText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `PickYou-Receipt-${ride.id.slice(0, 8).toUpperCase()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(t("receipt.downloaded", "Receipt downloaded"));
-  };
+    await navigator.clipboard.writeText(receiptText);
+    toast.success(t("receipt.copiedToClipboard", "Receipt copied to clipboard"));
+  }, [generatePdf, tripId, receiptText, t]);
 
   if (ride.status !== "completed" || totalFare <= 0) return null;
 
@@ -79,7 +234,7 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
       <div ref={receiptRef} className="rounded-xl border border-border bg-card p-5 space-y-3">
         {/* Header */}
         <div className="text-center border-b border-dashed border-border pb-3">
-          <h3 className="text-base font-bold text-foreground">PickYou</h3>
+          <img src={logoSrc} alt="PickYou" className="h-8 mx-auto mb-1" />
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
             {t("receipt.tripReceipt", "Trip Receipt")}
           </p>
@@ -89,11 +244,11 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
         <div className="space-y-1 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("receipt.date", "Date")}</span>
-            <span className="font-mono text-xs">{format(new Date(ride.created_at), "MMM d, yyyy · h:mm a")}</span>
+            <span className="font-mono text-xs">{dateStr}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("receipt.tripId", "Trip ID")}</span>
-            <span className="font-mono text-xs">{ride.id.slice(0, 8).toUpperCase()}</span>
+            <span className="font-mono text-xs">{tripId}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("receipt.service", "Service")}</span>
@@ -178,7 +333,7 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
       <div className="flex gap-2">
         <Button variant="outline" className="flex-1 gap-2 text-sm" onClick={handleDownload}>
           <Download className="h-4 w-4" />
-          {t("receipt.download", "Download")}
+          {t("receipt.downloadPdf", "Download PDF")}
         </Button>
         <Button variant="outline" className="flex-1 gap-2 text-sm" onClick={handleShare}>
           <Share2 className="h-4 w-4" />
