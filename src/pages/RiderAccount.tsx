@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle } from "lucide-react";
+import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import SupportChatDialog from "@/components/SupportChatDialog";
