@@ -16,6 +16,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import type { Ride, DeliveryBid } from "@/types/driver";
 
 const AUTO_DECLINE_SECONDS = 30;
+const DISPATCH_TIMEOUT_SECONDS = 15;
 
 // ─── Circular countdown ───
 function CountdownRing({ secondsLeft, total }: { secondsLeft: number; total: number }) {
@@ -115,10 +116,22 @@ export default function IncomingRequestCard({
   onDecline,
   onBidChanged,
 }: IncomingRequestCardProps) {
-  const [secondsLeft, setSecondsLeft] = useState(AUTO_DECLINE_SECONDS);
+  const isDispatchedToMe = ride.dispatched_to_driver_id === driverId;
+
+  // Calculate initial seconds from dispatch_expires_at when dispatched to this driver
+  const getInitialSeconds = useCallback(() => {
+    if (isDispatchedToMe && ride.dispatch_expires_at) {
+      const remaining = Math.max(0, Math.ceil((new Date(ride.dispatch_expires_at).getTime() - Date.now()) / 1000));
+      return Math.min(remaining, DISPATCH_TIMEOUT_SECONDS);
+    }
+    return AUTO_DECLINE_SECONDS;
+  }, [isDispatchedToMe, ride.dispatch_expires_at]);
+
+  const totalSeconds = isDispatchedToMe ? DISPATCH_TIMEOUT_SECONDS : AUTO_DECLINE_SECONDS;
+  const [secondsLeft, setSecondsLeft] = useState(getInitialSeconds);
 
   useEffect(() => {
-    setSecondsLeft(AUTO_DECLINE_SECONDS);
+    setSecondsLeft(getInitialSeconds());
     const interval = setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
@@ -129,7 +142,7 @@ export default function IncomingRequestCard({
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [ride.id]);
+  }, [ride.id, getInitialSeconds]);
 
   useEffect(() => {
     if (secondsLeft === 0) onDecline(ride.id);
