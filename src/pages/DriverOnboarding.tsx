@@ -66,14 +66,17 @@ const DriverOnboarding = () => {
         .upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      // Use signed URL since proof-photos is a private bucket
+      const { data: signedData, error: signedError } = await supabase.storage
         .from("proof-photos")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365 * 5); // 5-year signed URL
+
+      if (signedError) throw signedError;
 
       const { error: insertError } = await supabase.from("verifications").insert({
         driver_id: profile.id,
         document_type: docType,
-        document_url: urlData.publicUrl,
+        document_url: signedData.signedUrl,
         status: "pending",
       });
       if (insertError) throw insertError;
