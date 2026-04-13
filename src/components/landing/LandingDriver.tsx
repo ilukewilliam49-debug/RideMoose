@@ -57,7 +57,7 @@ const LandingDriver = () => {
                 {t("landing.driveTitle")}
               </p>
               <h2 className="text-2xl font-black tracking-tight md:text-4xl">
-                Earn on your own schedule
+                {t("landing.driveTitle")}
               </h2>
               <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground max-w-md">
                 {t("landing.driveDesc")}

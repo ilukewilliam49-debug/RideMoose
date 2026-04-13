@@ -14,7 +14,7 @@ const LandingFooter = () => {
           <div className="space-y-3">
             <img src={logoImg} alt="PickYou" className="h-7 object-contain" />
             <p className="text-xs leading-relaxed text-muted-foreground max-w-[200px]">
-              Reliable rides, airport pickups, and courier delivery in Yellowknife and beyond.
+              {t("landing.heroDesc", "Your Ride. Your Choice. Smarter rides, better connections.")}
             </p>
           </div>
 
