@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import ActiveRideCard from "@/components/rider/ActiveRideCard";
 import RideHistory from "@/components/rider/RideHistory";
 import ServiceSelector from "@/components/rider/ServiceSelector";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
+import DriverMatchingOverlay from "@/components/rider/DriverMatchingOverlay";
 import { useRideQueries } from "@/hooks/useRideQueries";
 import { useNearestDriverETAs } from "@/hooks/useNearestDriverETAs";
 
@@ -43,6 +44,7 @@ const RiderDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const state = useRideBookingState();
+  const [matchingInProgress, setMatchingInProgress] = useState(false);
   const queries = useRideQueries({
     profileId: profile?.id,
     userId: profile?.user_id,
@@ -190,7 +192,7 @@ const RiderDashboard = () => {
 
       // Trigger automated driver matching
       if (rideData) {
-        toast.info(t("rider.findingDriver", "Finding your driver..."));
+        setMatchingInProgress(true);
         supabase.functions.invoke("match-driver", { body: { ride_id: rideData.id } })
           .then(({ data: matchData }) => {
             if (matchData?.matched) {
@@ -204,8 +206,10 @@ const RiderDashboard = () => {
             queries.refetch();
           })
           .catch(() => {
-            // Matching failed silently; ride remains in requested state for broadcast
             queries.refetch();
+          })
+          .finally(() => {
+            setMatchingInProgress(false);
           });
       } else {
         toast.success(state.billToOrg ? t("rider.rideRequestedOrg") : t("rider.rideRequested"));
@@ -251,6 +255,7 @@ const RiderDashboard = () => {
 
   return (
     <div className="space-y-6 pt-4">
+      <DriverMatchingOverlay visible={matchingInProgress} />
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-3">
