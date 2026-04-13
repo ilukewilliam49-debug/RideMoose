@@ -26,6 +26,7 @@ interface TripSummaryCardProps {
 export default function TripSummaryCard({ ride, onDismiss }: TripSummaryCardProps) {
   const fareCents = ride.final_fare_cents ?? Math.round((ride.final_price ?? 0) * 100);
   const tipCents = (ride as any).tip_cents ?? 0;
+  const taxCents = ride.tax_cents ?? 0;
   const earnings = (ride.driver_earnings_cents ?? 0) + tipCents;
 
   return (
