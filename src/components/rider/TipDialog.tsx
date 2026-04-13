@@ -58,6 +58,27 @@ export default function TipDialog({ open, onOpenChange, rideId, driverName, onTi
 
   const finalTip = showCustomTip && customTip ? Math.round(parseFloat(customTip) * 100) : tipCents;
 
+  const playCelebrationSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.12);
+        osc.stop(ctx.currentTime + i * 0.12 + 0.5);
+      });
+    } catch {
+      // Audio not supported, skip silently
+    }
+  };
+
   const resetState = () => {
     setTipCents(0);
     setCustomTip("");
@@ -80,6 +101,7 @@ export default function TipDialog({ open, onOpenChange, rideId, driverName, onTi
       if (error) throw error;
       setSentAmount(finalTip);
       setShowCelebration(true);
+      playCelebrationSound();
       setTimeout(() => {
         onOpenChange(false);
         resetState();
