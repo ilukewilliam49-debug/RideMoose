@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
+import RideEventsTimeline from "@/components/admin/RideEventsTimeline";
 import { format } from "date-fns";
 import {
   MapPin, Clock, Car, User, DollarSign, CreditCard,
@@ -225,6 +226,9 @@ export default function AdminRideDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Event Timeline */}
+      {id && <RideEventsTimeline rideId={id} />}
     </div>
   );
 }
