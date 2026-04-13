@@ -30,6 +30,27 @@ const RiderAccount = () => {
   const [nameValue, setNameValue] = useState(profile?.full_name || "");
   const [nameSaving, setNameSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [testingSend, setTestingSend] = useState(false);
+
+  const handleTestNotification = async () => {
+    setTestingSend(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-push-notification", {
+        body: { mode: "test" },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success("Test notification sent! ✅");
+      } else {
+        toast.info(`Notification sent via ${data?.method || "fallback"}`);
+      }
+    } catch (err: any) {
+      toast.error("Failed to send test notification");
+      console.error(err);
+    } finally {
+      setTestingSend(false);
+    }
+  };
 
   useEffect(() => {
     if (profile?.phone) setRiderPhone(profile.phone);
