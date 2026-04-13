@@ -25,9 +25,7 @@ const RoleLayout = () => {
               <SidebarTrigger className="mr-4" />
             </div>
             {hasMobileNav && (
-              <span className="text-lg font-black tracking-tight md:hidden">
-                Pick<span className="text-primary">You</span>
-              </span>
+              <img src={logoImg} alt="PickYou" className="h-6 object-contain md:hidden" />
             )}
             <span className={`text-sm text-muted-foreground font-medium ${hasMobileNav ? "hidden md:inline" : ""}`}>
               Dashboard

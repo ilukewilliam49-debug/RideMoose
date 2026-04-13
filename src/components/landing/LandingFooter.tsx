@@ -11,9 +11,7 @@ const LandingFooter = () => {
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
           {/* Brand */}
           <div className="space-y-3">
-            <span className="text-lg font-black tracking-tight">
-              Pick<span className="text-primary">You</span>
-            </span>
+            <img src={logoImg} alt="PickYou" className="h-7 object-contain" />
             <p className="text-xs leading-relaxed text-muted-foreground max-w-[200px]">
               Reliable rides, airport pickups, and courier delivery in Yellowknife and beyond.
             </p>
