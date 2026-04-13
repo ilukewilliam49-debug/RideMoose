@@ -308,12 +308,14 @@ const DriverDispatch = () => {
         _driver_profile_id: profile.id,
       });
 
+      const result = data as { success: boolean; reason?: string } | null;
+
       if (error) {
         toast.error(t("dispatch.couldNotAccept"));
-      } else if (data?.success) {
+      } else if (result?.success) {
         toast.success(t("dispatch.rideAccepted"));
       } else {
-        toast.error(data?.reason === "already_taken" ? "This ride was already taken" : "Could not accept ride");
+        toast.error(result?.reason === "already_taken" ? "This ride was already taken" : "Could not accept ride");
       }
     } finally {
       setAcceptingId(null);
