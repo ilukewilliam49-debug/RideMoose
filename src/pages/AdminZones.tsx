@@ -1,23 +1,28 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Save, Plus, Trash2, MapPinned, Pencil } from "lucide-react";
+import { Save, Plus, Trash2, MapPinned } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import ErrorRetry from "@/components/driver/ErrorRetry";
+import ZoneMap from "@/components/admin/ZoneMap";
+import ZoneListPanel from "@/components/admin/ZoneListPanel";
 
 interface Zone {
   id: string;
@@ -39,23 +44,20 @@ interface GeoZone {
 }
 
 const AdminZones = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [editState, setEditState] = useState<Record<string, Partial<Zone>>>({});
-  const [newZone, setNewZone] = useState({ zone_name: "", pickup_zone: "", dropoff_zone: "", flat_fare_cents: 5000 });
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const [pendingPolygon, setPendingPolygon] = useState<[number, number][] | null>(null);
 
-  // Geo zone editing
-  const [geoEditState, setGeoEditState] = useState<Record<string, Partial<GeoZone & { polygonText?: string }>>>({});
-  const [newGeoZone, setNewGeoZone] = useState({ zone_key: "", zone_name: "", color: "#3b82f6", polygonText: "[[0, 0]]" });
+  // Route pricing state
+  const [editState, setEditState] = useState<Record<string, Partial<Zone>>>({});
+  const [newRoute, setNewRoute] = useState({ zone_name: "", pickup_zone: "", dropoff_zone: "", flat_fare_cents: 5000 });
 
   // Confirmation dialog
   const [confirmAction, setConfirmAction] = useState<{
-    title: string;
-    description: string;
-    onConfirm: () => void;
+    title: string; description: string; onConfirm: () => void;
   } | null>(null);
 
-  // ── Pricing zones ──
+  // ── Queries ──
   const { data: zones, isLoading } = useQuery({
     queryKey: ["admin-zones"],
     queryFn: async () => {
@@ -65,7 +67,6 @@ const AdminZones = () => {
     },
   });
 
-  // ── Geo zones ──
   const { data: geoZones, isLoading: geoLoading } = useQuery({
     queryKey: ["admin-geo-zones"],
     queryFn: async () => {
@@ -75,36 +76,36 @@ const AdminZones = () => {
     },
   });
 
-  // ── Pricing zone mutations ──
+  // ── Route pricing mutations ──
   const updateMutation = useMutation({
     mutationFn: async (zone: Zone) => {
       const { id, created_at, ...updates } = zone;
       const { error } = await supabase.from("private_hire_zones").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-zones"] }); toast.success("Zone updated!"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-zones"] }); toast.success("Route updated"); },
     onError: (err: any) => toast.error(err.message),
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (zone: typeof newZone) => {
+  const createRouteMutation = useMutation({
+    mutationFn: async (zone: typeof newRoute) => {
       const { error } = await supabase.from("private_hire_zones").insert(zone);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-zones"] });
-      toast.success("Zone created!");
-      setNewZone({ zone_name: "", pickup_zone: "", dropoff_zone: "", flat_fare_cents: 5000 });
+      toast.success("Route created");
+      setNewRoute({ zone_name: "", pickup_zone: "", dropoff_zone: "", flat_fare_cents: 5000 });
     },
     onError: (err: any) => toast.error(err.message),
   });
 
-  const deleteMutation = useMutation({
+  const deleteRouteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("private_hire_zones").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-zones"] }); toast.success("Zone deleted!"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-zones"] }); toast.success("Route deleted"); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -114,7 +115,7 @@ const AdminZones = () => {
       const { error } = await supabase.from("geo_zones").update({ zone_key, zone_name, polygon: polygon as any, color }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-geo-zones"] }); toast.success("Geo zone updated!"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-geo-zones"] }); toast.success("Zone updated"); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -125,8 +126,7 @@ const AdminZones = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-geo-zones"] });
-      toast.success("Geo zone created!");
-      setNewGeoZone({ zone_key: "", zone_name: "", color: "#3b82f6", polygonText: "[[0, 0]]" });
+      toast.success("Geofence created");
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -136,11 +136,11 @@ const AdminZones = () => {
       const { error } = await supabase.from("geo_zones").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-geo-zones"] }); toast.success("Geo zone deleted!"); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-geo-zones"] }); toast.success("Zone deleted"); },
     onError: (err: any) => toast.error(err.message),
   });
 
-  // Pricing zone helpers
+  // Route pricing helpers
   const handleChange = (id: string, field: keyof Zone, value: any) => {
     setEditState((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   };
@@ -151,54 +151,20 @@ const AdminZones = () => {
     setEditState((prev) => { const next = { ...prev }; delete next[zone.id]; return next; });
   };
 
-  // Geo zone helpers
-  const handleGeoChange = (id: string, field: string, value: any) => {
-    setGeoEditState((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
-  };
-  const getGeoEdited = (zone: GeoZone) => {
-    const overrides = geoEditState[zone.id] || {};
-    return { ...zone, ...overrides };
-  };
-  const isGeoDirty = (id: string) => !!geoEditState[id] && Object.keys(geoEditState[id]).length > 0;
-
-  const handleGeoSave = (zone: GeoZone) => {
-    const edited = getGeoEdited(zone);
-    let polygon = edited.polygon;
-    // If polygonText was edited, parse it
-    if (geoEditState[zone.id]?.polygonText !== undefined) {
-      try {
-        polygon = JSON.parse(geoEditState[zone.id].polygonText!);
-      } catch {
-        toast.error("Invalid polygon JSON");
-        return;
-      }
-    }
-    updateGeoMutation.mutate({ id: zone.id, zone_key: edited.zone_key, zone_name: edited.zone_name, polygon, color: edited.color });
-    setGeoEditState((prev) => { const next = { ...prev }; delete next[zone.id]; return next; });
+  const confirmDelete = (name: string, onConfirm: () => void) => {
+    setConfirmAction({ title: `Delete "${name}"?`, description: "This action cannot be undone.", onConfirm });
   };
 
-  const handleCreateGeo = () => {
-    try {
-      const polygon = JSON.parse(newGeoZone.polygonText) as [number, number][];
-      if (!Array.isArray(polygon)) throw new Error();
-      createGeoMutation.mutate({ zone_key: newGeoZone.zone_key, zone_name: newGeoZone.zone_name, polygon, color: newGeoZone.color });
-    } catch {
-      toast.error("Invalid polygon JSON. Use format: [[lat, lng], [lat, lng], ...]");
-    }
-  };
+  const handlePolygonCreated = useCallback((coords: [number, number][]) => {
+    setPendingPolygon(coords);
+  }, []);
 
   if (isLoading || geoLoading) return <div className="py-8 text-center text-muted-foreground">Loading zones…</div>;
 
-  const confirmDelete = (name: string, onConfirm: () => void) => {
-    setConfirmAction({
-      title: `Delete "${name}"?`,
-      description: "This action cannot be undone. The zone will be permanently removed.",
-      onConfirm,
-    });
-  };
+  const geoZoneKeys = geoZones?.map((z) => ({ key: z.zone_key, name: z.zone_name })) || [];
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-4 pt-4">
       {/* Confirmation dialog */}
       <AlertDialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
         <AlertDialogContent>
@@ -214,14 +180,43 @@ const AdminZones = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       <AdminBreadcrumb pageTitle="Private Hire Zones" />
       <h1 className="text-2xl font-bold">Private Hire Zones</h1>
 
-      <Tabs defaultValue="pricing" className="w-full">
+      <Tabs defaultValue="geofences" className="w-full">
         <TabsList>
-          <TabsTrigger value="pricing">Route Pricing</TabsTrigger>
           <TabsTrigger value="geofences">Geofence Boundaries</TabsTrigger>
+          <TabsTrigger value="pricing">Route Pricing</TabsTrigger>
         </TabsList>
+
+        {/* ── Geofence Boundaries Tab ── */}
+        <TabsContent value="geofences" className="mt-4">
+          <div className="flex flex-col lg:flex-row gap-0 border rounded-lg overflow-hidden" style={{ height: "70vh" }}>
+            {/* Left panel: zone list */}
+            <div className="w-full lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r bg-background overflow-hidden" style={{ maxHeight: "70vh" }}>
+              <ZoneListPanel
+                geoZones={geoZones || []}
+                selectedZoneId={selectedZoneId}
+                onSelectZone={setSelectedZoneId}
+                onSave={(id, data) => updateGeoMutation.mutate({ id, ...data })}
+                onDelete={(id, name) => confirmDelete(name, () => deleteGeoMutation.mutate(id))}
+                onCreate={(data) => createGeoMutation.mutate(data)}
+                pendingPolygon={pendingPolygon}
+                onClearPendingPolygon={() => setPendingPolygon(null)}
+              />
+            </div>
+            {/* Right panel: map */}
+            <div className="flex-1 min-h-[300px]">
+              <ZoneMap
+                geoZones={geoZones || []}
+                selectedZoneId={selectedZoneId}
+                onSelectZone={setSelectedZoneId}
+                onPolygonCreated={handlePolygonCreated}
+              />
+            </div>
+          </div>
+        </TabsContent>
 
         {/* ── Route Pricing Tab ── */}
         <TabsContent value="pricing" className="space-y-4 mt-4">
@@ -232,179 +227,136 @@ const AdminZones = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Route Name</Label>
-                  <Input value={newZone.zone_name} onChange={(e) => setNewZone({ ...newZone, zone_name: e.target.value })} placeholder="e.g. Airport Transfer" />
+                  <Input value={newRoute.zone_name} onChange={(e) => setNewRoute({ ...newRoute, zone_name: e.target.value })} placeholder="e.g. Airport Transfer" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Fare (cents)</Label>
-                  <Input type="number" value={newZone.flat_fare_cents} onChange={(e) => setNewZone({ ...newZone, flat_fare_cents: parseInt(e.target.value) || 0 })} />
+                  <Label className="text-xs text-muted-foreground">Pickup Zone</Label>
+                  <Select value={newRoute.pickup_zone} onValueChange={(v) => setNewRoute({ ...newRoute, pickup_zone: v })}>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Select zone" /></SelectTrigger>
+                    <SelectContent>
+                      {geoZoneKeys.map((z) => (
+                        <SelectItem key={z.key} value={z.key}>{z.name} ({z.key})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Pickup Zone Key</Label>
-                  <Input value={newZone.pickup_zone} onChange={(e) => setNewZone({ ...newZone, pickup_zone: e.target.value })} placeholder="e.g. city, airport" />
+                  <Label className="text-xs text-muted-foreground">Dropoff Zone</Label>
+                  <Select value={newRoute.dropoff_zone} onValueChange={(v) => setNewRoute({ ...newRoute, dropoff_zone: v })}>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Select zone" /></SelectTrigger>
+                    <SelectContent>
+                      {geoZoneKeys.map((z) => (
+                        <SelectItem key={z.key} value={z.key}>{z.name} ({z.key})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Dropoff Zone Key</Label>
-                  <Input value={newZone.dropoff_zone} onChange={(e) => setNewZone({ ...newZone, dropoff_zone: e.target.value })} placeholder="e.g. airport, ingraham_trail" />
+                  <Label className="text-xs text-muted-foreground">Flat Fare ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={(newRoute.flat_fare_cents / 100).toFixed(2)}
+                    onChange={(e) => setNewRoute({ ...newRoute, flat_fare_cents: Math.round(parseFloat(e.target.value || "0") * 100) })}
+                  />
                 </div>
               </div>
-              <Button size="sm" onClick={() => createMutation.mutate(newZone)} disabled={!newZone.zone_name || !newZone.pickup_zone || !newZone.dropoff_zone || createMutation.isPending}>
+              <Button size="sm" onClick={() => createRouteMutation.mutate(newRoute)} disabled={!newRoute.zone_name || !newRoute.pickup_zone || !newRoute.dropoff_zone || createRouteMutation.isPending}>
                 <Plus className="h-4 w-4 mr-1" /> Create Route
               </Button>
             </CardContent>
           </Card>
 
-          <div className="space-y-3">
-            {zones?.map((zone) => {
-              const edited = getEdited(zone);
-              return (
-                <motion.div key={zone.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Route Name</Label>
-                          <Input value={edited.zone_name} onChange={(e) => handleChange(zone.id, "zone_name", e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Pickup Zone</Label>
-                          <Input value={edited.pickup_zone} onChange={(e) => handleChange(zone.id, "pickup_zone", e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Dropoff Zone</Label>
-                          <Input value={edited.dropoff_zone} onChange={(e) => handleChange(zone.id, "dropoff_zone", e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Fare (cents)</Label>
-                          <Input type="number" value={edited.flat_fare_cents} onChange={(e) => handleChange(zone.id, "flat_fare_cents", parseInt(e.target.value) || 0)} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs">Active</Label>
-                            <Switch checked={edited.active} onCheckedChange={(v) => handleChange(zone.id, "active", v)} />
-                          </div>
-                          <Button size="icon" variant="ghost" disabled={!isDirty(zone.id)} onClick={() => handleSave(zone)}>
-                            <Save className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => confirmDelete(edited.zone_name, () => deleteMutation.mutate(zone.id))}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                        <MapPinned className="h-3 w-3" />
-                        {edited.pickup_zone} → {edited.dropoff_zone} = ${(edited.flat_fare_cents / 100).toFixed(2)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        {/* ── Geofence Boundaries Tab ── */}
-        <TabsContent value="geofences" className="space-y-4 mt-4">
-          <p className="text-sm text-muted-foreground">
-            Define polygon boundaries for each zone. Coordinates are entered as JSON arrays of <code>[lat, lng]</code> pairs. When a rider selects pickup/dropoff locations, the system checks which polygon contains those coordinates.
-          </p>
-
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Plus className="h-5 w-5 text-primary" /> Add Geofence
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Zone Key</Label>
-                  <Input value={newGeoZone.zone_key} onChange={(e) => setNewGeoZone({ ...newGeoZone, zone_key: e.target.value })} placeholder="e.g. airport" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Display Name</Label>
-                  <Input value={newGeoZone.zone_name} onChange={(e) => setNewGeoZone({ ...newGeoZone, zone_name: e.target.value })} placeholder="e.g. Yellowknife Airport" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Color</Label>
-                  <div className="flex gap-2">
-                    <input type="color" value={newGeoZone.color} onChange={(e) => setNewGeoZone({ ...newGeoZone, color: e.target.value })} className="h-9 w-12 rounded border border-border cursor-pointer" />
-                    <Input value={newGeoZone.color} onChange={(e) => setNewGeoZone({ ...newGeoZone, color: e.target.value })} className="flex-1" />
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Polygon Coordinates (JSON)</Label>
-                <Textarea
-                  rows={3}
-                  value={newGeoZone.polygonText}
-                  onChange={(e) => setNewGeoZone({ ...newGeoZone, polygonText: e.target.value })}
-                  placeholder='[[62.46, -114.38], [62.46, -114.35], [62.44, -114.35], [62.44, -114.38]]'
-                  className="font-mono text-xs"
-                />
-              </div>
-              <Button size="sm" onClick={handleCreateGeo} disabled={!newGeoZone.zone_key || !newGeoZone.zone_name || createGeoMutation.isPending}>
-                <Plus className="h-4 w-4 mr-1" /> Create Geofence
-              </Button>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Route</TableHead>
+                    <TableHead>Pickup Zone</TableHead>
+                    <TableHead>Dropoff Zone</TableHead>
+                    <TableHead className="text-right">Fare</TableHead>
+                    <TableHead className="w-16">Active</TableHead>
+                    <TableHead className="w-20"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {zones?.map((zone) => {
+                    const edited = getEdited(zone);
+                    const pickupLabel = geoZones?.find((g) => g.zone_key === edited.pickup_zone)?.zone_name;
+                    const dropoffLabel = geoZones?.find((g) => g.zone_key === edited.dropoff_zone)?.zone_name;
+                    return (
+                      <TableRow key={zone.id}>
+                        <TableCell>
+                          <Input
+                            value={edited.zone_name}
+                            onChange={(e) => handleChange(zone.id, "zone_name", e.target.value)}
+                            className="h-8 text-sm border-transparent hover:border-input focus:border-input"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Select value={edited.pickup_zone} onValueChange={(v) => handleChange(zone.id, "pickup_zone", v)}>
+                            <SelectTrigger className="h-8 text-xs border-transparent hover:border-input">
+                              <SelectValue>{pickupLabel || edited.pickup_zone}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {geoZoneKeys.map((z) => (
+                                <SelectItem key={z.key} value={z.key}>{z.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select value={edited.dropoff_zone} onValueChange={(v) => handleChange(zone.id, "dropoff_zone", v)}>
+                            <SelectTrigger className="h-8 text-xs border-transparent hover:border-input">
+                              <SelectValue>{dropoffLabel || edited.dropoff_zone}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {geoZoneKeys.map((z) => (
+                                <SelectItem key={z.key} value={z.key}>{z.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={(edited.flat_fare_cents / 100).toFixed(2)}
+                            onChange={(e) => handleChange(zone.id, "flat_fare_cents", Math.round(parseFloat(e.target.value || "0") * 100))}
+                            className="h-8 w-24 text-right text-sm ml-auto border-transparent hover:border-input focus:border-input"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Switch checked={edited.active} onCheckedChange={(v) => handleChange(zone.id, "active", v)} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-0.5">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" disabled={!isDirty(zone.id)} onClick={() => handleSave(zone)}>
+                              <Save className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => confirmDelete(edited.zone_name, () => deleteRouteMutation.mutate(zone.id))}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {(!zones || zones.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No routes configured yet. Add one above.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
-
-          <div className="space-y-3">
-            {geoZones?.map((zone) => {
-              const edited = getGeoEdited(zone);
-              const polygonText = geoEditState[zone.id]?.polygonText ?? JSON.stringify(zone.polygon, null, 2);
-              return (
-                <motion.div key={zone.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                  <Card>
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: edited.color }} />
-                        <span className="font-semibold text-sm">{edited.zone_name}</span>
-                        <span className="text-xs font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-secondary">{edited.zone_key}</span>
-                        <span className="text-xs text-muted-foreground ml-auto">{zone.polygon.length} vertices</span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Zone Key</Label>
-                          <Input value={edited.zone_key} onChange={(e) => handleGeoChange(zone.id, "zone_key", e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Display Name</Label>
-                          <Input value={edited.zone_name} onChange={(e) => handleGeoChange(zone.id, "zone_name", e.target.value)} />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Color</Label>
-                          <div className="flex gap-2">
-                            <input type="color" value={edited.color} onChange={(e) => handleGeoChange(zone.id, "color", e.target.value)} className="h-9 w-12 rounded border border-border cursor-pointer" />
-                            <Input value={edited.color} onChange={(e) => handleGeoChange(zone.id, "color", e.target.value)} className="flex-1" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Polygon Coordinates (JSON)</Label>
-                        <Textarea
-                          rows={4}
-                          value={polygonText}
-                          onChange={(e) => handleGeoChange(zone.id, "polygonText", e.target.value)}
-                          className="font-mono text-xs"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" disabled={!isGeoDirty(zone.id)} onClick={() => handleGeoSave(zone)}>
-                          <Save className="h-4 w-4 mr-1" /> Save
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => confirmDelete(edited.zone_name, () => deleteGeoMutation.mutate(zone.id))}>
-                          <Trash2 className="h-4 w-4 text-destructive mr-1" /> Delete
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </div>
         </TabsContent>
       </Tabs>
     </div>
