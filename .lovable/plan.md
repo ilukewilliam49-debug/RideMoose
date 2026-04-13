@@ -1,57 +1,31 @@
 
 
-# Differentiate Pricing: Private Hire vs Taxi
+# Remove Route Pricing (Dead Code Cleanup)
 
-## Current behavior
-- Both taxi and private hire estimates show GST (5%) on top of the fare
-- Both use the same fare calculation logic in the meter
-- No $1.20 surcharge exists for private hire
+Since both taxi and private hire use metered pricing, the flat-fare route pricing system is unused. This plan removes it cleanly.
 
-## What the user wants
-- **Taxi**: Meter fare only, NO GST, no extra surcharge
-- **Private Hire**: Meter fare + $1.20 surcharge + 5% GST (on fare + surcharge)
+## Changes
 
-## Changes required
+### 1. Fix pricing_model in RiderDashboard.tsx
+- Change `pricing_model` for `private_hire` from `"flat_zone"` to `"metered"`
 
-### 1. Rider-facing estimate (PriceEstimate.tsx)
-- **Taxi block**: Remove GST line items. Display fare only (no tax breakdown)
-- **Private Hire block**: Add a "$1.20 PickYou surcharge" line between fare and GST. Compute GST on (fare + $1.20)
+### 2. Remove private_hire_zones query from useRideQueries.ts
+- Delete the `privateHireZones` query, `matchedZone` memo, and related zone-matching logic (`pickupZoneKey`, `dropoffZoneKey`, `detectZone`)
+- Remove these from the return object
 
-### 2. Price computation (useRideQueries.ts → computePrice)
-- **Taxi**: No change to the raw fare calculation (stays as-is, no GST added)
-- **Private Hire**: Add 120 cents ($1.20) to the computed estimate before returning
+### 3. Clean up PriceEstimate.tsx
+- Remove `matchedZone`, `pickupZoneKey`, `dropoffZoneKey` props if no longer used
 
-### 3. Taxi meter receipt (useTaxiMeter.ts → computeReceipt)
-- Add a `serviceType` parameter to the hook (passed from the ride data)
-- **Private Hire**: Add $1.20 (120 cents) to grossFare, then compute 5% GST on that total. Include both in receipt
-- **Taxi**: No GST, no surcharge. Receipt total = grossFare + service fee only
-- Update the `FareReceipt` interface with `taxCents` and `surchargeCents` fields
+### 4. Remove Route Pricing tab from AdminZones.tsx
+- Remove the route pricing CRUD UI (the tab that manages `private_hire_zones` records)
+- Keep the geo zones map/list functionality
 
-### 4. Receipt UI (TaxiMeter.tsx → ReceiptBreakdown)
-- Show surcharge and GST lines only for private hire
-- For taxi, show fare + service fee only
-
-### 5. Payment capture (capture-payment edge function)
-- Branch GST logic by `service_type`:
-  - `taxi`: `taxCents = 0`
-  - `private_hire`: Add 120 cents surcharge to grossFare, then `taxCents = Math.round((grossFareCents + 120) * 0.05)`
-- Adjust `riderTotalCents` accordingly
-
-### 6. Payment intent creation (create-payment-intent edge function)
-- Branch GST: taxi authorization should not include GST; private hire should include surcharge + GST in the authorized amount
-
-### 7. Driver trip summary (TripSummaryCard.tsx)
-- Conditionally show/hide GST and surcharge lines based on service type
+### 5. Keep the database table for now
+- The `private_hire_zones` table can stay (no harm), or be dropped later. No migration needed immediately.
 
 ## Files to modify
-- `src/components/rider/PriceEstimate.tsx`
+- `src/pages/RiderDashboard.tsx`
 - `src/hooks/useRideQueries.ts`
-- `src/hooks/useTaxiMeter.ts`
-- `src/components/TaxiMeter.tsx`
-- `supabase/functions/capture-payment/index.ts`
-- `supabase/functions/create-payment-intent/index.ts`
-- `src/components/driver/TripSummaryCard.tsx` (if it shows tax)
-
-## No database changes needed
-All pricing differentiation is handled in application logic. The existing `tax_cents` column stores whatever is computed.
+- `src/components/rider/PriceEstimate.tsx`
+- `src/pages/AdminZones.tsx`
 
