@@ -302,24 +302,20 @@ const DriverDispatch = () => {
     if (!profile?.id) return;
     setAcceptingId(rideId);
     try {
-      // Try accepting dispatched ride first, then fall back to requested
-      const { error: dispatchErr, count } = await supabase
-        .from("rides")
-        .update({ driver_id: profile.id, status: "accepted" } as any)
-        .eq("id", rideId)
-        .eq("status", "dispatched");
+      // Use atomic DB function to prevent race conditions
+      const { data, error } = await supabase.rpc("accept_ride", {
+        _ride_id: rideId,
+        _driver_profile_id: profile.id,
+      });
 
-      if (dispatchErr) {
-        // Fall back to broadcast accept
-        const { error } = await supabase
-          .from("rides")
-          .update({ driver_id: profile.id, status: "accepted" })
-          .eq("id", rideId)
-          .eq("status", "requested");
-        if (error) toast.error(t("dispatch.couldNotAccept"));
-        else toast.success(t("dispatch.rideAccepted"));
-      } else {
+      const result = data as { success: boolean; reason?: string } | null;
+
+      if (error) {
+        toast.error(t("dispatch.couldNotAccept"));
+      } else if (result?.success) {
         toast.success(t("dispatch.rideAccepted"));
+      } else {
+        toast.error(result?.reason === "already_taken" ? "This ride was already taken" : "Could not accept ride");
       }
     } finally {
       setAcceptingId(null);

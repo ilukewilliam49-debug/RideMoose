@@ -207,8 +207,13 @@ const Login = () => {
               onClick={async () => {
                 setLoading(true);
                 try {
+                  // Preserve role selection through OAuth by passing it in redirect URL
+                  const redirectUrl = new URL(window.location.origin);
+                  if (!isLogin) {
+                    redirectUrl.searchParams.set("role", role);
+                  }
                   const result = await lovable.auth.signInWithOAuth("google", {
-                    redirect_uri: window.location.origin,
+                    redirect_uri: redirectUrl.toString(),
                   });
                   if (result.error) {
                     toast.error(result.error instanceof Error ? result.error.message : "Google sign-in failed");

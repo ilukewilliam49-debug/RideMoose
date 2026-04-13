@@ -166,7 +166,7 @@ serve(async (req) => {
         ride_id: ride_id,
       });
 
-      // Poll for acceptance
+      // Poll for acceptance (using atomic accept_ride function on driver side)
       let accepted = false;
       const deadline = Date.now() + DISPATCH_TIMEOUT_MS;
       while (Date.now() < deadline) {
@@ -181,7 +181,6 @@ serve(async (req) => {
           accepted = true;
           break;
         }
-        // If ride was cancelled while dispatching
         if (updated?.status === "cancelled") {
           return new Response(
             JSON.stringify({ matched: false, reason: "ride_cancelled" }),
