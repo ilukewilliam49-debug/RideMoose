@@ -4,10 +4,6 @@ import { useTranslation } from "react-i18next";
 interface PriceEstimateProps {
   serviceType: string;
   estimatedPrice: string | null;
-  matchedZone: any;
-  pickupZoneKey: string | null;
-  dropoffZoneKey: string | null;
-  geoZones: any[] | undefined;
   directionsData: any;
   trafficDelayMin: number;
   directionsFetching: boolean;

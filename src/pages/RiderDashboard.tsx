@@ -130,7 +130,7 @@ const RiderDashboard = () => {
         distance_km: state.distanceKm ? parseFloat(state.distanceKm.toFixed(2)) : null,
         service_type: state.serviceType,
         passenger_count: state.passengerCount,
-        pricing_model: state.serviceType === "private_hire" ? "flat_zone" : state.serviceType === "courier" ? "courier" : state.serviceType === "large_delivery" ? "large_delivery" : state.serviceType === "retail_delivery" ? "retail_delivery" : state.serviceType === "personal_shopper" ? "personal_shopper" : "metered",
+        pricing_model: state.serviceType === "courier" ? "courier" : state.serviceType === "large_delivery" ? "large_delivery" : state.serviceType === "retail_delivery" ? "retail_delivery" : state.serviceType === "personal_shopper" ? "personal_shopper" : "metered",
         status: "requested",
         payment_option: isOrgBilling ? "pay_driver" : state.paymentOption,
         billed_to: isOrgBilling ? "organization" : "individual",
