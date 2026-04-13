@@ -218,7 +218,7 @@ export default function IncomingRequestCard({
               {formatDistanceToNowStrict(new Date(ride.created_at), { addSuffix: true })}
             </p>
           </div>
-          <CountdownRing secondsLeft={secondsLeft} total={AUTO_DECLINE_SECONDS} />
+          <CountdownRing secondsLeft={secondsLeft} total={totalSeconds} />
         </div>
       </div>
 
