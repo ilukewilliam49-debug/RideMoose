@@ -9,6 +9,12 @@ import logoSrc from "@/assets/logo.png";
 
 interface RideReceiptProps {
   ride: Ride;
+  driverName?: string | null;
+  vehicleMake?: string | null;
+  vehicleModel?: string | null;
+  vehicleYear?: number | null;
+  vehicleColor?: string | null;
+  licensePlate?: string | null;
 }
 
 function cents(v: number) {
