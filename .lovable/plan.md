@@ -1,158 +1,60 @@
 
 
-# Full Platform Audit — Launch Readiness Assessment
+# Upgrade Admin Hire Zones to a Map-First Experience
 
-## Overall Verdict: CONDITIONALLY READY — 4 Critical fixes required, 5 Recommended improvements
+## Overview
+Replace the current text-heavy, JSON-editing zone management with an interactive map-based interface inspired by Uber's zone management tools.
 
----
+## What changes
 
-## ADMIN PANEL — Status: GOOD
+### 1. Add an interactive map to the Geofence Boundaries tab
+- Embed a Leaflet (free, no API key needed) or Google Maps instance showing Yellowknife area
+- Render all existing geo zones as colored polygon overlays on the map
+- Clicking a zone on the map selects it in the sidebar for editing
+- Color-code each zone using the existing `color` field
 
-**What's working well:**
-- Dashboard with real-time stats (pending verifications, active rides, revenue, support inbox)
-- User management with search, multi-filter, pagination, bulk actions, and confirmation dialogs
-- Bookings panel with server-side pagination, status/service filters
-- Ride detail view, pricing config, zone management, corporate management, support inbox
-- Verifications workflow for driver document approval
-- Mock driver simulator for testing
+### 2. Draw-on-map polygon creation
+- Add a polygon drawing tool (Leaflet Draw plugin) so admins can click points on the map to define a new zone boundary
+- On completing a polygon, auto-populate the zone_key/zone_name form and store coordinates — no JSON typing needed
+- Support editing existing polygons by dragging vertices on the map
 
-**Issues found:**
-- **Revenue query** (AdminDashboard line 49-51): Fetches ALL completed rides to sum `final_price` client-side. With scale, this will hit the 1000-row default limit and return incorrect totals. Should use a database function or aggregate query.
-- Minor: Revenue total shown in USD (`$`) — verify this matches your locale (Iceland pricing may use ISK/EUR).
+### 3. Redesign the layout to a split-panel view
+- **Left panel (sidebar)**: scrollable list of zones with name, key, color swatch, and action buttons
+- **Right panel (map)**: full-height interactive map showing all zone polygons
+- Selecting a zone in the sidebar highlights it on the map and opens an edit drawer
 
----
+### 4. Route Pricing tab improvements
+- Show a visual matrix/table of pickup zone → dropoff zone with fare amounts
+- Dropdown selectors that pull from actual geo zone keys instead of free-text input
+- Display fare in dollars (not cents) with proper formatting
 
-## DRIVER FLOW — Status: GOOD
+## Technical approach
 
-**What's working well:**
-- Full onboarding flow (vehicle info → document upload → admin approval gate)
-- Dashboard with live-ticking online duration, rating, acceptance rate, earnings
-- Dispatch board with realtime updates, sound/vibration alerts for new requests
-- Active trip management with live ETA, turn-by-turn nav, rider chat
-- Shift sessions (go online/offline with summary)
-- Earnings page with time-period filters, bar chart, payout requests
-- Outstanding balance tracking
+### New dependencies
+- `leaflet` + `react-leaflet` + `@types/leaflet` for the map
+- `leaflet-draw` for polygon drawing tools (or `@geoman-io/leaflet-geoman-free`)
 
-**Issues found:**
-- None critical. The dispatch board correctly handles both broadcast and sequential matching models.
+### Files to create/modify
+- **Create** `src/components/admin/ZoneMap.tsx` — Leaflet map component rendering geo zone polygons with draw controls
+- **Create** `src/components/admin/ZoneListPanel.tsx` — Sidebar list of zones with edit/delete actions  
+- **Modify** `src/pages/AdminZones.tsx` — Restructure layout to split-panel (sidebar + map), wire up zone selection state between list and map
 
----
+### Map component details
+- Center on Yellowknife (62.454, -114.372) at zoom ~12
+- Use free OpenStreetMap tiles (no API key required)
+- Each geo zone rendered as a `<Polygon>` with its stored color and 30% opacity fill
+- Draw control enables polygon creation; on `draw:created` event, extract coordinates and open the "Add Geofence" form pre-filled
+- On polygon edit (`draw:edited`), update the coordinates in state
+- Clicking an existing polygon selects it and scrolls the sidebar to that zone
 
-## RIDER FLOW — Status: GOOD
+### Pricing matrix
+- Replace the current card-per-route layout with a clean data table
+- Zone key inputs become `<Select>` dropdowns populated from `geo_zones` query
+- Fare displayed as `$50.00` instead of `5000` cents
 
-**What's working well:**
-- Home screen with pickup/dropoff autocomplete, saved places, recent destinations, scheduling
-- Service selector with live price estimates and ETA chips per service type
-- Dedicated courier booking page
-- Active ride tracking with live driver location and ETA
-- Ride history with rating system
-- Payment flow (in-app card auth, pay driver cash, org billing with credit limits)
-- Cancel ride with confirmation
-- Automated driver matching integration
-
-**Issues found:**
-- None critical from a functionality standpoint.
-
----
-
-## SECURITY — Status: 4 CRITICAL ISSUES
-
-### 1. CRITICAL: Users can escalate their own role (PRIVILEGE ESCALATION)
-The `profiles` UPDATE policy allows any user to set `role = 'admin'` on their own profile. This is the most severe issue — any rider can become an admin.
-
-**Fix:** Add a `WITH CHECK` constraint to the "Users can update own profile" policy that prevents changing `role`, `commission_rate`, `driver_balance_cents`, `promo_commission_rate`, `standard_commission_rate`.
-
-### 2. CRITICAL: Realtime channel authorization not enforced
-The `authorize_realtime_channel` function exists but isn't wired into Realtime policies on `realtime.messages`. Any authenticated user can subscribe to any channel and see ride updates, driver locations, and financial data.
-
-**Fix:** This was identified in a previous audit but the `authorize_realtime_channel` function needs to be applied as an RLS policy on the Realtime schema (requires Supabase dashboard configuration — may need advisory note).
-
-### 3. CRITICAL: Ride financial data exposed via Realtime
-`rides` table is published to Realtime and includes `stripe_payment_intent_id`, `overage_client_secret`, and financial fields. Without Realtime RLS, these are broadcast to all subscribers.
-
-**Fix:** Same as #2 — Realtime RLS policies needed.
-
-### 4. CRITICAL: Driver financial data exposed via Realtime
-`profiles` table is published to Realtime with `driver_balance_cents`, `commission_rate`, `latitude`, `longitude`.
-
-**Fix:** Same as #2.
-
-### 5. WARN: Proof photos accessible to all authenticated users
-The proof-photos storage bucket has an overly permissive SELECT policy.
-
-**Fix:** Restrict SELECT to the ride's rider, driver, and admins.
-
-### 6. WARN: `match-driver` edge function uses `getClaims()` which may not exist
-Line 70: `await userClient.auth.getClaims(token)` — the Supabase JS client doesn't have a `getClaims` method. This will throw silently and `callerUserId` will be null, meaning ownership verification is skipped.
-
-**Fix:** Replace with `await userClient.auth.getUser()` and extract `user.id`.
-
----
-
-## OTHER ITEMS
-
-### Edge Function CORS
-The `match-driver` function uses manually defined CORS headers. This is fine but should match the standard pattern used by other functions.
-
-### i18n
-English and French translation files exist. Both appear functional.
-
-### PWA / Service Worker
-`public/sw.js` exists for push notifications. Functional.
-
-### Legal Pages
-Terms of Service and Privacy Policy pages are present and linked from the landing page footer.
-
-### Error Handling
-Global `ErrorBoundary` wraps the app. Individual pages use `ErrorRetry` components for API failures.
-
----
-
-## RECOMMENDED PLAN
-
-### Must-fix before launch (4 items):
-
-1. **Harden profiles UPDATE RLS policy** — Add WITH CHECK to prevent users from changing `role`, `commission_rate`, `driver_balance_cents`, and other admin-only fields.
-
-2. **Fix match-driver auth validation** — Replace `getClaims()` with `getUser()` to properly validate ride ownership.
-
-3. **Fix admin revenue query** — Use a database aggregate function instead of client-side sum to avoid the 1000-row limit.
-
-4. **Restrict proof-photos storage SELECT policy** — Scope to ride participants and admins only.
-
-### Recommended improvements (not blocking launch):
-
-5. Apply Realtime authorization (this may require configuration not possible via migrations alone — advisory item).
-
-6. Consider rate-limiting on the match-driver edge function to prevent abuse.
-
-7. Add input validation (Zod) to the match-driver edge function.
-
-8. Currency display — verify $ symbol matches target market.
-
-9. Add loading state/overlay ("Finding your driver...") on the rider dashboard while match-driver runs (currently just a toast).
-
-### Technical Details
-
-**Migration for profile UPDATE hardening:**
-```sql
-DROP POLICY "Users can update own profile" ON public.profiles;
-CREATE POLICY "Users can update own profile" ON public.profiles
-FOR UPDATE TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (
-  auth.uid() = user_id
-  AND role = (SELECT role FROM public.profiles WHERE user_id = auth.uid())
-  AND commission_rate = (SELECT commission_rate FROM public.profiles WHERE user_id = auth.uid())
-  AND driver_balance_cents = (SELECT driver_balance_cents FROM public.profiles WHERE user_id = auth.uid())
-  AND standard_commission_rate = (SELECT standard_commission_rate FROM public.profiles WHERE user_id = auth.uid())
-  AND promo_commission_rate = (SELECT promo_commission_rate FROM public.profiles WHERE user_id = auth.uid())
-);
-```
-
-**match-driver auth fix:**
-Replace `getClaims` with `getUser()` and extract `data.user.id`.
-
-**Revenue aggregate function:**
-Create a database function `get_total_revenue()` that returns `SUM(final_price)` from completed rides, callable via `supabase.rpc()`.
+## What stays the same
+- All database tables (`geo_zones`, `private_hire_zones`) unchanged
+- All mutations and RLS policies unchanged  
+- The `pointInPolygon` geofence logic unchanged
+- Mobile fallback: on small screens, stack map below the list instead of side-by-side
 
