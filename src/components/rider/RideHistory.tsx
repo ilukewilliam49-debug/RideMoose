@@ -46,7 +46,7 @@ const RideHistory = ({ rides, statusColor, onRate, onRefresh }: RideHistoryProps
                 </p>
                 {ride.status === "completed" && totalFare > 0 && (
                   <div className="text-[10px] font-mono text-muted-foreground space-x-2">
-                    <span>{t("rider.total")}: ${(totalFare / 100).toFixed(2)}</span>
+                    <span>{t("rider.total")}: ${(totalFare / 100).toFixed(2)}{isPrivateHire && <span className="text-muted-foreground/70 ml-0.5">(incl. GST)</span>}</span>
                     {captured > 0 && <span>• {t("rider.inApp")}: ${(captured / 100).toFixed(2)}</span>}
                     {outstanding > 0 && <span className="text-yellow-500">• {t("rider.due")}: ${(outstanding / 100).toFixed(2)}</span>}
                     {hasTip && <span className="text-primary">• {t("rider.tip", "Tip")}: ${(ride.tip_cents / 100).toFixed(2)}</span>}
