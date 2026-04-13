@@ -30,6 +30,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let skipCleanup = false;
+  try {
+    const body = await req.clone().json();
+    skipCleanup = body?.skip_cleanup === true;
+  } catch { /* no body or not JSON */ }
+
   const steps: StepResult[] = [];
   const totalStart = Date.now();
 
