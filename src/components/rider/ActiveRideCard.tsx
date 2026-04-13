@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import RideChatSheet from "@/components/RideChatSheet";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
+import RideSafetyActions from "@/components/rider/RideSafetyActions";
 
 interface ActiveRideCardProps {
   activeRide: any;
@@ -44,6 +45,17 @@ const ActiveRideCard = ({ activeRide, driverName, statusColor, onCancelClick }: 
         {activeRide.service_type === "large_delivery" && activeRide.status === "requested" && (
           <div className="mt-3">
             <DeliveryBidsList rideId={activeRide.id} />
+          </div>
+        )}
+        {(activeRide.status === "accepted" || activeRide.status === "in_progress") && (
+          <div className="mt-2">
+            <RideSafetyActions
+              rideId={activeRide.id}
+              pickupAddress={activeRide.pickup_address}
+              dropoffAddress={activeRide.dropoff_address}
+              driverName={driverName}
+              serviceType={activeRide.service_type}
+            />
           </div>
         )}
         {(activeRide.status === "requested" || activeRide.status === "accepted") && (
