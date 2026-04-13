@@ -165,7 +165,7 @@ const AdminReports = () => {
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Service" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All services</SelectItem>
-            {["taxi", "shuttle", "private_hire", "courier", "large_delivery", "retail_delivery", "personal_shopper", "food_delivery", "pet_transport"].map((s) => (
+            {["taxi", "shuttle", "private_hire", "courier", "large_delivery", "retail_delivery", "personal_shopper"].map((s) => (
               <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>
             ))}
           </SelectContent>

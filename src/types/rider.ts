@@ -3,7 +3,7 @@ import type { Tables } from "@/integrations/supabase/types";
 export type Ride = Tables<"rides">;
 export type SavedPlace = Tables<"saved_places">;
 
-export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper" | "pet_transport";
+export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
 
 export interface OrgMembership {
   organization_id: string;
