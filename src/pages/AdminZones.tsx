@@ -219,6 +219,7 @@ const AdminZones = () => {
                 selectedZoneId={selectedZoneId}
                 onSelectZone={setSelectedZoneId}
                 onPolygonCreated={handlePolygonCreated}
+                onPolygonEdited={handlePolygonEdited}
               />
             </div>
           </div>
