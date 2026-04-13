@@ -25,7 +25,6 @@ const YELLOWKNIFE_CENTER: [number, number] = [62.454, -114.372];
 
 function DrawControl({ onPolygonCreated }: { onPolygonCreated: (coords: [number, number][]) => void }) {
   const map = useMap();
-  const drawControlRef = useRef<L.Control.Draw | null>(null);
 
   useEffect(() => {
     const drawnItems = new L.FeatureGroup();
@@ -48,7 +47,6 @@ function DrawControl({ onPolygonCreated }: { onPolygonCreated: (coords: [number,
     });
 
     map.addControl(drawControl);
-    drawControlRef.current = drawControl;
 
     map.on(L.Draw.Event.CREATED, (e: any) => {
       const layer = e.layer;
@@ -62,6 +60,53 @@ function DrawControl({ onPolygonCreated }: { onPolygonCreated: (coords: [number,
       map.removeLayer(drawnItems);
     };
   }, [map, onPolygonCreated]);
+
+  return null;
+}
+
+/** Renders the selected zone as an editable Leaflet polygon with draggable vertices */
+function EditablePolygon({
+  zone,
+  onEdited,
+}: {
+  zone: GeoZone;
+  onEdited: (id: string, coords: [number, number][]) => void;
+}) {
+  const map = useMap();
+  const layerRef = useRef<L.Polygon | null>(null);
+
+  useEffect(() => {
+    const positions = zone.polygon.map(([lat, lng]) => L.latLng(lat, lng));
+    const poly = L.polygon(positions, {
+      color: zone.color,
+      fillColor: zone.color,
+      fillOpacity: 0.45,
+      weight: 3,
+    });
+
+    poly.addTo(map);
+
+    // Enable editing (leaflet-draw adds .editing to L.Polygon)
+    if ((poly as any).editing) {
+      (poly as any).editing.enable();
+    }
+
+    // Listen for vertex drag end
+    poly.on("edit" as any, () => {
+      const latlngs = poly.getLatLngs()[0] as L.LatLng[];
+      const coords: [number, number][] = latlngs.map((ll) => [ll.lat, ll.lng]);
+      onEdited(zone.id, coords);
+    });
+
+    layerRef.current = poly;
+
+    return () => {
+      if ((poly as any).editing) {
+        (poly as any).editing.disable();
+      }
+      map.removeLayer(poly);
+    };
+  }, [map, zone.id, zone.polygon, zone.color, onEdited]);
 
   return null;
 }
@@ -80,8 +125,20 @@ function FitBounds({ geoZones }: { geoZones: GeoZone[] }) {
   return null;
 }
 
-export default function ZoneMap({ geoZones, selectedZoneId, onSelectZone, onPolygonCreated }: ZoneMapProps) {
+export default function ZoneMap({
+  geoZones,
+  selectedZoneId,
+  onSelectZone,
+  onPolygonCreated,
+  onPolygonEdited,
+}: ZoneMapProps) {
   const stableOnCreated = useCallback(onPolygonCreated, []);
+  const stableOnEdited = useCallback(
+    (id: string, coords: [number, number][]) => onPolygonEdited?.(id, coords),
+    [onPolygonEdited]
+  );
+
+  const selectedZone = geoZones.find((z) => z.id === selectedZoneId);
 
   return (
     <MapContainer
@@ -99,7 +156,8 @@ export default function ZoneMap({ geoZones, selectedZoneId, onSelectZone, onPoly
 
       {geoZones.map((zone) => {
         if (!zone.polygon || zone.polygon.length < 3) return null;
-        const isSelected = zone.id === selectedZoneId;
+        // Skip react-leaflet Polygon for selected zone — EditablePolygon handles it
+        if (zone.id === selectedZoneId) return null;
         return (
           <Polygon
             key={zone.id}
@@ -107,16 +165,19 @@ export default function ZoneMap({ geoZones, selectedZoneId, onSelectZone, onPoly
             pathOptions={{
               color: zone.color,
               fillColor: zone.color,
-              fillOpacity: isSelected ? 0.45 : 0.2,
-              weight: isSelected ? 3 : 1.5,
+              fillOpacity: 0.2,
+              weight: 1.5,
             }}
             eventHandlers={{
               click: () => onSelectZone(zone.id),
             }}
-          >
-          </Polygon>
+          />
         );
       })}
+
+      {selectedZone && selectedZone.polygon.length >= 3 && (
+        <EditablePolygon zone={selectedZone} onEdited={stableOnEdited} />
+      )}
     </MapContainer>
   );
 }
