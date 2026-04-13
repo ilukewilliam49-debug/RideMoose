@@ -16,8 +16,6 @@ import {
   Briefcase,
   Package,
   Bus,
-  PawPrint,
-  UtensilsCrossed,
   Star,
   Camera,
   MessageCircle,
