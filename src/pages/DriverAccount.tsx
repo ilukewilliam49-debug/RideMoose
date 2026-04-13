@@ -49,6 +49,11 @@ const DriverAccount = () => {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editVehicle, setEditVehicle] = useState("");
+  const [editMake, setEditMake] = useState("");
+  const [editModel, setEditModel] = useState("");
+  const [editYear, setEditYear] = useState("");
+  const [editColor, setEditColor] = useState("");
+  const [editPlate, setEditPlate] = useState("");
 
   // Verification status
   const { data: verifications, isLoading: verifLoading, isError: verifError, refetch: refetchVerif } = useQuery({
@@ -106,7 +111,7 @@ const DriverAccount = () => {
 
   // Profile update mutation
   const updateProfile = useMutation({
-    mutationFn: async (updates: { full_name?: string; phone?: string; vehicle_type?: string }) => {
+    mutationFn: async (updates: Record<string, any>) => {
       if (!profile?.id) throw new Error("No profile");
       const { error } = await supabase.from("profiles").update(updates).eq("id", profile.id);
       if (error) throw error;
@@ -161,6 +166,11 @@ const DriverAccount = () => {
     setEditName(profile?.full_name || "");
     setEditPhone(profile?.phone || "");
     setEditVehicle(profile?.vehicle_type || "");
+    setEditMake((profile as any)?.vehicle_make || "");
+    setEditModel((profile as any)?.vehicle_model || "");
+    setEditYear((profile as any)?.vehicle_year ? String((profile as any).vehicle_year) : "");
+    setEditColor((profile as any)?.vehicle_color || "");
+    setEditPlate((profile as any)?.license_plate || "");
     setEditing(true);
   };
 
@@ -222,10 +232,27 @@ const DriverAccount = () => {
   };
 
   const saveEdits = () => {
-    const updates: Record<string, string> = {};
+    const updates: Record<string, any> = {};
     if (editName && editName !== profile?.full_name) updates.full_name = editName;
     if (editPhone !== (profile?.phone || "")) updates.phone = editPhone;
     if (editVehicle !== (profile?.vehicle_type || "")) updates.vehicle_type = editVehicle;
+    if (editMake.trim() !== ((profile as any)?.vehicle_make || "")) updates.vehicle_make = editMake.trim();
+    if (editModel.trim() !== ((profile as any)?.vehicle_model || "")) updates.vehicle_model = editModel.trim();
+    if (editColor.trim() !== ((profile as any)?.vehicle_color || "")) updates.vehicle_color = editColor.trim();
+    if (editPlate.trim().toUpperCase() !== ((profile as any)?.license_plate || "")) updates.license_plate = editPlate.trim().toUpperCase();
+    const yearNum = parseInt(editYear);
+    const currentYear = new Date().getFullYear();
+    if (editYear && yearNum !== (profile as any)?.vehicle_year) {
+      if (isNaN(yearNum) || yearNum < 2016 || yearNum > currentYear) {
+        toast.error(`Vehicle year must be between 2016 and ${currentYear}`);
+        return;
+      }
+      updates.vehicle_year = yearNum;
+    }
+    if (editPlate.trim() && !/^[A-Z0-9]{1,8}[-\s]?[A-Z0-9]{1,8}$/i.test(editPlate.trim())) {
+      toast.error("Enter a valid license plate (letters and numbers, e.g. ABC-1234)");
+      return;
+    }
     if (Object.keys(updates).length === 0) { setEditing(false); return; }
     updateProfile.mutate(updates);
   };
@@ -344,6 +371,30 @@ const DriverAccount = () => {
             <div>
               <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Vehicle type</Label>
               <Input value={editVehicle} onChange={(e) => setEditVehicle(e.target.value)} placeholder="e.g. Sedan, SUV, Van" className="h-9 text-sm mt-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Make</Label>
+                <Input value={editMake} onChange={(e) => setEditMake(e.target.value)} placeholder="e.g. Toyota" className="h-9 text-sm mt-1" maxLength={50} />
+              </div>
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Model</Label>
+                <Input value={editModel} onChange={(e) => setEditModel(e.target.value)} placeholder="e.g. Corolla" className="h-9 text-sm mt-1" maxLength={50} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Year</Label>
+                <Input value={editYear} onChange={(e) => setEditYear(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="2020" className="h-9 text-sm mt-1" inputMode="numeric" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Color</Label>
+                <Input value={editColor} onChange={(e) => setEditColor(e.target.value)} placeholder="e.g. White" className="h-9 text-sm mt-1" maxLength={30} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">License Plate</Label>
+              <Input value={editPlate} onChange={(e) => setEditPlate(e.target.value)} placeholder="e.g. ABC-1234" className="h-9 text-sm mt-1 uppercase" maxLength={15} />
             </div>
           </div>
         ) : (
