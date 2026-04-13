@@ -3,42 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="canonical" href="https://pickyou.lovable.app/" />
 
-    <title>PickYou — Your Ride. Your Choice. | Yellowknife Taxi &amp; Courier</title>
+    <title>PickYou — Yellowknife Taxi, Airport Transfer &amp; Courier Service</title>
     <meta
       name="description"
-      content="PickYou is Yellowknife's digital transportation platform — taxi, private hire, airport transfers, and courier service. Fair pricing, fast pickups, user-first design."
+      content="Book a taxi, airport transfer, or courier in Yellowknife, NT. PickYou offers fair pricing, fast pickups, and a user-first experience. Your ride, your choice."
     />
-    <meta name="keywords" content="Yellowknife taxi, ride booking, airport transfer Yellowknife, courier Yellowknife, private hire NWT, PickYou" />
+    <meta name="keywords" content="Yellowknife taxi, ride booking, airport transfer Yellowknife, courier Yellowknife, private hire NWT, PickYou, Northwest Territories taxi" />
     <meta name="author" content="PickYou" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
     <meta name="theme-color" content="#0B0F1A" />
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://pickyou.lovable.app/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://pickyou.lovable.app/" />
     <meta property="og:site_name" content="PickYou" />
-    <meta
-      property="og:title"
-      content="PickYou — Your Ride. Your Choice. | Yellowknife"
-    />
-    <meta
-      property="og:description"
-      content="Smarter rides, better connections. Taxi, airport transfers, and courier service in Yellowknife, NT."
-    />
+    <meta property="og:title" content="PickYou — Yellowknife Taxi, Airport Transfer & Courier" />
+    <meta property="og:description" content="Book a taxi, airport transfer, or courier in Yellowknife, NT. Fair pricing, fast pickups, user-first design." />
+    <meta property="og:image" content="https://pickyou.lovable.app/favicon.png" />
     <meta property="og:locale" content="en_CA" />
 
+    <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="PickYou — Your Ride. Your Choice. | Yellowknife"
-    />
-    <meta
-      name="twitter:description"
-      content="Smarter rides, better connections. Taxi, airport transfers, and courier service in Yellowknife, NT."
-    />
+    <meta name="twitter:title" content="PickYou — Yellowknife Taxi, Airport Transfer & Courier" />
+    <meta name="twitter:description" content="Book a taxi, airport transfer, or courier in Yellowknife, NT. Fair pricing, fast pickups, user-first design." />
+    <meta name="twitter:image" content="https://pickyou.lovable.app/favicon.png" />
 
+    <!-- Geo targeting -->
+    <meta name="geo.region" content="CA-NT" />
+    <meta name="geo.placename" content="Yellowknife" />
+    <meta name="geo.position" content="62.4540;-114.3718" />
+    <meta name="ICBM" content="62.4540, -114.3718" />
+
+    <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -46,12 +50,20 @@
       "name": "PickYou",
       "description": "Digital transportation platform offering taxi, private hire, airport transfers, and courier service in Yellowknife, Northwest Territories.",
       "url": "https://pickyou.lovable.app",
+      "logo": "https://pickyou.lovable.app/favicon.png",
+      "image": "https://pickyou.lovable.app/favicon.png",
       "telephone": "+18679888836",
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Yellowknife",
         "addressRegion": "NT",
+        "postalCode": "X1A",
         "addressCountry": "CA"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 62.4540,
+        "longitude": -114.3718
       },
       "areaServed": {
         "@type": "City",
@@ -62,7 +74,15 @@
         }
       },
       "serviceType": ["Taxi Service", "Airport Transfer", "Courier Service", "Private Hire"],
-      "slogan": "Your Ride. Your Choice."
+      "slogan": "Your Ride. Your Choice.",
+      "priceRange": "$$",
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+        "opens": "00:00",
+        "closes": "23:59"
+      },
+      "sameAs": []
     }
     </script>
   </head>
@@ -72,4 +92,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
