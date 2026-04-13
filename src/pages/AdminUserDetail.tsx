@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { User, Phone, Car, CalendarDays, MapPin, Shield, PawPrint, Package, Utensils, Bus, Briefcase, Pencil, Check, X, Percent, Wallet, Armchair } from "lucide-react";
+import { User, Phone, Car, CalendarDays, MapPin, Shield, Package, Bus, Briefcase, Pencil, Check, X, Percent, Wallet, Armchair } from "lucide-react";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { useState, useCallback } from "react";
