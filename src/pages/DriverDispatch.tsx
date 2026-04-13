@@ -27,6 +27,7 @@ const DriverDispatch = () => {
   const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
   const [dismissedSummaryId, setDismissedSummaryId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [urgentFlash, setUrgentFlash] = useState(false);
   const prevPendingCountRef = useRef(0);
   const prevDispatchedIdsRef = useRef<Set<string>>(new Set());
 
@@ -260,6 +261,10 @@ const DriverDispatch = () => {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
         setTimeout(() => ctx.close(), 900);
       } catch { /* audio not available */ }
+
+      // Trigger visual flash
+      setUrgentFlash(true);
+      setTimeout(() => setUrgentFlash(false), 1500);
 
       // Strong haptic pattern for dispatched rides
       if (navigator.vibrate) {
