@@ -1,60 +1,57 @@
 
 
-# Upgrade Admin Hire Zones to a Map-First Experience
+# Differentiate Pricing: Private Hire vs Taxi
 
-## Overview
-Replace the current text-heavy, JSON-editing zone management with an interactive map-based interface inspired by Uber's zone management tools.
+## Current behavior
+- Both taxi and private hire estimates show GST (5%) on top of the fare
+- Both use the same fare calculation logic in the meter
+- No $1.20 surcharge exists for private hire
 
-## What changes
+## What the user wants
+- **Taxi**: Meter fare only, NO GST, no extra surcharge
+- **Private Hire**: Meter fare + $1.20 surcharge + 5% GST (on fare + surcharge)
 
-### 1. Add an interactive map to the Geofence Boundaries tab
-- Embed a Leaflet (free, no API key needed) or Google Maps instance showing Yellowknife area
-- Render all existing geo zones as colored polygon overlays on the map
-- Clicking a zone on the map selects it in the sidebar for editing
-- Color-code each zone using the existing `color` field
+## Changes required
 
-### 2. Draw-on-map polygon creation
-- Add a polygon drawing tool (Leaflet Draw plugin) so admins can click points on the map to define a new zone boundary
-- On completing a polygon, auto-populate the zone_key/zone_name form and store coordinates — no JSON typing needed
-- Support editing existing polygons by dragging vertices on the map
+### 1. Rider-facing estimate (PriceEstimate.tsx)
+- **Taxi block**: Remove GST line items. Display fare only (no tax breakdown)
+- **Private Hire block**: Add a "$1.20 PickYou surcharge" line between fare and GST. Compute GST on (fare + $1.20)
 
-### 3. Redesign the layout to a split-panel view
-- **Left panel (sidebar)**: scrollable list of zones with name, key, color swatch, and action buttons
-- **Right panel (map)**: full-height interactive map showing all zone polygons
-- Selecting a zone in the sidebar highlights it on the map and opens an edit drawer
+### 2. Price computation (useRideQueries.ts → computePrice)
+- **Taxi**: No change to the raw fare calculation (stays as-is, no GST added)
+- **Private Hire**: Add 120 cents ($1.20) to the computed estimate before returning
 
-### 4. Route Pricing tab improvements
-- Show a visual matrix/table of pickup zone → dropoff zone with fare amounts
-- Dropdown selectors that pull from actual geo zone keys instead of free-text input
-- Display fare in dollars (not cents) with proper formatting
+### 3. Taxi meter receipt (useTaxiMeter.ts → computeReceipt)
+- Add a `serviceType` parameter to the hook (passed from the ride data)
+- **Private Hire**: Add $1.20 (120 cents) to grossFare, then compute 5% GST on that total. Include both in receipt
+- **Taxi**: No GST, no surcharge. Receipt total = grossFare + service fee only
+- Update the `FareReceipt` interface with `taxCents` and `surchargeCents` fields
 
-## Technical approach
+### 4. Receipt UI (TaxiMeter.tsx → ReceiptBreakdown)
+- Show surcharge and GST lines only for private hire
+- For taxi, show fare + service fee only
 
-### New dependencies
-- `leaflet` + `react-leaflet` + `@types/leaflet` for the map
-- `leaflet-draw` for polygon drawing tools (or `@geoman-io/leaflet-geoman-free`)
+### 5. Payment capture (capture-payment edge function)
+- Branch GST logic by `service_type`:
+  - `taxi`: `taxCents = 0`
+  - `private_hire`: Add 120 cents surcharge to grossFare, then `taxCents = Math.round((grossFareCents + 120) * 0.05)`
+- Adjust `riderTotalCents` accordingly
 
-### Files to create/modify
-- **Create** `src/components/admin/ZoneMap.tsx` — Leaflet map component rendering geo zone polygons with draw controls
-- **Create** `src/components/admin/ZoneListPanel.tsx` — Sidebar list of zones with edit/delete actions  
-- **Modify** `src/pages/AdminZones.tsx` — Restructure layout to split-panel (sidebar + map), wire up zone selection state between list and map
+### 6. Payment intent creation (create-payment-intent edge function)
+- Branch GST: taxi authorization should not include GST; private hire should include surcharge + GST in the authorized amount
 
-### Map component details
-- Center on Yellowknife (62.454, -114.372) at zoom ~12
-- Use free OpenStreetMap tiles (no API key required)
-- Each geo zone rendered as a `<Polygon>` with its stored color and 30% opacity fill
-- Draw control enables polygon creation; on `draw:created` event, extract coordinates and open the "Add Geofence" form pre-filled
-- On polygon edit (`draw:edited`), update the coordinates in state
-- Clicking an existing polygon selects it and scrolls the sidebar to that zone
+### 7. Driver trip summary (TripSummaryCard.tsx)
+- Conditionally show/hide GST and surcharge lines based on service type
 
-### Pricing matrix
-- Replace the current card-per-route layout with a clean data table
-- Zone key inputs become `<Select>` dropdowns populated from `geo_zones` query
-- Fare displayed as `$50.00` instead of `5000` cents
+## Files to modify
+- `src/components/rider/PriceEstimate.tsx`
+- `src/hooks/useRideQueries.ts`
+- `src/hooks/useTaxiMeter.ts`
+- `src/components/TaxiMeter.tsx`
+- `supabase/functions/capture-payment/index.ts`
+- `supabase/functions/create-payment-intent/index.ts`
+- `src/components/driver/TripSummaryCard.tsx` (if it shows tax)
 
-## What stays the same
-- All database tables (`geo_zones`, `private_hire_zones`) unchanged
-- All mutations and RLS policies unchanged  
-- The `pointInPolygon` geofence logic unchanged
-- Mobile fallback: on small screens, stack map below the list instead of side-by-side
+## No database changes needed
+All pricing differentiation is handled in application logic. The existing `tax_cents` column stores whatever is computed.
 
