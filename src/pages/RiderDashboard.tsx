@@ -161,16 +161,11 @@ const RiderDashboard = () => {
           shopper_fee_cents: state.estimatedItemCostCents ? Math.round(Number(state.estimatedItemCostCents) * 0.10) : 0,
           dropoff_notes: state.dropoffNotes || null, proof_photo_required: true, payment_option: "in_app",
         } : {}),
-        ...(state.serviceType === "pet_transport" ? {
-          pet_mode: state.petMode, pet_type: state.petType, pet_weight_estimate: state.petWeightEstimate || null,
-          crate_confirmed: state.crateConfirmed, destination_type: state.destinationType,
-          emergency_contact_phone: state.emergencyContactPhone, payment_option: "in_app",
-        } : {}),
       } as any).select("id").single();
       if (error) throw error;
 
       // Payment authorization for specific service types
-      const needsAuth = (state.serviceType === "personal_shopper" || state.serviceType === "pet_transport" ||
+      const needsAuth = (state.serviceType === "personal_shopper" ||
         (!isOrgBilling && state.paymentOption === "in_app" && state.serviceType === "taxi"));
       if (needsAuth && rideData) {
         let authCents = estCents;

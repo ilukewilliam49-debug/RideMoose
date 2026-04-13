@@ -42,7 +42,6 @@ const LandingFooter = () => {
               <button onClick={() => navigate("/login")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">Ride</button>
               <button onClick={() => navigate("/login?role=driver")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">Drive</button>
               <button onClick={() => navigate("/login")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">Courier</button>
-              <button onClick={() => navigate("/login")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">Food Delivery</button>
             </div>
           </div>
 

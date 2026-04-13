@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { User, Phone, Car, CalendarDays, MapPin, Shield, PawPrint, Package, Utensils, Bus, Briefcase, Pencil, Check, X, Percent, Wallet, Armchair } from "lucide-react";
+import { User, Phone, Car, CalendarDays, MapPin, Shield, Package, Bus, Briefcase, Pencil, Check, X, Percent, Wallet, Armchair } from "lucide-react";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { useState, useCallback } from "react";
@@ -287,10 +287,8 @@ export default function AdminUserDetail() {
               {[
                 { field: "can_taxi", label: "Taxi", icon: Car },
                 { field: "can_courier", label: "Courier", icon: Package },
-                { field: "can_food_delivery", label: "Food Delivery", icon: Utensils },
                 { field: "can_shuttle", label: "Shuttle", icon: Bus },
                 { field: "can_private_hire", label: "Private Hire", icon: Briefcase },
-                { field: "pet_approved", label: "Pet Approved", icon: PawPrint },
               ].map(({ field, label, icon: Icon }) => (
                 <div key={field} className="flex items-center justify-between">
                   <Label className="flex items-center gap-2">

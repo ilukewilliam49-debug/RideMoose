@@ -102,7 +102,7 @@ export const useRideQueries = ({
       data?.forEach((r) => { map[r.key] = Number(r.value); });
       return map;
     },
-    enabled: serviceType === "pet_transport",
+    enabled: false,
   });
 
   const { data: privateHireZones } = useQuery({

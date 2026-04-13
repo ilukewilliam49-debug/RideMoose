@@ -1,14 +1,12 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Car, Plane, Package, UtensilsCrossed, PawPrint } from "lucide-react";
+import { Car, Plane, Package } from "lucide-react";
 
 const services = [
   { icon: Car, key: "taxi", labelKey: "landing.serviceTaxiTitle", descKey: "landing.serviceTaxiDesc" },
   { icon: Plane, key: "airport", labelKey: "landing.serviceAirportTitle", descKey: "landing.serviceAirportDesc" },
   { icon: Package, key: "courier", labelKey: "landing.serviceCourierTitle", descKey: "landing.serviceCourierDesc" },
-  { icon: UtensilsCrossed, key: "food", labelKey: "nav.foodDelivery", descKey: "landing.serviceCourierDesc" },
-  { icon: PawPrint, key: "pet", labelKey: "rider.petTransport", descKey: "rider.petWithOwnerDesc" },
 ];
 
 const LandingServices = () => {

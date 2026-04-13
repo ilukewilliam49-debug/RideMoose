@@ -33,8 +33,6 @@ function serviceFilter(serviceType: string): Record<string, any> {
     case "courier":
     case "retail_delivery":
     case "personal_shopper": return { can_courier: true };
-    case "food_delivery": return { can_food_delivery: true };
-    case "pet_transport": return { pet_approved: true };
     case "large_delivery": return { vehicle_type_in: ["SUV", "truck", "van"] };
     default: return { can_taxi: true };
   }

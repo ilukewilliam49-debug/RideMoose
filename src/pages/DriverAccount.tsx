@@ -16,8 +16,6 @@ import {
   Briefcase,
   Package,
   Bus,
-  PawPrint,
-  UtensilsCrossed,
   Star,
   Camera,
   MessageCircle,
@@ -244,8 +242,6 @@ const DriverAccount = () => {
     { key: "can_private_hire", label: "Private Hire", icon: Briefcase, enabled: profile?.can_private_hire },
     { key: "can_shuttle", label: "Shuttle", icon: Bus, enabled: profile?.can_shuttle },
     { key: "can_courier", label: "Courier", icon: Package, enabled: profile?.can_courier },
-    { key: "can_food_delivery", label: "Food Delivery", icon: UtensilsCrossed, enabled: profile?.can_food_delivery },
-    { key: "pet_approved", label: "Pet Transport", icon: PawPrint, enabled: profile?.pet_approved },
   ].filter((s) => s.enabled);
 
   const commissionRate = profile?.commission_rate
