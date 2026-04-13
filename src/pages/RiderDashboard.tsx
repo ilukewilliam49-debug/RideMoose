@@ -100,6 +100,7 @@ const RiderDashboard = () => {
       toast.error(t("rider.businessAccountRequired"));
       return;
     }
+    submittingRef.current = true;
     state.setLoading(true);
     try {
       const estCents = Math.round(parseFloat(queries.estimatedPrice || "0") * 100);
@@ -221,6 +222,7 @@ const RiderDashboard = () => {
       toast.error(err.message);
     } finally {
       state.setLoading(false);
+      submittingRef.current = false;
     }
   };
 
