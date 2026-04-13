@@ -236,10 +236,14 @@ serve(async (req) => {
 
     // ── Step 7: Cleanup test data ────────────────────────────────
     t = Date.now();
-    await admin.from("notifications").delete().eq("ride_id", ride.id);
-    await admin.from("ride_events").delete().eq("ride_id", ride.id);
-    await admin.from("rides").delete().eq("id", ride.id);
-    steps.push({ step: "7_cleanup", status: "ok", duration_ms: Date.now() - t });
+    if (skipCleanup) {
+      steps.push({ step: "7_cleanup", status: "skipped", duration_ms: 0, details: { ride_id: ride.id, note: "skip_cleanup=true" } });
+    } else {
+      await admin.from("notifications").delete().eq("ride_id", ride.id);
+      await admin.from("ride_events").delete().eq("ride_id", ride.id);
+      await admin.from("rides").delete().eq("id", ride.id);
+      steps.push({ step: "7_cleanup", status: "ok", duration_ms: Date.now() - t });
+    }
 
     // ── Summary ──────────────────────────────────────────────────
     const allPassed = steps.every((s) => s.status === "ok");
