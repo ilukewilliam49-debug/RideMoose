@@ -2,6 +2,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { MapPin, Clock, Car, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import RideReceipt from "./RideReceipt";
 import type { Ride } from "@/types/rider";
 import { statusColors } from "@/types/rider";
 
@@ -116,6 +117,9 @@ export default function RideDetailSheet({ ride, open, onOpenChange }: RideDetail
             <span className="text-muted-foreground">{t("rider.paymentMethod", "Payment")}</span>
             <span className="capitalize">{ride.payment_option.replace("_", " ")}</span>
           </div>
+
+          {/* Receipt */}
+          {ride.status === "completed" && <RideReceipt ride={ride} />}
         </div>
       </SheetContent>
     </Sheet>
