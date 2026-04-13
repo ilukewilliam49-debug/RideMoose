@@ -8,6 +8,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PICKYOU_SURCHARGE_CENTS = 120; // $1.20
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,16 +27,22 @@ serve(async (req) => {
     if (authError || !userData.user) throw new Error("Unauthorized");
     const user = userData.user;
 
-    const { ride_id, estimated_fare_cents } = await req.json();
+    const { ride_id, estimated_fare_cents, service_type } = await req.json();
     if (!ride_id || !estimated_fare_cents) throw new Error("ride_id and estimated_fare_cents required");
 
-    // GST rate for Northwest Territories (Yellowknife) — 5%
-    const GST_RATE = 0.05;
-    const taxCents = Math.round(estimated_fare_cents * GST_RATE);
-    const fareWithTax = estimated_fare_cents + taxCents;
+    const isPrivateHire = service_type === "private_hire";
 
-    // Calculate authorized amount: 125% of estimate (including tax), minimum $20
-    const authorized_amount_cents = Math.min(Math.max(Math.round(fareWithTax * 1.25), 2000), 50000);
+    // Taxi: no GST, no surcharge
+    // Private Hire: $1.20 surcharge + 5% GST on (fare + surcharge)
+    let fareWithExtras = estimated_fare_cents;
+    if (isPrivateHire) {
+      const subtotal = estimated_fare_cents + PICKYOU_SURCHARGE_CENTS;
+      const taxCents = Math.round(subtotal * 0.05);
+      fareWithExtras = subtotal + taxCents;
+    }
+
+    // Calculate authorized amount: 125% of estimate (including tax if applicable), minimum $20
+    const authorized_amount_cents = Math.min(Math.max(Math.round(fareWithExtras * 1.25), 2000), 50000);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -58,7 +66,7 @@ serve(async (req) => {
       currency: "cad",
       customer: customerId,
       capture_method: "manual",
-      metadata: { ride_id },
+      metadata: { ride_id, service_type: service_type || "taxi" },
     });
 
     // Update ride with payment info

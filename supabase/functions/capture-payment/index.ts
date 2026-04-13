@@ -8,6 +8,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PICKYOU_SURCHARGE_CENTS = 120; // $1.20
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -115,12 +117,17 @@ serve(async (req) => {
     }
 
     const grossFareCents = ride.final_fare_cents || 0;
-    // GST for Northwest Territories (Yellowknife) — 5%
-    const GST_RATE = 0.05;
-    const taxCents = Math.round(grossFareCents * GST_RATE);
+
+    // Differentiate tax by service type:
+    // Taxi: NO GST, no surcharge
+    // Private Hire: $1.20 surcharge + 5% GST on (fare + surcharge)
+    const isPrivateHire = ride.service_type === "private_hire";
+    const surchargeCents = isPrivateHire ? PICKYOU_SURCHARGE_CENTS : 0;
+    const taxCents = isPrivateHire ? Math.round((grossFareCents + surchargeCents) * 0.05) : 0;
+
     const commissionCents = Math.round(grossFareCents * effectiveCommissionRate);
     const SERVICE_FEE_CENTS = cfg.service_fee_cents ?? 99;
-    const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS + taxCents;
+    const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS + surchargeCents + taxCents;
 
     // Organization billing — skip Stripe
     if (ride.billed_to === "organization" && ride.organization_id) {

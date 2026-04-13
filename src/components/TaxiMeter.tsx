@@ -44,6 +44,18 @@ function ReceiptBreakdown({ receipt }: { receipt: FareReceipt }) {
         <span className="text-right font-mono">{cents(receipt.grossFareCents)}</span>
         <span className="text-muted-foreground">{t("meter.serviceFee")}</span>
         <span className="text-right font-mono">{cents(receipt.serviceFeeCents)}</span>
+        {receipt.surchargeCents > 0 && (
+          <>
+            <span className="text-muted-foreground">PickYou Surcharge</span>
+            <span className="text-right font-mono">{cents(receipt.surchargeCents)}</span>
+          </>
+        )}
+        {receipt.taxCents > 0 && (
+          <>
+            <span className="text-muted-foreground">GST (5%)</span>
+            <span className="text-right font-mono">{cents(receipt.taxCents)}</span>
+          </>
+        )}
       </div>
       <div className="flex justify-between items-center pt-2 border-t border-border">
         <span className="text-sm font-semibold">{t("meter.total")}</span>
@@ -56,10 +68,11 @@ function ReceiptBreakdown({ receipt }: { receipt: FareReceipt }) {
 interface TaxiMeterProps {
   rideId: string;
   meterStatus: string;
+  serviceType?: string;
 }
 
-export default function TaxiMeter({ rideId, meterStatus }: TaxiMeterProps) {
-  const { state, startMeter, endMeter, toggleWaiting } = useTaxiMeter(rideId, meterStatus);
+export default function TaxiMeter({ rideId, meterStatus, serviceType }: TaxiMeterProps) {
+  const { state, startMeter, endMeter, toggleWaiting } = useTaxiMeter(rideId, meterStatus, serviceType);
   const { t } = useTranslation();
 
   return (

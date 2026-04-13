@@ -28,6 +28,8 @@ export default function TripSummaryCard({ ride, onDismiss }: TripSummaryCardProp
   const tipCents = (ride as any).tip_cents ?? 0;
   const taxCents = ride.tax_cents ?? 0;
   const earnings = (ride.driver_earnings_cents ?? 0) + tipCents;
+  const isPrivateHire = ride.service_type === "private_hire";
+  const surchargeCents = isPrivateHire ? 120 : 0;
 
   return (
     <motion.div
@@ -85,6 +87,12 @@ export default function TripSummaryCard({ ride, onDismiss }: TripSummaryCardProp
             <span className="text-muted-foreground">Commission</span>
             <span className="font-medium text-destructive">-{fmt(ride.commission_cents ?? 0)}</span>
           </div>
+          {surchargeCents > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">PickYou Surcharge</span>
+              <span className="font-medium">{fmt(surchargeCents)}</span>
+            </div>
+          )}
           {taxCents > 0 && (
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">GST (5%)</span>

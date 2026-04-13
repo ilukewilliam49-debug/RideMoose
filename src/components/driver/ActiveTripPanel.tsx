@@ -449,8 +449,8 @@ export default function ActiveTripPanel({
 
         {/* Trip details by service type */}
         <div className="px-4 pb-3">
-          {activeRide.service_type === "taxi" ? (
-            <TaxiMeter rideId={activeRide.id} meterStatus={activeRide.meter_status} />
+          {(activeRide.service_type === "taxi" || activeRide.service_type === "private_hire") ? (
+            <TaxiMeter rideId={activeRide.id} meterStatus={activeRide.meter_status} serviceType={activeRide.service_type} />
           ) : (
             <TripServiceDetails
               ride={activeRide}

@@ -27,12 +27,15 @@ export interface FareReceipt {
   billableWaitingMin: number;
   grossFareCents: number;
   serviceFeeCents: number;
+  surchargeCents: number;
+  taxCents: number;
   totalCents: number;
   distanceKm: number;
   totalWaitingMin: number;
 }
 
 const DB_SYNC_INTERVAL = 12_000;
+const PICKYOU_SURCHARGE_CENTS = 120; // $1.20
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
@@ -44,7 +47,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: string | undefined) {
+export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: string | undefined, serviceType?: string) {
   const queryClient = useQueryClient();
   const [rates, setRates] = useState<TaxiRates | null>(null);
   const [state, setState] = useState<MeterState>({
@@ -64,6 +67,8 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   const watchId = useRef<number | null>(null);
   const tickInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const syncInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const isPrivateHire = serviceType === "private_hire";
 
   // Load rates
   useEffect(() => {
@@ -98,13 +103,19 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
     (dist: number, waitMin: number): number => {
       if (!rates) return 0;
       const billableWait = Math.max(waitMin - rates.free_waiting_min, 0);
-      return (
+      const grossFare =
         rates.base_fare_cents +
         Math.round(dist * rates.per_km_cents) +
-        Math.round(billableWait * rates.waiting_per_min_cents)
-      );
+        Math.round(billableWait * rates.waiting_per_min_cents);
+      
+      if (isPrivateHire) {
+        const subtotal = grossFare + PICKYOU_SURCHARGE_CENTS;
+        const tax = Math.round(subtotal * 0.05);
+        return subtotal + tax + 99; // + service fee
+      }
+      return grossFare + 99; // + service fee, no tax for taxi
     },
-    [rates]
+    [rates, isPrivateHire]
   );
 
   const computeReceipt = useCallback(
@@ -115,6 +126,11 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
       const waitCharge = Math.round(billableWait * rates.waiting_per_min_cents);
       const grossFare = rates.base_fare_cents + distCharge + waitCharge;
       const serviceFeeCents = 99;
+
+      const surchargeCents = isPrivateHire ? PICKYOU_SURCHARGE_CENTS : 0;
+      const taxableAmount = grossFare + surchargeCents;
+      const taxCents = isPrivateHire ? Math.round(taxableAmount * 0.05) : 0;
+
       return {
         baseFare: rates.base_fare_cents,
         distanceCharge: distCharge,
@@ -123,23 +139,20 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         billableWaitingMin: billableWait,
         grossFareCents: grossFare,
         serviceFeeCents,
-        totalCents: grossFare + serviceFeeCents,
+        surchargeCents,
+        taxCents,
+        totalCents: grossFare + serviceFeeCents + surchargeCents + taxCents,
         distanceKm: dist,
         totalWaitingMin: waitMin,
       };
     },
-    [rates]
+    [rates, isPrivateHire]
   );
 
   // Live tick: update fare every second
   const startTick = useCallback(() => {
     if (tickInterval.current) return;
     tickInterval.current = setInterval(() => {
-      // If waiting toggle is on, accumulate waiting time
-      if (waitingOn.current && waitingStartedAt.current) {
-        const elapsed = (Date.now() - waitingStartedAt.current) / 60_000;
-        // We already captured prior waiting in waitRef; elapsed is the current session
-      }
       const totalWait = waitRef.current + (waitingOn.current && waitingStartedAt.current
         ? (Date.now() - waitingStartedAt.current) / 60_000
         : 0);
@@ -163,7 +176,6 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   // Toggle waiting
   const toggleWaiting = useCallback(() => {
     if (waitingOn.current) {
-      // Stop waiting: accumulate elapsed into waitRef
       if (waitingStartedAt.current) {
         waitRef.current += (Date.now() - waitingStartedAt.current) / 60_000;
       }
@@ -171,7 +183,6 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
       waitingOn.current = false;
       setState((s) => ({ ...s, isWaiting: false }));
     } else {
-      // Start waiting
       waitingStartedAt.current = Date.now();
       waitingOn.current = true;
       setState((s) => ({ ...s, isWaiting: true }));
@@ -193,7 +204,6 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         if (lastPos.current) {
           const dt = (now - lastPos.current.time) / 60_000;
           const dd = haversineKm(lastPos.current.lat, lastPos.current.lng, latitude, longitude);
-          // Filter GPS noise (>150km/h or <2m)
           const speedKmh = dd / (dt / 60);
           if (dd > 0.002 && speedKmh < 150) {
             distRef.current += dd;
@@ -312,6 +322,7 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         final_fare_cents: receipt.grossFareCents,
         final_price: receipt.totalCents / 100,
         service_fee_cents: receipt.serviceFeeCents,
+        tax_cents: receipt.taxCents,
       })
       .eq("id", rideId);
 
