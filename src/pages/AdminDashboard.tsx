@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
+import TestRideFlowPanel from "@/components/admin/TestRideFlowPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -176,6 +177,8 @@ const AdminDashboard = () => {
               ))}
         </div>
       )}
+
+      <TestRideFlowPanel />
 
       <div className="rounded-3xl border border-border/50 bg-secondary/20 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
