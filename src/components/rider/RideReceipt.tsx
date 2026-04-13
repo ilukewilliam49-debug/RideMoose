@@ -31,7 +31,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export default function RideReceipt({ ride }: RideReceiptProps) {
+export default function RideReceipt({ ride, driverName, vehicleMake, vehicleModel, vehicleYear, vehicleColor, licensePlate }: RideReceiptProps) {
   const { t } = useTranslation();
   const receiptRef = useRef<HTMLDivElement>(null);
 
