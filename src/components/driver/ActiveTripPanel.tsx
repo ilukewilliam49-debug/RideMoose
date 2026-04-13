@@ -193,6 +193,9 @@ export default function ActiveTripPanel({
 }: ActiveTripPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [finalItemCostInput, setFinalItemCostInput] = useState("");
