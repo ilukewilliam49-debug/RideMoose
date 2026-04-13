@@ -29,6 +29,11 @@ const DriverOnboarding = () => {
   const [step, setStep] = useState(1);
   const [vehicleType, setVehicleType] = useState("");
   const [seatCapacity, setSeatCapacity] = useState("4");
+  const [vehicleMake, setVehicleMake] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [vehicleYear, setVehicleYear] = useState("");
+  const [vehicleColor, setVehicleColor] = useState("");
+  const [licensePlate, setLicensePlate] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
