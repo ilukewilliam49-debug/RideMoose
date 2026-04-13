@@ -7,7 +7,7 @@ import { Car } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
-import { usePetArrivalCheck } from "@/hooks/usePetArrivalCheck";
+
 import type { NavStep } from "@/components/TurnByTurnNav";
 import type { Ride, RiderProfileSummary, DirectionsData, LiveEtaData } from "@/types/driver";
 import { isDeliveryType } from "@/lib/driver-constants";
@@ -93,7 +93,7 @@ const DriverDispatch = () => {
     enabled: !!activeRide?.rider_id,
   });
 
-  usePetArrivalCheck(activeRide as any);
+  
 
   // ─── My bids ───
   const { data: myBids } = useQuery({
