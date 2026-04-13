@@ -48,6 +48,27 @@ const DriverAccount = () => {
   const [pendingDocType, setPendingDocType] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [testingSend, setTestingSend] = useState(false);
+
+  const handleTestNotification = async () => {
+    setTestingSend(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-push-notification", {
+        body: { mode: "test" },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success("Test notification sent! ✅");
+      } else {
+        toast.info(`Notification sent via ${data?.method || "fallback"}`);
+      }
+    } catch (err: any) {
+      toast.error("Failed to send test notification");
+      console.error(err);
+    } finally {
+      setTestingSend(false);
+    }
+  };
   const [editVehicle, setEditVehicle] = useState("");
   const [editMake, setEditMake] = useState("");
   const [editModel, setEditModel] = useState("");
