@@ -1,0 +1,1 @@
+ALTER TABLE public.rides ADD COLUMN IF NOT EXISTS tax_cents integer NOT NULL DEFAULT 0;

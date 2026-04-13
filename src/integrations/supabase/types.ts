@@ -1064,6 +1064,7 @@ export type Database = {
           store_name: string | null
           stripe_fee_cents: number
           stripe_payment_intent_id: string | null
+          tax_cents: number
           tip_cents: number
           updated_at: string
           waiting_min: number
@@ -1142,6 +1143,7 @@ export type Database = {
           store_name?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
+          tax_cents?: number
           tip_cents?: number
           updated_at?: string
           waiting_min?: number
@@ -1220,6 +1222,7 @@ export type Database = {
           store_name?: string | null
           stripe_fee_cents?: number
           stripe_payment_intent_id?: string | null
+          tax_cents?: number
           tip_cents?: number
           updated_at?: string
           waiting_min?: number

@@ -16,6 +16,7 @@ interface TripSummaryCardProps {
     driver_earnings_cents?: number;
     commission_cents?: number;
     tip_cents?: number;
+    tax_cents?: number;
     payment_option?: string;
     completed_at?: string | null;
   };
@@ -25,6 +26,7 @@ interface TripSummaryCardProps {
 export default function TripSummaryCard({ ride, onDismiss }: TripSummaryCardProps) {
   const fareCents = ride.final_fare_cents ?? Math.round((ride.final_price ?? 0) * 100);
   const tipCents = (ride as any).tip_cents ?? 0;
+  const taxCents = ride.tax_cents ?? 0;
   const earnings = (ride.driver_earnings_cents ?? 0) + tipCents;
 
   return (
@@ -83,6 +85,12 @@ export default function TripSummaryCard({ ride, onDismiss }: TripSummaryCardProp
             <span className="text-muted-foreground">Commission</span>
             <span className="font-medium text-destructive">-{fmt(ride.commission_cents ?? 0)}</span>
           </div>
+          {taxCents > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">GST (5%)</span>
+              <span className="font-medium">{fmt(taxCents)}</span>
+            </div>
+          )}
           {tipCents > 0 && (
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Tip</span>
