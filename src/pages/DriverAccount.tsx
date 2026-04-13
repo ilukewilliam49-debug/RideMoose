@@ -350,6 +350,11 @@ const DriverAccount = () => {
           <div className="grid grid-cols-2 gap-3">
             <InfoRow label="Type" value={profile?.vehicle_type || "Not set"} />
             <InfoRow label="Seats" value={profile?.seat_capacity ? String(profile.seat_capacity) : "—"} />
+            <InfoRow label="Make" value={(profile as any)?.vehicle_make || "—"} />
+            <InfoRow label="Model" value={(profile as any)?.vehicle_model || "—"} />
+            <InfoRow label="Year" value={(profile as any)?.vehicle_year ? String((profile as any).vehicle_year) : "—"} />
+            <InfoRow label="Color" value={(profile as any)?.vehicle_color || "—"} />
+            <InfoRow label="Plate" value={(profile as any)?.license_plate || "—"} />
             <InfoRow label="Commission" value={`${commissionRate}%`} />
             <InfoRow label="Balance" value={`$${((profile?.driver_balance_cents ?? 0) / 100).toFixed(2)}`} />
           </div>
