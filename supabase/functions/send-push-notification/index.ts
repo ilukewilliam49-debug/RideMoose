@@ -1,46 +1,63 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const RequestBody = z.object({
+  ride_id: z.string().uuid(),
+  title: z.string().max(200).optional(),
+  body: z.string().max(500).optional(),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   try {
-    const { ride_id, title, body } = await req.json();
-    if (!ride_id) throw new Error("ride_id required");
+    const parsed = RequestBody.safeParse(await req.json());
+    if (!parsed.success) {
+      return json({ error: parsed.error.flatten().fieldErrors }, 400);
+    }
+    const { ride_id, title, body } = parsed.data;
+
+    const onesignalAppId = Deno.env.get("ONESIGNAL_APP_ID");
+    const onesignalApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
+    if (!onesignalAppId || !onesignalApiKey) {
+      return json({ sent: 0, reason: "onesignal_not_configured" });
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
-    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
-
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get the ride to find which drivers were notified
+    // Get ride
     const { data: ride } = await supabase
       .from("rides")
       .select("id, service_type, pickup_address")
       .eq("id", ride_id)
       .single();
 
-    if (!ride || !["large_delivery", "pet_transport"].includes(ride.service_type)) {
-      return new Response(JSON.stringify({ sent: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!ride) return json({ sent: 0, reason: "ride_not_found" });
 
-    // Get eligible drivers' push subscriptions based on service type
+    // Find eligible drivers with OneSignal player IDs
     let driverQuery = supabase
       .from("profiles")
-      .select("id")
+      .select("id, onesignal_player_id")
       .eq("role", "driver")
-      .eq("is_available", true);
+      .eq("is_available", true)
+      .not("onesignal_player_id", "is", null);
 
     if (ride.service_type === "large_delivery") {
       driverQuery = driverQuery.in("vehicle_type", ["SUV", "truck", "van"]);
@@ -49,65 +66,44 @@ serve(async (req) => {
     }
 
     const { data: drivers } = await driverQuery;
+    if (!drivers?.length) return json({ sent: 0, reason: "no_subscribed_drivers" });
 
-    if (!drivers?.length) {
-      return new Response(JSON.stringify({ sent: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const playerIds = drivers
+      .map((d: any) => d.onesignal_player_id)
+      .filter(Boolean);
 
-    const driverIds = drivers.map((d: any) => d.id);
-    const { data: subscriptions } = await supabase
-      .from("push_subscriptions")
-      .select("*")
-      .in("user_id", driverIds);
+    if (!playerIds.length) return json({ sent: 0, reason: "no_player_ids" });
 
-    if (!subscriptions?.length || !vapidPrivateKey || !vapidPublicKey) {
-      return new Response(JSON.stringify({ sent: 0, reason: "no_subscriptions_or_vapid" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const defaultTitle =
+      ride.service_type === "pet_transport"
+        ? "New Pet Transport Request"
+        : ride.service_type === "large_delivery"
+        ? "New Large Delivery Request"
+        : "New Ride Request";
+    const defaultBody = `Pickup at ${ride.pickup_address}`;
 
-    // Send push notifications using Web Push protocol
-    const defaultTitle = ride.service_type === "pet_transport"
-      ? "New Pet Transport Request"
-      : "New Large Delivery Request";
-    const defaultBody = ride.service_type === "pet_transport"
-      ? `A new pet transport from ${ride.pickup_address} is available.`
-      : `A new large item delivery from ${ride.pickup_address} is available for bidding.`;
-    const pushPayload = JSON.stringify({
-      title: title || defaultTitle,
-      body: body || defaultBody,
-      url: "/driver/dispatch",
+    // Send via OneSignal REST API
+    const resp = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        Authorization: `Basic ${onesignalApiKey}`,
+      },
+      body: JSON.stringify({
+        app_id: onesignalAppId,
+        include_player_ids: playerIds,
+        headings: { en: title || defaultTitle },
+        contents: { en: body || defaultBody },
+        url: "/driver/dispatch",
+      }),
     });
 
-    let sent = 0;
-    for (const sub of subscriptions) {
-      try {
-        // Use fetch to send to the push endpoint with basic headers
-        // For full VAPID auth, a proper web-push implementation is needed
-        // This is a simplified push that works with most browsers
-        const resp = await fetch(sub.endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            TTL: "86400",
-          },
-          body: pushPayload,
-        });
-        if (resp.ok) sent++;
-      } catch {
-        // Individual push failure is non-fatal
-      }
-    }
-
-    return new Response(JSON.stringify({ sent }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const result = await resp.json();
+    return json({
+      sent: result.recipients || 0,
+      onesignal_id: result.id,
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: err.message }, 500);
   }
 });
