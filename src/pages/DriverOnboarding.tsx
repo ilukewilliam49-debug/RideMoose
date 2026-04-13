@@ -176,40 +176,96 @@ const DriverOnboarding = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Vehicle Type</Label>
-                  <Select value={vehicleType} onValueChange={setVehicleType}>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue placeholder="Select vehicle type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VEHICLE_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Vehicle Type</Label>
+                    <Select value={vehicleType} onValueChange={setVehicleType}>
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Seat Capacity</Label>
+                    <Select value={seatCapacity} onValueChange={setSeatCapacity}>
+                      <SelectTrigger className="bg-secondary border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n} {n === 1 ? "seat" : "seats"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Make</Label>
+                    <Input
+                      placeholder="e.g. Toyota"
+                      value={vehicleMake}
+                      onChange={(e) => setVehicleMake(e.target.value)}
+                      className="bg-secondary border-border"
+                      maxLength={50}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Model</Label>
+                    <Input
+                      placeholder="e.g. Corolla"
+                      value={vehicleModel}
+                      onChange={(e) => setVehicleModel(e.target.value)}
+                      className="bg-secondary border-border"
+                      maxLength={50}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label>Year</Label>
+                    <Input
+                      placeholder="2020"
+                      value={vehicleYear}
+                      onChange={(e) => setVehicleYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      className="bg-secondary border-border"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Color</Label>
+                    <Input
+                      placeholder="e.g. White"
+                      value={vehicleColor}
+                      onChange={(e) => setVehicleColor(e.target.value)}
+                      className="bg-secondary border-border"
+                      maxLength={30}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Seat Capacity</Label>
-                  <Select value={seatCapacity} onValueChange={setSeatCapacity}>
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n} {n === 1 ? "seat" : "seats"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>License Plate</Label>
+                  <Input
+                    placeholder="e.g. ABC-1234"
+                    value={licensePlate}
+                    onChange={(e) => setLicensePlate(e.target.value)}
+                    className="bg-secondary border-border uppercase"
+                    maxLength={15}
+                  />
                 </div>
                 <Button
                   className="w-full"
                   onClick={handleSaveVehicle}
-                  disabled={!vehicleType || saving}
+                  disabled={!vehicleType || !vehicleMake || !vehicleModel || !vehicleYear || !vehicleColor || !licensePlate || saving}
                 >
                   {saving ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
