@@ -34,10 +34,10 @@ function getVehicleIcon(vehicleType?: string | null): L.DivIcon {
     iconAnchor: [18, 44],
     popupAnchor: [0, -44],
     html: `<div style="display:flex;flex-direction:column;align-items:center">
-      <div style="width:36px;height:36px;border-radius:50%;background:hsl(45,93%,47%);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid #fff">
+      <div style="width:36px;height:36px;border-radius:50%;background:#2F80ED;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid #fff">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">${svg}</svg>
       </div>
-      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid hsl(45,93%,47%);margin-top:-1px"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #2F80ED;margin-top:-1px"></div>
     </div>`,
   });
 }
@@ -326,7 +326,7 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
             >
               <span
                 className="inline-block w-3 h-3 rounded-full"
-                style={{ background: isActive ? "hsl(45,93%,47%)" : "hsl(var(--muted))" }}
+                style={{ background: isActive ? "#2F80ED" : "hsl(var(--muted))" }}
                 dangerouslySetInnerHTML={{
                   __html: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24">${vehicleSvgs[type]}</svg>`,
                 }}

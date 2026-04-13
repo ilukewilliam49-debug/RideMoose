@@ -104,8 +104,8 @@ const DriverOnboarding = () => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 40%, hsl(45 95% 55% / 0.06) 0%, transparent 70%)",
+           background:
+            "radial-gradient(ellipse 60% 50% at 50% 40%, hsl(213 84% 56% / 0.06) 0%, transparent 70%)",
         }}
       />
 
@@ -146,9 +146,9 @@ const DriverOnboarding = () => {
           className="border-border/50 backdrop-blur-xl"
           style={{
             background:
-              "linear-gradient(135deg, hsl(220 28% 14% / 0.8), hsl(220 30% 10% / 0.9))",
+              "linear-gradient(135deg, hsl(222 35% 10% / 0.8), hsl(222 40% 7% / 0.9))",
             boxShadow:
-              "0 0 40px -10px hsl(45 95% 55% / 0.12), 0 4px 24px -4px hsl(0 0% 0% / 0.4), inset 0 1px 0 0 hsl(0 0% 100% / 0.05)",
+              "0 0 40px -10px hsl(213 84% 56% / 0.12), 0 4px 24px -4px hsl(0 0% 0% / 0.4), inset 0 1px 0 0 hsl(0 0% 100% / 0.05)",
           }}
         >
           {step === 1 && (
