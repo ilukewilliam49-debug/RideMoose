@@ -55,7 +55,9 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     `To: ${ride.dropoff_address}`,
     ride.distance_km ? `Distance: ${Number(ride.distance_km).toFixed(1)} km` : "",
     `Service: ${ride.service_type?.replace("_", " ")}`,
-    ``,
+    driverName ? `Driver: ${driverName}` : "",
+    vehicleDesc ? `Vehicle: ${vehicleDesc}` : "",
+    licensePlate ? `Plate: ${licensePlate}` : "",
     `--- Fare Breakdown ---`,
     `Subtotal: ${cents(subtotal)}`,
     serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
@@ -127,6 +129,9 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     if (ride.distance_km) {
       infoRow("Distance", `${Number(ride.distance_km).toFixed(1)} km`);
     }
+    if (driverName) infoRow("Driver", driverName);
+    if (vehicleDesc) infoRow("Vehicle", vehicleDesc);
+    if (licensePlate) infoRow("Plate", licensePlate);
 
     y += 1;
     dashLine(y);
@@ -265,6 +270,24 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("receipt.distance", "Distance")}</span>
               <span className="font-mono text-xs">{Number(ride.distance_km).toFixed(1)} km</span>
+            </div>
+          )}
+          {driverName && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("receipt.driver", "Driver")}</span>
+              <span className="text-xs">{driverName}</span>
+            </div>
+          )}
+          {vehicleDesc && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("receipt.vehicle", "Vehicle")}</span>
+              <span className="capitalize text-xs">{vehicleDesc}</span>
+            </div>
+          )}
+          {licensePlate && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("receipt.plate", "Plate")}</span>
+              <span className="font-mono text-xs">{licensePlate}</span>
             </div>
           )}
         </div>
