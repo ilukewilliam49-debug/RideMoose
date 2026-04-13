@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ const RiderDashboard = () => {
   const { t } = useTranslation();
   const state = useRideBookingState();
   const [matchingInProgress, setMatchingInProgress] = useState(false);
+  const matchingRideIdRef = useRef<string | null>(null);
   const queries = useRideQueries({
     profileId: profile?.id,
     userId: profile?.user_id,
@@ -193,8 +194,10 @@ const RiderDashboard = () => {
       // Trigger automated driver matching
       if (rideData) {
         setMatchingInProgress(true);
+        matchingRideIdRef.current = rideData.id;
         supabase.functions.invoke("match-driver", { body: { ride_id: rideData.id } })
           .then(({ data: matchData }) => {
+            if (!matchingRideIdRef.current) return; // cancelled
             if (matchData?.matched) {
               toast.success(t("rider.driverFound", "Driver found! {{name}} is {{eta}} away", {
                 name: matchData.driver_name,
@@ -209,6 +212,7 @@ const RiderDashboard = () => {
             queries.refetch();
           })
           .finally(() => {
+            matchingRideIdRef.current = null;
             setMatchingInProgress(false);
           });
       } else {
@@ -255,7 +259,19 @@ const RiderDashboard = () => {
 
   return (
     <div className="space-y-6 pt-4">
-      <DriverMatchingOverlay visible={matchingInProgress} />
+      <DriverMatchingOverlay
+        visible={matchingInProgress}
+        onCancel={async () => {
+          const rideId = matchingRideIdRef.current;
+          matchingRideIdRef.current = null;
+          setMatchingInProgress(false);
+          if (rideId) {
+            await supabase.from("rides").update({ status: "cancelled", cancellation_reason: "Rider cancelled during matching" }).eq("id", rideId);
+            toast.info(t("rider.searchCancelled", "Driver search cancelled"));
+            queries.refetch();
+          }
+        }}
+      />
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-3">
