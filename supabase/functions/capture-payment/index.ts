@@ -145,10 +145,11 @@ serve(async (req) => {
           captured_amount_cents: 0,
           outstanding_amount_cents: 0,
           payment_status: "invoiced_pending",
-          service_fee_cents: SERVICE_FEE_CENTS,
-          commission_cents: commissionCents,
-          stripe_fee_cents: 0,
-          driver_earnings_cents: driverEarnings,
+           service_fee_cents: SERVICE_FEE_CENTS,
+           commission_cents: commissionCents,
+           stripe_fee_cents: 0,
+           driver_earnings_cents: driverEarnings,
+           tax_cents: taxCents,
         })
         .eq("id", ride_id);
 
@@ -190,6 +191,7 @@ serve(async (req) => {
           commission_cents: commissionCents,
           stripe_fee_cents: 0,
           driver_earnings_cents: driverEarnings,
+          tax_cents: taxCents,
         })
         .eq("id", ride_id);
 
@@ -215,6 +217,7 @@ serve(async (req) => {
       commission_cents: commissionCents,
       stripe_fee_cents: stripeFeeCents,
       driver_earnings_cents: driverEarnings,
+      tax_cents: taxCents,
     };
 
     if (riderTotalCents <= authorizedAmount) {
