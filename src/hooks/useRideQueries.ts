@@ -1,7 +1,6 @@
 import { useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { detectGeoZone } from "@/lib/geofence";
 import type { ServiceType } from "./useRideBookingState";
 
 interface UseRideQueriesParams {
@@ -105,53 +104,10 @@ export const useRideQueries = ({
     enabled: false,
   });
 
-  const { data: privateHireZones } = useQuery({
-    queryKey: ["private-hire-zones"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("private_hire_zones").select("*").eq("active", true);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: geoZones } = useQuery({
-    queryKey: ["geo-zones"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("geo_zones").select("*");
-      if (error) throw error;
-      return data.map((d) => ({ ...d, polygon: d.polygon as unknown as [number, number][] }));
-    },
-  });
-
   const currentPricing = useMemo(
     () => servicePricing?.find((p) => p.service_type === serviceType),
     [servicePricing, serviceType]
   );
-
-  const detectZone = (coords: { lat: number; lng: number } | null, address: string): string => {
-    if (coords && geoZones?.length) {
-      const matched = detectGeoZone(coords.lat, coords.lng, geoZones);
-      if (matched) return matched;
-    }
-    const lower = address.toLowerCase();
-    if (lower.includes("airport")) return "airport";
-    if (lower.includes("ingraham")) return "ingraham_trail";
-    return "city";
-  };
-
-  const pickupZoneKey = useMemo(
-    () => (serviceType === "private_hire" && (pickupCoords || pickup) ? detectZone(pickupCoords, pickup) : null),
-    [serviceType, pickupCoords, pickup, geoZones]
-  );
-  const dropoffZoneKey = useMemo(
-    () => (serviceType === "private_hire" && (dropoffCoords || dropoff) ? detectZone(dropoffCoords, dropoff) : null),
-    [serviceType, dropoffCoords, dropoff, geoZones]
-  );
-
-  const matchedZone = useMemo(() => {
-    if (serviceType !== "private_hire" || !pickupZoneKey || !dropoffZoneKey || !privateHireZones) return null;
-    return privateHireZones.find((z) => z.pickup_zone === pickupZoneKey && z.dropoff_zone === dropoffZoneKey) || null;
-  }, [serviceType, pickupZoneKey, dropoffZoneKey, privateHireZones]);
 
   // Helper to compute price for a given service type
   const computePrice = (svcType: string): string | null => {
@@ -215,7 +171,7 @@ export const useRideQueries = ({
 
   // Dynamic price estimate for current service
   const estimatedPrice = useMemo(() => computePrice(serviceType),
-    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, matchedZone, directionsData, petMode, petPricingConfig, estimatedItemCostCents, servicePricing]);
+    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, directionsData, petMode, petPricingConfig, estimatedItemCostCents, servicePricing]);
 
   // All main service prices for the selection cards
   const allServicePrices = useMemo(() => ({
@@ -340,8 +296,8 @@ export const useRideQueries = ({
   return {
     savedPlaces, riderOrgMembership, servicePricing, taxiRates,
     directionsData, directionsFetching, trafficDelayMin,
-    petPricingConfig, privateHireZones, geoZones,
-    currentPricing, pickupZoneKey, dropoffZoneKey, matchedZone,
+    petPricingConfig,
+    currentPricing,
     estimatedPrice, allServicePrices,
     activeRide, driverProfile, activeRideDirections, activeRoutePolyline,
     liveEta, activeTrafficDelayMin,
