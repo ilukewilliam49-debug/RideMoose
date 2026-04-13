@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import RideChatSheet from "@/components/RideChatSheet";
 import DeliveryBidsList from "@/components/DeliveryBidsList";
+import RideSafetyActions from "@/components/rider/RideSafetyActions";
 
 interface ActiveRideCardProps {
   activeRide: any;
