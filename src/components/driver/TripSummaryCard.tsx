@@ -16,6 +16,7 @@ interface TripSummaryCardProps {
     driver_earnings_cents?: number;
     commission_cents?: number;
     tip_cents?: number;
+    tax_cents?: number;
     payment_option?: string;
     completed_at?: string | null;
   };

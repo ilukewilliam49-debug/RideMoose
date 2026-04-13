@@ -82,7 +82,19 @@ const PriceEstimate = ({
             <DollarSign className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold">{t("rider.taxiMeterEstimate")}</span>
           </div>
-          <span className="text-2xl font-mono font-bold">${estimatedPrice}</span>
+          <div className="text-right">
+            <span className="text-2xl font-mono font-bold">${totalWithTax}</span>
+          </div>
+        </div>
+        <div className="space-y-1 pt-1 border-t border-border/50">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Fare</span>
+            <span>${estimatedPrice}</span>
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>GST (5%)</span>
+            <span>${gstAmount}</span>
+          </div>
         </div>
         {directionsData && (
           <div className="space-y-1 pt-1 border-t border-border/50">
@@ -105,7 +117,7 @@ const PriceEstimate = ({
         {directionsFetching && !directionsData && (
           <p className="text-xs text-muted-foreground animate-pulse">{t("rider.checkingTraffic")}</p>
         )}
-        <p className="text-[10px] text-muted-foreground">{t("rider.finalFareNote")}</p>
+        <p className="text-[10px] text-muted-foreground">{t("rider.finalFareNote")}. GST included.</p>
       </div>
     );
   }
