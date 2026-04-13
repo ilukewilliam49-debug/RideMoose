@@ -1,86 +1,158 @@
 
 
-## Analysis: Driver Matching Backend — What Exists vs. What's Needed
+# Full Platform Audit — Launch Readiness Assessment
 
-### Current State
+## Overall Verdict: CONDITIONALLY READY — 4 Critical fixes required, 5 Recommended improvements
 
-The app currently uses a **broadcast model**: when a rider requests a ride, it's inserted into the `rides` table with `status = 'requested'`. All eligible drivers see it in their dispatch screen (`DriverDispatch.tsx`) and manually accept or decline. There is **no automated server-side matching**.
+---
 
-Existing building blocks:
-- **`directions` edge function** — Google Directions API wrapper returning distance, ETA, and polyline
-- **`useDriverETAs` hook** — client-side Haversine + traffic-aware ETA calculation
-- **`useNearestDriverETAs` hook** — finds nearest driver per service type (client-side)
-- **Profiles table** — has `latitude`, `longitude`, `is_available`, `can_taxi`, `can_private_hire`, `can_courier` fields
-- **Rides table** — has `driver_id`, `status` (requested → dispatched → accepted), `service_type`
+## ADMIN PANEL — Status: GOOD
 
-### Plan
+**What's working well:**
+- Dashboard with real-time stats (pending verifications, active rides, revenue, support inbox)
+- User management with search, multi-filter, pagination, bulk actions, and confirmation dialogs
+- Bookings panel with server-side pagination, status/service filters
+- Ride detail view, pricing config, zone management, corporate management, support inbox
+- Verifications workflow for driver document approval
+- Mock driver simulator for testing
 
-Create a new **`match-driver`** edge function that automates sequential driver matching.
+**Issues found:**
+- **Revenue query** (AdminDashboard line 49-51): Fetches ALL completed rides to sum `final_price` client-side. With scale, this will hit the 1000-row default limit and return incorrect totals. Should use a database function or aggregate query.
+- Minor: Revenue total shown in USD (`$`) — verify this matches your locale (Iceland pricing may use ISK/EUR).
 
-#### 1. Edge Function: `supabase/functions/match-driver/index.ts`
+---
 
-**Input**: `ride_id` (the ride to match)
+## DRIVER FLOW — Status: GOOD
 
-**Logic**:
-1. Fetch the ride record (pickup coords, service type)
-2. Query `profiles` for online, available drivers matching the service type
-3. Calculate Haversine distance from each driver to pickup; sort ascending; take top 3
-4. For each candidate (sequentially):
-   - Update ride: `status = 'dispatched'`, `driver_id = candidate.id`
-   - Insert a notification for that driver
-   - Wait 15 seconds (polling the ride every 3s to check if driver accepted)
-   - If driver accepted (`status = 'accepted'`), return success with ETA
-   - If not accepted after 15s, clear `driver_id`, reset to `dispatched`, move to next
-5. If all 3 decline/timeout, reset ride to `requested` and return no-match
-6. Call the `directions` API for the matched driver → pickup to get real ETA and distance
+**What's working well:**
+- Full onboarding flow (vehicle info → document upload → admin approval gate)
+- Dashboard with live-ticking online duration, rating, acceptance rate, earnings
+- Dispatch board with realtime updates, sound/vibration alerts for new requests
+- Active trip management with live ETA, turn-by-turn nav, rider chat
+- Shift sessions (go online/offline with summary)
+- Earnings page with time-period filters, bar chart, payout requests
+- Outstanding balance tracking
 
-**Output**:
-```json
-{
-  "matched": true,
-  "driver_id": "uuid",
-  "eta_seconds": 340,
-  "eta_text": "6 min",
-  "distance_km": 2.8
-}
-```
+**Issues found:**
+- None critical. The dispatch board correctly handles both broadcast and sequential matching models.
 
-**Security**: Uses service role key internally to update rides. Validates that the calling user owns the ride.
+---
 
-#### 2. Database Changes
+## RIDER FLOW — Status: GOOD
 
-Add a migration:
-- Add `dispatched_to_driver_id` column to `rides` (nullable uuid) — tracks which driver is currently being offered the ride, separate from the final `driver_id`
-- Add `dispatch_expires_at` column to `rides` (nullable timestamptz) — when the current offer expires
+**What's working well:**
+- Home screen with pickup/dropoff autocomplete, saved places, recent destinations, scheduling
+- Service selector with live price estimates and ETA chips per service type
+- Dedicated courier booking page
+- Active ride tracking with live driver location and ETA
+- Ride history with rating system
+- Payment flow (in-app card auth, pay driver cash, org billing with credit limits)
+- Cancel ride with confirmation
+- Automated driver matching integration
 
-This keeps the existing `driver_id` clean (only set on acceptance) while tracking the dispatch state.
+**Issues found:**
+- None critical from a functionality standpoint.
 
-#### 3. Client Integration
+---
 
-- In `RiderDashboard.tsx` / ride booking flow: after creating the ride, call `supabase.functions.invoke("match-driver", { body: { ride_id } })` instead of just waiting
-- Show a "Finding your driver..." animation while the function runs (it may take up to 45s for 3 attempts)
-- On the driver side (`DriverDispatch.tsx`): dispatched rides already show via realtime — add a 15-second countdown timer on `IncomingRequestCard` when the ride's `dispatched_to_driver_id` matches the current driver
+## SECURITY — Status: 4 CRITICAL ISSUES
 
-#### 4. Driver Notification
+### 1. CRITICAL: Users can escalate their own role (PRIVILEGE ESCALATION)
+The `profiles` UPDATE policy allows any user to set `role = 'admin'` on their own profile. This is the most severe issue — any rider can become an admin.
 
-- The edge function inserts into the `notifications` table and calls `send-push-notification` for each candidate driver
-- Existing realtime subscription on `rides` table already triggers UI updates on the driver side
+**Fix:** Add a `WITH CHECK` constraint to the "Users can update own profile" policy that prevents changing `role`, `commission_rate`, `driver_balance_cents`, `promo_commission_rate`, `standard_commission_rate`.
+
+### 2. CRITICAL: Realtime channel authorization not enforced
+The `authorize_realtime_channel` function exists but isn't wired into Realtime policies on `realtime.messages`. Any authenticated user can subscribe to any channel and see ride updates, driver locations, and financial data.
+
+**Fix:** This was identified in a previous audit but the `authorize_realtime_channel` function needs to be applied as an RLS policy on the Realtime schema (requires Supabase dashboard configuration — may need advisory note).
+
+### 3. CRITICAL: Ride financial data exposed via Realtime
+`rides` table is published to Realtime and includes `stripe_payment_intent_id`, `overage_client_secret`, and financial fields. Without Realtime RLS, these are broadcast to all subscribers.
+
+**Fix:** Same as #2 — Realtime RLS policies needed.
+
+### 4. CRITICAL: Driver financial data exposed via Realtime
+`profiles` table is published to Realtime with `driver_balance_cents`, `commission_rate`, `latitude`, `longitude`.
+
+**Fix:** Same as #2.
+
+### 5. WARN: Proof photos accessible to all authenticated users
+The proof-photos storage bucket has an overly permissive SELECT policy.
+
+**Fix:** Restrict SELECT to the ride's rider, driver, and admins.
+
+### 6. WARN: `match-driver` edge function uses `getClaims()` which may not exist
+Line 70: `await userClient.auth.getClaims(token)` — the Supabase JS client doesn't have a `getClaims` method. This will throw silently and `callerUserId` will be null, meaning ownership verification is skipped.
+
+**Fix:** Replace with `await userClient.auth.getUser()` and extract `user.id`.
+
+---
+
+## OTHER ITEMS
+
+### Edge Function CORS
+The `match-driver` function uses manually defined CORS headers. This is fine but should match the standard pattern used by other functions.
+
+### i18n
+English and French translation files exist. Both appear functional.
+
+### PWA / Service Worker
+`public/sw.js` exists for push notifications. Functional.
+
+### Legal Pages
+Terms of Service and Privacy Policy pages are present and linked from the landing page footer.
+
+### Error Handling
+Global `ErrorBoundary` wraps the app. Individual pages use `ErrorRetry` components for API failures.
+
+---
+
+## RECOMMENDED PLAN
+
+### Must-fix before launch (4 items):
+
+1. **Harden profiles UPDATE RLS policy** — Add WITH CHECK to prevent users from changing `role`, `commission_rate`, `driver_balance_cents`, and other admin-only fields.
+
+2. **Fix match-driver auth validation** — Replace `getClaims()` with `getUser()` to properly validate ride ownership.
+
+3. **Fix admin revenue query** — Use a database aggregate function instead of client-side sum to avoid the 1000-row limit.
+
+4. **Restrict proof-photos storage SELECT policy** — Scope to ride participants and admins only.
+
+### Recommended improvements (not blocking launch):
+
+5. Apply Realtime authorization (this may require configuration not possible via migrations alone — advisory item).
+
+6. Consider rate-limiting on the match-driver edge function to prevent abuse.
+
+7. Add input validation (Zod) to the match-driver edge function.
+
+8. Currency display — verify $ symbol matches target market.
+
+9. Add loading state/overlay ("Finding your driver...") on the rider dashboard while match-driver runs (currently just a toast).
 
 ### Technical Details
 
-- The edge function uses Supabase service role for DB writes (bypasses RLS)
-- Haversine formula runs server-side in the edge function (no external API needed for distance ranking)
-- Google Directions API called once at the end for the matched driver's actual ETA
-- 15-second timeout implemented via polling loop with `await new Promise(r => setTimeout(r, 3000))`
-- Config in `supabase/config.toml`: `[functions.match-driver]` with `verify_jwt = false`
+**Migration for profile UPDATE hardening:**
+```sql
+DROP POLICY "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles
+FOR UPDATE TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (
+  auth.uid() = user_id
+  AND role = (SELECT role FROM public.profiles WHERE user_id = auth.uid())
+  AND commission_rate = (SELECT commission_rate FROM public.profiles WHERE user_id = auth.uid())
+  AND driver_balance_cents = (SELECT driver_balance_cents FROM public.profiles WHERE user_id = auth.uid())
+  AND standard_commission_rate = (SELECT standard_commission_rate FROM public.profiles WHERE user_id = auth.uid())
+  AND promo_commission_rate = (SELECT promo_commission_rate FROM public.profiles WHERE user_id = auth.uid())
+);
+```
 
-### Files to Create/Modify
+**match-driver auth fix:**
+Replace `getClaims` with `getUser()` and extract `data.user.id`.
 
-| File | Action |
-|------|--------|
-| `supabase/functions/match-driver/index.ts` | Create |
-| DB migration (add `dispatched_to_driver_id`, `dispatch_expires_at` to rides) | Create |
-| `src/pages/RiderDashboard.tsx` | Modify — call match-driver after ride creation |
-| `src/components/driver/IncomingRequestCard.tsx` | Modify — add countdown timer for dispatched rides |
-| `supabase/config.toml` | Add match-driver function config |
+**Revenue aggregate function:**
+Create a database function `get_total_revenue()` that returns `SUM(final_price)` from completed rides, callable via `supabase.rpc()`.
 
