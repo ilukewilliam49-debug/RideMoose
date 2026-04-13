@@ -1,4 +1,5 @@
 import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,9 +105,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="flex items-center justify-between px-4 py-4">
-          <span className="text-lg font-black tracking-tight shrink-0">
-            Pick<span className="text-primary">You</span>
-          </span>
+          <img src={logoImg} alt="PickYou" className="h-7 object-contain shrink-0" />
           {!collapsed && <NotificationBell />}
         </div>
 

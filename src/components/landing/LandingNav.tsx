@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ChevronDown } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 const LandingNav = () => {
   const navigate = useNavigate();
@@ -17,9 +18,7 @@ const LandingNav = () => {
             className="flex items-center"
             aria-label="PickYou home"
           >
-            <span className="text-lg font-black tracking-tight">
-              Pick<span className="text-primary">You</span>
-            </span>
+            <img src={logoImg} alt="PickYou" className="h-7 object-contain" />
           </button>
 
           {/* Desktop nav links */}
