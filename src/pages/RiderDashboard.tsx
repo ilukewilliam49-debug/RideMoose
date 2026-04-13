@@ -486,6 +486,7 @@ const RiderDashboard = () => {
           state.setManualRateDriverId(driverId);
           state.setRatingDialogOpen(true);
         }}
+        onRefresh={() => queries.refetch()}
       />
 
       {/* Rating dialog */}
