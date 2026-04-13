@@ -656,6 +656,7 @@ export type Database = {
           is_available: boolean | null
           latitude: number | null
           launch_start_date: string | null
+          license_plate: string | null
           longitude: number | null
           organization_id: string | null
           pet_approved: boolean
@@ -670,7 +671,11 @@ export type Database = {
           standard_commission_rate: number
           updated_at: string
           user_id: string
+          vehicle_color: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
           vehicle_type: string | null
+          vehicle_year: number | null
           went_online_at: string | null
         }
         Insert: {
@@ -688,6 +693,7 @@ export type Database = {
           is_available?: boolean | null
           latitude?: number | null
           launch_start_date?: string | null
+          license_plate?: string | null
           longitude?: number | null
           organization_id?: string | null
           pet_approved?: boolean
@@ -702,7 +708,11 @@ export type Database = {
           standard_commission_rate?: number
           updated_at?: string
           user_id: string
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
           vehicle_type?: string | null
+          vehicle_year?: number | null
           went_online_at?: string | null
         }
         Update: {
@@ -720,6 +730,7 @@ export type Database = {
           is_available?: boolean | null
           latitude?: number | null
           launch_start_date?: string | null
+          license_plate?: string | null
           longitude?: number | null
           organization_id?: string | null
           pet_approved?: boolean
@@ -734,7 +745,11 @@ export type Database = {
           standard_commission_rate?: number
           updated_at?: string
           user_id?: string
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
           vehicle_type?: string | null
+          vehicle_year?: number | null
           went_online_at?: string | null
         }
         Relationships: [
