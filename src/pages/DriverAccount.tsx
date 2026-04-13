@@ -372,6 +372,30 @@ const DriverAccount = () => {
               <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Vehicle type</Label>
               <Input value={editVehicle} onChange={(e) => setEditVehicle(e.target.value)} placeholder="e.g. Sedan, SUV, Van" className="h-9 text-sm mt-1" />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Make</Label>
+                <Input value={editMake} onChange={(e) => setEditMake(e.target.value)} placeholder="e.g. Toyota" className="h-9 text-sm mt-1" maxLength={50} />
+              </div>
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Model</Label>
+                <Input value={editModel} onChange={(e) => setEditModel(e.target.value)} placeholder="e.g. Corolla" className="h-9 text-sm mt-1" maxLength={50} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Year</Label>
+                <Input value={editYear} onChange={(e) => setEditYear(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="2020" className="h-9 text-sm mt-1" inputMode="numeric" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Color</Label>
+                <Input value={editColor} onChange={(e) => setEditColor(e.target.value)} placeholder="e.g. White" className="h-9 text-sm mt-1" maxLength={30} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">License Plate</Label>
+              <Input value={editPlate} onChange={(e) => setEditPlate(e.target.value)} placeholder="e.g. ABC-1234" className="h-9 text-sm mt-1 uppercase" maxLength={15} />
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
