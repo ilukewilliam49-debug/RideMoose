@@ -44,6 +44,7 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
   const tip = ride.tip_cents || 0;
   const tripId = ride.id.slice(0, 8).toUpperCase();
   const dateStr = format(new Date(ride.created_at), "MMM d, yyyy · h:mm a");
+  const vehicleDesc = [vehicleColor, vehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(" ");
 
   const receiptText = [
     `PickYou — Trip Receipt`,
