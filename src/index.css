@@ -6,55 +6,56 @@
 
 @layer base {
   :root {
-    --background: 220 30% 10%;
-    --foreground: 0 0% 95%;
+    --background: 222 40% 7%;
+    --foreground: 0 0% 100%;
 
-    --card: 220 28% 14%;
-    --card-foreground: 0 0% 95%;
+    --card: 222 35% 10%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 220 28% 14%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 222 35% 10%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 207 90% 54%;
+    --primary: 213 84% 56%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 25% 18%;
-    --secondary-foreground: 0 0% 90%;
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 214 20% 69%;
 
-    --muted: 220 22% 16%;
-    --muted-foreground: 220 15% 55%;
+    --muted: 222 28% 13%;
+    --muted-foreground: 214 20% 69%;
 
-    --accent: 30 92% 56%;
+    --accent: 28 87% 62%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 25% 20%;
-    --input: 220 25% 20%;
-    --ring: 207 90% 54%;
+    --border: 222 25% 16%;
+    --input: 222 25% 16%;
+    --ring: 213 84% 56%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 220 30% 12%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 207 90% 54%;
+    --sidebar-background: 222 40% 8%;
+    --sidebar-foreground: 214 20% 69%;
+    --sidebar-primary: 213 84% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 16%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 220 25% 18%;
-    --sidebar-ring: 207 90% 54%;
+    --sidebar-accent: 222 28% 13%;
+    --sidebar-accent-foreground: 214 20% 69%;
+    --sidebar-border: 222 25% 14%;
+    --sidebar-ring: 213 84% 56%;
 
     /* Custom tokens */
-    --gold: 30 92% 56%;
-    --gold-glow: 25 95% 60%;
-    --steel: 220 15% 55%;
-    --steel-light: 220 15% 70%;
-    --surface: 220 28% 14%;
-    --surface-hover: 220 24% 18%;
-    --gradient-gold: linear-gradient(135deg, hsl(207 90% 54%), hsl(30 92% 56%));
-    --gradient-dark: linear-gradient(180deg, hsl(220 30% 10%), hsl(220 30% 6%));
-    --shadow-gold: 0 0 30px -5px hsl(207 90% 54% / 0.3);
+    --gold: 28 87% 62%;
+    --gold-glow: 44 88% 62%;
+    --steel: 214 20% 69%;
+    --steel-light: 214 20% 78%;
+    --surface: 222 35% 10%;
+    --surface-hover: 222 30% 14%;
+    --gradient-brand: linear-gradient(135deg, hsl(213 84% 56%), hsl(190 82% 65%));
+    --gradient-action: linear-gradient(135deg, hsl(28 87% 62%), hsl(44 88% 62%));
+    --gradient-dark: linear-gradient(180deg, hsl(222 40% 7%), hsl(222 40% 4%));
+    --shadow-primary: 0 0 30px -5px hsl(213 84% 56% / 0.3);
     --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
   }
 
@@ -85,7 +86,14 @@
 
 @layer utilities {
   .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(207 90% 54%), hsl(30 92% 56%));
+    background: linear-gradient(135deg, hsl(28 87% 62%), hsl(44 88% 62%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-brand {
+    background: linear-gradient(135deg, hsl(213 84% 56%), hsl(190 82% 65%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -93,24 +101,28 @@
 
   /* Keep old class as alias */
   .text-gradient-crimson {
-    background: linear-gradient(135deg, hsl(207 90% 54%), hsl(30 92% 56%));
+    background: linear-gradient(135deg, hsl(28 87% 62%), hsl(44 88% 62%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .glow-gold {
-    box-shadow: 0 0 30px -5px hsl(207 90% 54% / 0.3);
+    box-shadow: 0 0 30px -5px hsl(28 87% 62% / 0.3);
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 30px -5px hsl(213 84% 56% / 0.3);
   }
 
   .glow-crimson {
-    box-shadow: 0 0 30px -5px hsl(207 90% 54% / 0.3);
+    box-shadow: 0 0 30px -5px hsl(28 87% 62% / 0.3);
   }
 
   .glass-surface {
-    background: hsl(220 28% 14% / 0.8);
+    background: hsl(222 35% 10% / 0.8);
     backdrop-filter: blur(12px);
-    border: 1px solid hsl(220 25% 20%);
+    border: 1px solid hsl(222 25% 16%);
   }
 }
 
