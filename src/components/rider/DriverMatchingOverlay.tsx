@@ -1,11 +1,13 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Car } from "lucide-react";
+import { Car, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DriverMatchingOverlayProps {
   visible: boolean;
+  onCancel?: () => void;
 }
 
-const DriverMatchingOverlay = ({ visible }: DriverMatchingOverlayProps) => (
+const DriverMatchingOverlay = ({ visible, onCancel }: DriverMatchingOverlayProps) => (
   <AnimatePresence>
     {visible && (
       <motion.div
@@ -68,6 +70,18 @@ const DriverMatchingOverlay = ({ visible }: DriverMatchingOverlayProps) => (
               />
             ))}
           </div>
+
+          {onCancel && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              className="mt-2 gap-2"
+            >
+              <X className="h-4 w-4" />
+              Cancel search
+            </Button>
+          )}
         </motion.div>
       </motion.div>
     )}
