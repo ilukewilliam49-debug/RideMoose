@@ -24,15 +24,35 @@ const RideEventSchema = z.object({
   event: z.enum(["requested", "accepted", "arrived", "completed"]),
 });
 
-const TestSchema = z.object({
-  mode: z.literal("test"),
+const TestSchema = z.object({ mode: z.literal("test") });
+
+const RetrySchema = z.object({
+  mode: z.literal("retry"),
+  max_retries: z.number().int().min(1).max(5).optional(),
 });
 
 const RequestBody = z.discriminatedUnion("mode", [
   DirectSchema,
   RideEventSchema,
   TestSchema,
+  RetrySchema,
 ]);
+
+// ── In-memory rate limiter (per-isolate) ──────────────────────────
+const rateLimitMap = new Map<string, { count: number; windowStart: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 30;
+
+function checkInMemoryRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitMap.set(key, { count: 1, windowStart: now });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -51,11 +71,45 @@ interface OneSignalPayload {
   url?: string;
 }
 
-/**
- * Sends a OneSignal push notification with 1 automatic retry.
- * Returns { success, recipients, onesignal_id, error? }
- */
-async function sendOneSignalPush(
+// ── Logging helper ─────────────────────────────────────────────────
+
+async function logNotification(
+  supabase: any,
+  params: {
+    ride_id?: string;
+    target_profile_id?: string;
+    event: string;
+    method: string;
+    status: string;
+    error_message?: string;
+    onesignal_id?: string;
+    recipients?: number;
+    retry_count?: number;
+    metadata?: Record<string, unknown>;
+  }
+) {
+  try {
+    await supabase.from("notification_logs").insert({
+      ride_id: params.ride_id || null,
+      target_profile_id: params.target_profile_id || null,
+      event: params.event,
+      method: params.method,
+      status: params.status,
+      error_message: params.error_message || null,
+      onesignal_id: params.onesignal_id || null,
+      recipients: params.recipients || 0,
+      retry_count: params.retry_count || 0,
+      metadata: params.metadata || {},
+      completed_at: ["delivered", "failed"].includes(params.status) ? new Date().toISOString() : null,
+    });
+  } catch (e: any) {
+    console.error("Failed to write notification log:", e.message);
+  }
+}
+
+// ── OneSignal batch push (up to 2000 player IDs per call) ──────────
+
+async function sendOneSignalPushBatch(
   appId: string,
   apiKey: string,
   playerIds: string[],
@@ -63,53 +117,57 @@ async function sendOneSignalPush(
   message: string,
   url?: string
 ): Promise<{ success: boolean; recipients: number; onesignal_id?: string; error?: string }> {
-  const payload: OneSignalPayload = {
-    app_id: appId,
-    include_player_ids: playerIds,
-    headings: { en: heading },
-    contents: { en: message },
-  };
-  if (url) payload.url = url;
+  // OneSignal supports up to 2000 player IDs per request
+  const BATCH_SIZE = 2000;
+  let totalRecipients = 0;
+  let lastId: string | undefined;
+  let lastError: string | undefined;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const resp = await fetch("https://onesignal.com/api/v1/notifications", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          Authorization: `Basic ${apiKey}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      const result = await resp.json();
+  for (let i = 0; i < playerIds.length; i += BATCH_SIZE) {
+    const batch = playerIds.slice(i, i + BATCH_SIZE);
+    const payload: OneSignalPayload = {
+      app_id: appId,
+      include_player_ids: batch,
+      headings: { en: heading },
+      contents: { en: message },
+    };
+    if (url) payload.url = url;
 
-      if (resp.ok) {
-        return {
-          success: true,
-          recipients: result.recipients || 0,
-          onesignal_id: result.id,
-        };
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const resp = await fetch("https://onesignal.com/api/v1/notifications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization: `Basic ${apiKey}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const result = await resp.json();
+
+        if (resp.ok) {
+          totalRecipients += result.recipients || 0;
+          lastId = result.id;
+          break;
+        }
+        console.error(`OneSignal batch attempt ${attempt + 1} failed:`, JSON.stringify(result));
+        if (attempt === 1) lastError = JSON.stringify(result);
+      } catch (err: any) {
+        console.error(`OneSignal batch attempt ${attempt + 1} exception:`, err.message);
+        if (attempt === 1) lastError = err.message;
       }
-      // Log and retry once
-      console.error(`OneSignal attempt ${attempt + 1} failed:`, JSON.stringify(result));
-      if (attempt === 0) continue;
-      return { success: false, recipients: 0, error: JSON.stringify(result) };
-    } catch (err: any) {
-      console.error(`OneSignal attempt ${attempt + 1} exception:`, err.message);
-      if (attempt === 0) continue;
-      return { success: false, recipients: 0, error: err.message };
     }
   }
-  return { success: false, recipients: 0, error: "max_retries_exceeded" };
+
+  if (totalRecipients > 0 || !lastError) {
+    return { success: true, recipients: totalRecipients, onesignal_id: lastId };
+  }
+  return { success: false, recipients: 0, error: lastError };
 }
 
-/**
- * SMS fallback via Twilio when push fails or no player_id.
- */
-async function sendSmsFallback(
-  phone: string,
-  message: string
-): Promise<boolean> {
+// ── SMS fallback via Twilio ────────────────────────────────────────
+
+async function sendSmsFallback(phone: string, message: string): Promise<boolean> {
   const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const twilioAuth = Deno.env.get("TWILIO_AUTH_TOKEN");
   const twilioFrom = Deno.env.get("TWILIO_PHONE_NUMBER");
@@ -123,14 +181,10 @@ async function sendSmsFallback(
         Authorization: "Basic " + btoa(`${twilioSid}:${twilioAuth}`),
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        To: phone,
-        From: twilioFrom,
-        Body: message,
-      }),
+      body: new URLSearchParams({ To: phone, From: twilioFrom, Body: message }),
     });
-    const data = await resp.json();
     if (!resp.ok) {
+      const data = await resp.json();
       console.error("Twilio SMS failed:", JSON.stringify(data));
       return false;
     }
@@ -141,9 +195,8 @@ async function sendSmsFallback(
   }
 }
 
-/**
- * Sends push to a single user. Falls back to SMS if push fails or no player_id.
- */
+// ── Notify a single user (push → SMS fallback) ────────────────────
+
 async function notifyUser(
   supabase: any,
   appId: string,
@@ -151,56 +204,125 @@ async function notifyUser(
   profileId: string,
   heading: string,
   message: string,
-  url?: string
+  url?: string,
+  event?: string,
+  rideId?: string
 ): Promise<{ method: string; success: boolean }> {
-  // Fetch the user's player_id and phone
   const { data: profile } = await supabase
     .from("profiles")
     .select("onesignal_player_id, phone, sms_notifications_enabled")
     .eq("id", profileId)
     .single();
 
-  if (!profile) return { method: "none", success: false };
+  if (!profile) {
+    await logNotification(supabase, {
+      ride_id: rideId, target_profile_id: profileId,
+      event: event || "unknown", method: "none", status: "failed",
+      error_message: "Profile not found",
+    });
+    return { method: "none", success: false };
+  }
 
   // Try push first
   if (profile.onesignal_player_id) {
-    const pushResult = await sendOneSignalPush(
-      appId, apiKey,
-      [profile.onesignal_player_id],
-      heading, message, url
+    const pushResult = await sendOneSignalPushBatch(
+      appId, apiKey, [profile.onesignal_player_id], heading, message, url
     );
     if (pushResult.success && pushResult.recipients > 0) {
+      await logNotification(supabase, {
+        ride_id: rideId, target_profile_id: profileId,
+        event: event || "direct", method: "push", status: "delivered",
+        onesignal_id: pushResult.onesignal_id, recipients: pushResult.recipients,
+      });
       return { method: "push", success: true };
     }
-    console.warn(`Push failed for profile ${profileId}, trying SMS fallback`);
+    await logNotification(supabase, {
+      ride_id: rideId, target_profile_id: profileId,
+      event: event || "direct", method: "push", status: "failed",
+      error_message: pushResult.error || "No recipients",
+    });
   }
 
   // SMS fallback
   if (profile.phone && profile.sms_notifications_enabled) {
     const smsSent = await sendSmsFallback(profile.phone, `${heading}: ${message}`);
+    await logNotification(supabase, {
+      ride_id: rideId, target_profile_id: profileId,
+      event: event || "direct", method: "sms",
+      status: smsSent ? "delivered" : "failed",
+      error_message: smsSent ? undefined : "SMS delivery failed",
+    });
     return { method: "sms", success: smsSent };
   }
 
-  console.warn(`No delivery method available for profile ${profileId}`);
+  await logNotification(supabase, {
+    ride_id: rideId, target_profile_id: profileId,
+    event: event || "direct", method: "none", status: "failed",
+    error_message: "No delivery method available",
+  });
   return { method: "none", success: false };
 }
 
-// Also write in-app notification
+// ── In-app notification writer ─────────────────────────────────────
+
 async function writeNotification(
-  supabase: any,
-  userId: string,
-  title: string,
-  body: string,
-  type: string,
-  rideId?: string
+  supabase: any, userId: string, title: string, body: string, type: string, rideId?: string
 ) {
   await supabase.from("notifications").insert({
-    user_id: userId,
-    title,
-    body,
-    type,
-    ride_id: rideId || null,
+    user_id: userId, title, body, type, ride_id: rideId || null,
   });
+}
+
+// ── Retry queue processor ──────────────────────────────────────────
+
+async function processRetryQueue(
+  supabase: any, appId: string, apiKey: string, maxRetries = 3
+): Promise<{ processed: number; succeeded: number }> {
+  const { data: failedLogs } = await supabase
+    .from("notification_logs")
+    .select("*")
+    .eq("status", "failed")
+    .lt("retry_count", maxRetries)
+    .order("created_at", { ascending: true })
+    .limit(50);
+
+  if (!failedLogs?.length) return { processed: 0, succeeded: 0 };
+
+  let succeeded = 0;
+
+  for (const log of failedLogs) {
+    const newRetryCount = log.retry_count + 1;
+
+    if (log.method === "push" && log.target_profile_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onesignal_player_id")
+        .eq("id", log.target_profile_id)
+        .single();
+
+      if (profile?.onesignal_player_id) {
+        const result = await sendOneSignalPushBatch(
+          appId, apiKey, [profile.onesignal_player_id],
+          "PickYou", log.metadata?.message || "You have an update"
+        );
+        if (result.success && result.recipients > 0) {
+          await supabase.from("notification_logs")
+            .update({ status: "delivered", retry_count: newRetryCount, completed_at: new Date().toISOString(), onesignal_id: result.onesignal_id })
+            .eq("id", log.id);
+          succeeded++;
+          continue;
+        }
+      }
+    }
+
+    // Mark as retried but still failed
+    const finalStatus = newRetryCount >= maxRetries ? "permanently_failed" : "failed";
+    await supabase.from("notification_logs")
+      .update({ status: finalStatus, retry_count: newRetryCount })
+      .eq("id", log.id);
+  }
+
+  return { processed: failedLogs.length, succeeded };
 }
 
 // ── Main Handler ───────────────────────────────────────────────────
@@ -235,25 +357,40 @@ serve(async (req) => {
 
     const input = parsed.data;
 
+    // ── Rate limiting ─────────────────────────────────────────────
+    const rateLimitKey = `notif:${input.mode}`;
+    if (!checkInMemoryRateLimit(rateLimitKey)) {
+      return jsonRes({ error: "Rate limit exceeded. Try again shortly." }, 429);
+    }
+
+    // ── MODE: retry ───────────────────────────────────────────────
+    if (input.mode === "retry") {
+      const result = await processRetryQueue(supabase, onesignalAppId, onesignalApiKey, input.max_retries);
+      return jsonRes(result);
+    }
+
     // ── MODE: direct ──────────────────────────────────────────────
     if (input.mode === "direct") {
-      const result = await sendOneSignalPush(
-        onesignalAppId,
-        onesignalApiKey,
+      const result = await sendOneSignalPushBatch(
+        onesignalAppId, onesignalApiKey,
         [input.player_id],
         input.heading || "PickYou",
         input.message,
         input.url
       );
-      if (!result.success) {
-        console.error("Direct push failed:", result.error);
-      }
+      await logNotification(supabase, {
+        event: "direct", method: "push",
+        status: result.success ? "delivered" : "failed",
+        error_message: result.error,
+        onesignal_id: result.onesignal_id,
+        recipients: result.recipients,
+        metadata: { heading: input.heading, message: input.message },
+      });
       return jsonRes(result);
     }
 
     // ── MODE: test ────────────────────────────────────────────────
     if (input.mode === "test") {
-      // Authenticate the caller
       const authHeader = req.headers.get("Authorization");
       if (!authHeader?.startsWith("Bearer ")) {
         return jsonRes({ error: "Unauthorized" }, 401);
@@ -272,25 +409,18 @@ serve(async (req) => {
 
       if (!profile) return jsonRes({ error: "Profile not found" }, 404);
 
-      const result = await notifyUser(
+      const r = await notifyUser(
         supabase, onesignalAppId, onesignalApiKey,
-        profile.id,
-        "PickYou Test",
-        "Test notification working ✅"
+        profile.id, "PickYou Test", "Test notification working ✅",
+        undefined, "test"
       );
-
-      await writeNotification(
-        supabase, profile.id,
-        "PickYou Test",
-        "Test notification working ✅",
-        "test"
-      );
-
-      return jsonRes({ ...result, profile_id: profile.id });
+      await writeNotification(supabase, profile.id, "PickYou Test", "Test notification working ✅", "test");
+      return jsonRes({ ...r, profile_id: profile.id });
     }
 
     // ── MODE: ride_event ──────────────────────────────────────────
     const { ride_id, event } = input;
+    const startTime = Date.now();
 
     const { data: ride } = await supabase
       .from("rides")
@@ -303,7 +433,7 @@ serve(async (req) => {
     const results: Array<{ target: string; method: string; success: boolean }> = [];
 
     switch (event) {
-      // ── A. Ride Requested → Notify nearby drivers ─────────────
+      // ── A. Ride Requested → Batch notify nearby drivers ────────
       case "requested": {
         let driverQuery = supabase
           .from("profiles")
@@ -311,12 +441,11 @@ serve(async (req) => {
           .eq("role", "driver")
           .eq("is_available", true);
 
-        // Service-specific filters
         if (ride.service_type === "large_delivery") {
           driverQuery = driverQuery.in("vehicle_type", ["SUV", "truck", "van"]);
         } else if (ride.service_type === "pet_transport") {
           driverQuery = driverQuery.eq("pet_approved", true);
-        } else if (ride.service_type === "courier" || ride.service_type === "retail_delivery" || ride.service_type === "personal_shopper") {
+        } else if (["courier", "retail_delivery", "personal_shopper"].includes(ride.service_type)) {
           driverQuery = driverQuery.eq("can_courier", true);
         } else if (ride.service_type === "food_delivery") {
           driverQuery = driverQuery.eq("can_food_delivery", true);
@@ -330,13 +459,18 @@ serve(async (req) => {
 
         const { data: drivers } = await driverQuery;
         if (!drivers?.length) {
+          await logNotification(supabase, {
+            ride_id, event: "requested", method: "none", status: "skipped",
+            error_message: "No eligible drivers found",
+            metadata: { service_type: ride.service_type },
+          });
           return jsonRes({ sent: 0, reason: "no_eligible_drivers", results });
         }
 
         const heading = "New ride request nearby 🚗";
         const body = `Pickup at ${ride.pickup_address}`;
 
-        // Batch: collect player IDs for push, track fallbacks
+        // Collect player IDs for batch push
         const pushIds: string[] = [];
         const fallbackDrivers: typeof drivers = [];
 
@@ -348,19 +482,28 @@ serve(async (req) => {
           }
         }
 
-        // Batch push to all drivers with player IDs
+        // Single batched push to all drivers with player IDs
         if (pushIds.length > 0) {
-          const pushResult = await sendOneSignalPush(
+          const pushResult = await sendOneSignalPushBatch(
             onesignalAppId, onesignalApiKey,
             pushIds, heading, body, "/driver/dispatch"
           );
+
+          await logNotification(supabase, {
+            ride_id, event: "requested", method: "push_batch",
+            status: pushResult.success ? "delivered" : "failed",
+            onesignal_id: pushResult.onesignal_id,
+            recipients: pushResult.recipients,
+            error_message: pushResult.error,
+            metadata: { driver_count: pushIds.length, service_type: ride.service_type, message: body },
+          });
+
           results.push({
-            target: `${pushIds.length} drivers (push)`,
+            target: `${pushIds.length} drivers (batch push)`,
             method: "push",
             success: pushResult.success,
           });
 
-          // If batch push failed, move all to fallback
           if (!pushResult.success) {
             for (const d of drivers) {
               if (d.onesignal_player_id) fallbackDrivers.push(d);
@@ -368,72 +511,77 @@ serve(async (req) => {
           }
         }
 
-        // SMS fallback for drivers without player IDs or failed push
-        for (const d of fallbackDrivers) {
-          if (d.phone && d.sms_notifications_enabled) {
-            const ok = await sendSmsFallback(d.phone, `${heading}: ${body}`);
+        // SMS fallback — process in parallel for speed
+        const smsFallbacks = fallbackDrivers
+          .filter(d => d.phone && d.sms_notifications_enabled)
+          .map(async (d) => {
+            const ok = await sendSmsFallback(d.phone!, `${heading}: ${body}`);
+            await logNotification(supabase, {
+              ride_id, target_profile_id: d.id, event: "requested",
+              method: "sms", status: ok ? "delivered" : "failed",
+              metadata: { message: body },
+            });
             results.push({ target: d.id, method: "sms", success: ok });
-          } else {
-            results.push({ target: d.id, method: "none", success: false });
-          }
-        }
+          });
+        await Promise.all(smsFallbacks);
 
-        // Write in-app notifications for all eligible drivers
+        // In-app notifications for all drivers (batch insert)
         const notifRows = drivers.map((d: any) => ({
-          user_id: d.id,
-          title: heading,
-          body,
-          type: "dispatch",
-          ride_id,
+          user_id: d.id, title: heading, body, type: "dispatch", ride_id,
         }));
         await supabase.from("notifications").insert(notifRows);
 
-        return jsonRes({ sent: results.filter((r) => r.success).length, total: drivers.length, results });
+        const elapsed = Date.now() - startTime;
+        console.log(`[ride_event:requested] ride=${ride_id} drivers=${drivers.length} elapsed=${elapsed}ms`);
+
+        return jsonRes({
+          sent: results.filter(r => r.success).length,
+          total: drivers.length,
+          elapsed_ms: elapsed,
+          results,
+        });
       }
 
-      // ── B. Driver Accepted → Notify rider ─────────────────────
-      case "accepted": {
-        if (!ride.rider_id) return jsonRes({ error: "No rider on this ride" }, 400);
-        const r = await notifyUser(
-          supabase, onesignalAppId, onesignalApiKey,
-          ride.rider_id,
-          "Your driver is on the way 🚗",
-          "Your driver has accepted your ride and is heading to pick you up.",
-          "/rider"
-        );
-        await writeNotification(supabase, ride.rider_id, "Your driver is on the way", "Your driver has accepted your ride.", "ride_accepted", ride_id);
-        results.push({ target: ride.rider_id, ...r });
-        return jsonRes({ results });
-      }
-
-      // ── C. Driver Arrived → Notify rider ──────────────────────
-      case "arrived": {
-        if (!ride.rider_id) return jsonRes({ error: "No rider on this ride" }, 400);
-        const r = await notifyUser(
-          supabase, onesignalAppId, onesignalApiKey,
-          ride.rider_id,
-          "Your driver has arrived 📍",
-          "Your driver is waiting at the pickup location.",
-          "/rider"
-        );
-        await writeNotification(supabase, ride.rider_id, "Your driver has arrived", "Your driver is waiting at the pickup location.", "driver_arrived", ride_id);
-        results.push({ target: ride.rider_id, ...r });
-        return jsonRes({ results });
-      }
-
-      // ── D. Ride Completed → Notify rider ──────────────────────
+      // ── B–D. Driver Accepted / Arrived / Completed → Notify rider
+      case "accepted":
+      case "arrived":
       case "completed": {
         if (!ride.rider_id) return jsonRes({ error: "No rider on this ride" }, 400);
+
+        const eventConfig: Record<string, { heading: string; body: string; url: string; type: string }> = {
+          accepted: {
+            heading: "Your driver is on the way 🚗",
+            body: "Your driver has accepted your ride and is heading to pick you up.",
+            url: "/rider",
+            type: "ride_accepted",
+          },
+          arrived: {
+            heading: "Your driver has arrived 📍",
+            body: "Your driver is waiting at the pickup location.",
+            url: "/rider",
+            type: "driver_arrived",
+          },
+          completed: {
+            heading: "Trip completed 🎉",
+            body: "Thank you for riding with PickYou!",
+            url: "/rider/activity",
+            type: "ride_completed",
+          },
+        };
+
+        const cfg = eventConfig[event];
         const r = await notifyUser(
           supabase, onesignalAppId, onesignalApiKey,
-          ride.rider_id,
-          "Trip completed 🎉",
-          "Thank you for riding with PickYou!",
-          "/rider/activity"
+          ride.rider_id, cfg.heading, cfg.body, cfg.url,
+          event, ride_id
         );
-        await writeNotification(supabase, ride.rider_id, "Trip completed", "Thank you for riding with PickYou!", "ride_completed", ride_id);
+        await writeNotification(supabase, ride.rider_id, cfg.heading, cfg.body, cfg.type, ride_id);
         results.push({ target: ride.rider_id, ...r });
-        return jsonRes({ results });
+
+        const elapsed = Date.now() - startTime;
+        console.log(`[ride_event:${event}] ride=${ride_id} rider=${ride.rider_id} elapsed=${elapsed}ms`);
+
+        return jsonRes({ results, elapsed_ms: elapsed });
       }
 
       default:

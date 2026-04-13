@@ -276,6 +276,90 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          event: string
+          id: string
+          metadata: Json | null
+          method: string
+          onesignal_id: string | null
+          recipients: number | null
+          retry_count: number
+          ride_id: string | null
+          status: string
+          target_profile_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          event: string
+          id?: string
+          metadata?: Json | null
+          method?: string
+          onesignal_id?: string | null
+          recipients?: number | null
+          retry_count?: number
+          ride_id?: string | null
+          status?: string
+          target_profile_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          event?: string
+          id?: string
+          metadata?: Json | null
+          method?: string
+          onesignal_id?: string | null
+          recipients?: number | null
+          retry_count?: number
+          ride_id?: string | null
+          status?: string
+          target_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_rate_limits: {
+        Row: {
+          id: string
+          key: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string
@@ -1522,6 +1606,10 @@ export type Database = {
       }
       authorize_realtime_channel: {
         Args: { _channel: string; _user_id: string }
+        Returns: boolean
+      }
+      check_notification_rate_limit: {
+        Args: { _key: string; _max_requests?: number; _window_seconds?: number }
         Returns: boolean
       }
       check_password_reset_rate_limit: {
