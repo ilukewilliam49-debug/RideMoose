@@ -12,6 +12,7 @@ import {
 import ServiceIcon from "@/components/driver/ServiceIcon";
 import DriverBidForm from "@/components/DriverBidForm";
 import { serviceLabels, fmt, isAirportTrip, isDeliveryType } from "@/lib/driver-constants";
+import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { Ride, DeliveryBid } from "@/types/driver";
 
