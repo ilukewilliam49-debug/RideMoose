@@ -12,10 +12,12 @@ import {
 import ServiceIcon from "@/components/driver/ServiceIcon";
 import DriverBidForm from "@/components/DriverBidForm";
 import { serviceLabels, fmt, isAirportTrip, isDeliveryType } from "@/lib/driver-constants";
+import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { Ride, DeliveryBid } from "@/types/driver";
 
 const AUTO_DECLINE_SECONDS = 30;
+const DISPATCH_TIMEOUT_SECONDS = 15;
 
 // ─── Circular countdown ───
 function CountdownRing({ secondsLeft, total }: { secondsLeft: number; total: number }) {
@@ -115,10 +117,22 @@ export default function IncomingRequestCard({
   onDecline,
   onBidChanged,
 }: IncomingRequestCardProps) {
-  const [secondsLeft, setSecondsLeft] = useState(AUTO_DECLINE_SECONDS);
+  const isDispatchedToMe = ride.dispatched_to_driver_id === driverId;
+
+  // Calculate initial seconds from dispatch_expires_at when dispatched to this driver
+  const getInitialSeconds = useCallback(() => {
+    if (isDispatchedToMe && ride.dispatch_expires_at) {
+      const remaining = Math.max(0, Math.ceil((new Date(ride.dispatch_expires_at).getTime() - Date.now()) / 1000));
+      return Math.min(remaining, DISPATCH_TIMEOUT_SECONDS);
+    }
+    return AUTO_DECLINE_SECONDS;
+  }, [isDispatchedToMe, ride.dispatch_expires_at]);
+
+  const totalSeconds = isDispatchedToMe ? DISPATCH_TIMEOUT_SECONDS : AUTO_DECLINE_SECONDS;
+  const [secondsLeft, setSecondsLeft] = useState(getInitialSeconds);
 
   useEffect(() => {
-    setSecondsLeft(AUTO_DECLINE_SECONDS);
+    setSecondsLeft(getInitialSeconds());
     const interval = setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
@@ -129,7 +143,7 @@ export default function IncomingRequestCard({
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [ride.id]);
+  }, [ride.id, getInitialSeconds]);
 
   useEffect(() => {
     if (secondsLeft === 0) onDecline(ride.id);
@@ -141,8 +155,25 @@ export default function IncomingRequestCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="rounded-2xl bg-card ring-1 ring-border/50 overflow-hidden"
+      className={cn(
+        "rounded-2xl bg-card overflow-hidden",
+        isDispatchedToMe
+          ? "ring-2 ring-primary shadow-[0_0_20px_-4px_hsl(var(--primary)/0.3)]"
+          : "ring-1 ring-border/50"
+      )}
     >
+      {/* Dispatched badge */}
+      {isDispatchedToMe && (
+        <div className="bg-primary/10 px-4 py-1.5 flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+            Dispatched to you
+          </span>
+        </div>
+      )}
       {/* Request header */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-1.5">
         <div className="flex items-center gap-2 min-w-0">
@@ -187,7 +218,7 @@ export default function IncomingRequestCard({
               {formatDistanceToNowStrict(new Date(ride.created_at), { addSuffix: true })}
             </p>
           </div>
-          <CountdownRing secondsLeft={secondsLeft} total={AUTO_DECLINE_SECONDS} />
+          <CountdownRing secondsLeft={secondsLeft} total={totalSeconds} />
         </div>
       </div>
 
