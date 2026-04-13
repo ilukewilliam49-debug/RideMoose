@@ -192,7 +192,7 @@ const RiderDashboard = () => {
 
       // Trigger automated driver matching
       if (rideData) {
-        toast.info(t("rider.findingDriver", "Finding your driver..."));
+        setMatchingInProgress(true);
         supabase.functions.invoke("match-driver", { body: { ride_id: rideData.id } })
           .then(({ data: matchData }) => {
             if (matchData?.matched) {
@@ -206,8 +206,10 @@ const RiderDashboard = () => {
             queries.refetch();
           })
           .catch(() => {
-            // Matching failed silently; ride remains in requested state for broadcast
             queries.refetch();
+          })
+          .finally(() => {
+            setMatchingInProgress(false);
           });
       } else {
         toast.success(state.billToOrg ? t("rider.rideRequestedOrg") : t("rider.rideRequested"));
