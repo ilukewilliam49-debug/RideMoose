@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import logoImg from "@/assets/logo.png";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import NotificationBell from "@/components/NotificationBell";

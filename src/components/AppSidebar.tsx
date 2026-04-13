@@ -1,4 +1,5 @@
 import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
