@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import ActiveRideCard from "@/components/rider/ActiveRideCard";
 import RideHistory from "@/components/rider/RideHistory";
 import ServiceSelector from "@/components/rider/ServiceSelector";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
+import DriverMatchingOverlay from "@/components/rider/DriverMatchingOverlay";
 import { useRideQueries } from "@/hooks/useRideQueries";
 import { useNearestDriverETAs } from "@/hooks/useNearestDriverETAs";
 
@@ -43,6 +44,7 @@ const RiderDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const state = useRideBookingState();
+  const [matchingInProgress, setMatchingInProgress] = useState(false);
   const queries = useRideQueries({
     profileId: profile?.id,
     userId: profile?.user_id,
