@@ -35,9 +35,9 @@ const LandingDriver = () => {
           >
             <img
               src={driverHero}
-              alt="PickYou driver"
-              width={640}
-              height={480}
+              alt="PickYou driver standing next to SUV in Yellowknife, Northwest Territories"
+              width={1024}
+              height={1024}
               loading="lazy"
               className="h-[320px] w-full object-cover md:h-[420px]"
             />
