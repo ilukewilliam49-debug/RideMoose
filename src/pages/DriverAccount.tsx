@@ -450,6 +450,16 @@ const DriverAccount = () => {
             disabled={toggleSmsNotifications.isPending}
           />
         </div>
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 h-10 rounded-xl text-sm"
+          onClick={handleTestNotification}
+          disabled={testingSend}
+        >
+          <Bell className="h-4 w-4" />
+          {testingSend ? "Sending…" : "Test Push Notification"}
+        </Button>
+        <p className="text-[10px] text-muted-foreground">Send a test notification to verify your push setup.</p>
       </motion.div>
 
       {/* Services */}
