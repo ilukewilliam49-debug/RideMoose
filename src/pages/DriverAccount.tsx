@@ -49,6 +49,11 @@ const DriverAccount = () => {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editVehicle, setEditVehicle] = useState("");
+  const [editMake, setEditMake] = useState("");
+  const [editModel, setEditModel] = useState("");
+  const [editYear, setEditYear] = useState("");
+  const [editColor, setEditColor] = useState("");
+  const [editPlate, setEditPlate] = useState("");
 
   // Verification status
   const { data: verifications, isLoading: verifLoading, isError: verifError, refetch: refetchVerif } = useQuery({
