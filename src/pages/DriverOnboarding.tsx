@@ -50,6 +50,11 @@ const DriverOnboarding = () => {
         .update({
           vehicle_type: vehicleType,
           seat_capacity: parseInt(seatCapacity),
+          vehicle_make: vehicleMake.trim(),
+          vehicle_model: vehicleModel.trim(),
+          vehicle_year: parseInt(vehicleYear),
+          vehicle_color: vehicleColor.trim(),
+          license_plate: licensePlate.trim().toUpperCase(),
         })
         .eq("user_id", user!.id);
       if (error) throw error;
