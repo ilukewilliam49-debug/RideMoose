@@ -101,6 +101,7 @@ export default function TipDialog({ open, onOpenChange, rideId, driverName, onTi
       if (error) throw error;
       setSentAmount(finalTip);
       setShowCelebration(true);
+      playCelebrationSound();
       setTimeout(() => {
         onOpenChange(false);
         resetState();
