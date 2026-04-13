@@ -159,6 +159,12 @@ const AdminZones = () => {
     setPendingPolygon(coords);
   }, []);
 
+  const handlePolygonEdited = useCallback((id: string, coords: [number, number][]) => {
+    const zone = geoZones?.find((z) => z.id === id);
+    if (!zone) return;
+    updateGeoMutation.mutate({ id, zone_key: zone.zone_key, zone_name: zone.zone_name, polygon: coords, color: zone.color });
+  }, [geoZones, updateGeoMutation]);
+
   if (isLoading || geoLoading) return <div className="py-8 text-center text-muted-foreground">Loading zones…</div>;
 
   const geoZoneKeys = geoZones?.map((z) => ({ key: z.zone_key, name: z.zone_name })) || [];
