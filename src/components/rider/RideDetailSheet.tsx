@@ -2,6 +2,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { MapPin, Clock, Car, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import RideReceipt from "./RideReceipt";
 import type { Ride } from "@/types/rider";
 import { statusColors } from "@/types/rider";
@@ -14,6 +16,20 @@ interface RideDetailSheetProps {
 
 export default function RideDetailSheet({ ride, open, onOpenChange }: RideDetailSheetProps) {
   const { t } = useTranslation();
+
+  const { data: driverProfile } = useQuery({
+    queryKey: ["driver-profile", ride?.driver_id],
+    queryFn: async () => {
+      if (!ride?.driver_id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, vehicle_make, vehicle_model, vehicle_year, vehicle_color, license_plate")
+        .eq("id", ride.driver_id)
+        .single();
+      return data;
+    },
+    enabled: !!ride?.driver_id && open,
+  });
 
   if (!ride) return null;
 
@@ -119,7 +135,17 @@ export default function RideDetailSheet({ ride, open, onOpenChange }: RideDetail
           </div>
 
           {/* Receipt */}
-          {ride.status === "completed" && <RideReceipt ride={ride} />}
+          {ride.status === "completed" && (
+            <RideReceipt
+              ride={ride}
+              driverName={driverProfile?.full_name}
+              vehicleMake={driverProfile?.vehicle_make}
+              vehicleModel={driverProfile?.vehicle_model}
+              vehicleYear={driverProfile?.vehicle_year}
+              vehicleColor={driverProfile?.vehicle_color}
+              licensePlate={driverProfile?.license_plate}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>

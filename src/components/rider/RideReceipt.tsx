@@ -9,6 +9,12 @@ import logoSrc from "@/assets/logo.png";
 
 interface RideReceiptProps {
   ride: Ride;
+  driverName?: string | null;
+  vehicleMake?: string | null;
+  vehicleModel?: string | null;
+  vehicleYear?: number | null;
+  vehicleColor?: string | null;
+  licensePlate?: string | null;
 }
 
 function cents(v: number) {
@@ -25,7 +31,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export default function RideReceipt({ ride }: RideReceiptProps) {
+export default function RideReceipt({ ride, driverName, vehicleMake, vehicleModel, vehicleYear, vehicleColor, licensePlate }: RideReceiptProps) {
   const { t } = useTranslation();
   const receiptRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +44,7 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
   const tip = ride.tip_cents || 0;
   const tripId = ride.id.slice(0, 8).toUpperCase();
   const dateStr = format(new Date(ride.created_at), "MMM d, yyyy · h:mm a");
+  const vehicleDesc = [vehicleColor, vehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(" ");
 
   const receiptText = [
     `PickYou — Trip Receipt`,
@@ -48,7 +55,9 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
     `To: ${ride.dropoff_address}`,
     ride.distance_km ? `Distance: ${Number(ride.distance_km).toFixed(1)} km` : "",
     `Service: ${ride.service_type?.replace("_", " ")}`,
-    ``,
+    driverName ? `Driver: ${driverName}` : "",
+    vehicleDesc ? `Vehicle: ${vehicleDesc}` : "",
+    licensePlate ? `Plate: ${licensePlate}` : "",
     `--- Fare Breakdown ---`,
     `Subtotal: ${cents(subtotal)}`,
     serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
@@ -120,6 +129,9 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
     if (ride.distance_km) {
       infoRow("Distance", `${Number(ride.distance_km).toFixed(1)} km`);
     }
+    if (driverName) infoRow("Driver", driverName);
+    if (vehicleDesc) infoRow("Vehicle", vehicleDesc);
+    if (licensePlate) infoRow("Plate", licensePlate);
 
     y += 1;
     dashLine(y);
@@ -258,6 +270,24 @@ export default function RideReceipt({ ride }: RideReceiptProps) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("receipt.distance", "Distance")}</span>
               <span className="font-mono text-xs">{Number(ride.distance_km).toFixed(1)} km</span>
+            </div>
+          )}
+          {driverName && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("receipt.driver", "Driver")}</span>
+              <span className="text-xs">{driverName}</span>
+            </div>
+          )}
+          {vehicleDesc && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("receipt.vehicle", "Vehicle")}</span>
+              <span className="capitalize text-xs">{vehicleDesc}</span>
+            </div>
+          )}
+          {licensePlate && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("receipt.plate", "Plate")}</span>
+              <span className="font-mono text-xs">{licensePlate}</span>
             </div>
           )}
         </div>
