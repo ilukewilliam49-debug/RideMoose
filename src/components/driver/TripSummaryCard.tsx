@@ -85,6 +85,12 @@ export default function TripSummaryCard({ ride, onDismiss }: TripSummaryCardProp
             <span className="text-muted-foreground">Commission</span>
             <span className="font-medium text-destructive">-{fmt(ride.commission_cents ?? 0)}</span>
           </div>
+          {taxCents > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">GST (5%)</span>
+              <span className="font-medium">{fmt(taxCents)}</span>
+            </div>
+          )}
           {tipCents > 0 && (
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Tip</span>
