@@ -82,9 +82,9 @@ const LandingHero = () => {
             <div className="relative overflow-hidden rounded-3xl">
               <img
                 src={heroBg}
-                alt="PickYou ride"
-                width={640}
-                height={480}
+                alt="SUV driving through Yellowknife with boreal forest and northern sky"
+                width={1280}
+                height={720}
                 className="h-[400px] w-full object-cover lg:h-[460px]"
               />
               {/* Schedule card overlay */}

@@ -18,7 +18,7 @@ const LandingNav = () => {
             className="flex items-center"
             aria-label="PickYou home"
           >
-            <img src={logoImg} alt="PickYou" className="h-7 object-contain" />
+            <img src={logoImg} alt="PickYou — Yellowknife taxi and transportation" className="h-7 object-contain" />
           </button>
 
           {/* Desktop nav links */}

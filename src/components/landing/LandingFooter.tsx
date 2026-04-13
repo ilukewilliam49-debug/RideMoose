@@ -12,7 +12,7 @@ const LandingFooter = () => {
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
           {/* Brand */}
           <div className="space-y-3">
-            <img src={logoImg} alt="PickYou" className="h-7 object-contain" />
+            <img src={logoImg} alt="PickYou logo — Yellowknife transportation platform" className="h-7 object-contain" />
             <p className="text-xs leading-relaxed text-muted-foreground max-w-[200px]">
               {t("landing.heroDesc", "Your Ride. Your Choice. Smarter rides, better connections.")}
             </p>

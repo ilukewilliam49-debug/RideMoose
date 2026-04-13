@@ -16,7 +16,7 @@ const PrivacyPolicy = () => {
     setMeta("description", "Learn how PickYou collects, uses, and protects your personal data including location, payment, and ride history.");
     let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
-    link.href = "https://ridemoose.com/privacy";
+    link.href = "https://pickyou.lovable.app/privacy";
   }, []);
 
   return (
