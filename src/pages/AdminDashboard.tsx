@@ -44,23 +44,15 @@ const AdminDashboard = () => {
           .from("support_conversations")
           .select("id", { count: "exact", head: true })
           .in("status", ["open", "in_progress"]),
-        supabase
-          .from("rides")
-          .select("final_price")
-          .eq("status", "completed"),
+        supabase.rpc("get_total_revenue"),
       ]);
-
-      const totalRevenue = (revenueRes.data || []).reduce(
-        (sum: number, r: any) => sum + Number(r.final_price || 0),
-        0
-      );
 
       return {
         pendingVerifications: verificationsRes.count || 0,
         totalUsers: usersRes.count || 0,
         activeRides: ridesRes.count || 0,
         openSupport: supportRes.count || 0,
-        totalRevenue,
+        totalRevenue: Number(revenueRes.data || 0),
       };
     },
     refetchInterval: 30000,
