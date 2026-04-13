@@ -15,8 +15,8 @@
     --popover: 220 28% 14%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 45 95% 55%;
-    --primary-foreground: 220 30% 12%;
+    --primary: 207 90% 54%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 220 25% 18%;
     --secondary-foreground: 0 0% 90%;
@@ -24,37 +24,37 @@
     --muted: 220 22% 16%;
     --muted-foreground: 220 15% 55%;
 
-    --accent: 220 25% 20%;
-    --accent-foreground: 0 0% 95%;
+    --accent: 30 92% 56%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 25% 20%;
     --input: 220 25% 20%;
-    --ring: 45 95% 55%;
+    --ring: 207 90% 54%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 220 30% 12%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 45 95% 55%;
-    --sidebar-primary-foreground: 220 30% 12%;
+    --sidebar-primary: 207 90% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 25% 16%;
     --sidebar-accent-foreground: 0 0% 90%;
     --sidebar-border: 220 25% 18%;
-    --sidebar-ring: 45 95% 55%;
+    --sidebar-ring: 207 90% 54%;
 
     /* Custom tokens */
-    --gold: 45 95% 55%;
-    --gold-glow: 40 100% 60%;
+    --gold: 30 92% 56%;
+    --gold-glow: 25 95% 60%;
     --steel: 220 15% 55%;
     --steel-light: 220 15% 70%;
     --surface: 220 28% 14%;
     --surface-hover: 220 24% 18%;
-    --gradient-gold: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
+    --gradient-gold: linear-gradient(135deg, hsl(207 90% 54%), hsl(30 92% 56%));
     --gradient-dark: linear-gradient(180deg, hsl(220 30% 10%), hsl(220 30% 6%));
-    --shadow-gold: 0 0 30px -5px hsl(45 95% 55% / 0.3);
+    --shadow-gold: 0 0 30px -5px hsl(207 90% 54% / 0.3);
     --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
   }
 
@@ -85,7 +85,7 @@
 
 @layer utilities {
   .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
+    background: linear-gradient(135deg, hsl(207 90% 54%), hsl(30 92% 56%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -93,18 +93,18 @@
 
   /* Keep old class as alias */
   .text-gradient-crimson {
-    background: linear-gradient(135deg, hsl(45 95% 55%), hsl(35 90% 50%));
+    background: linear-gradient(135deg, hsl(207 90% 54%), hsl(30 92% 56%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .glow-gold {
-    box-shadow: 0 0 30px -5px hsl(45 95% 55% / 0.3);
+    box-shadow: 0 0 30px -5px hsl(207 90% 54% / 0.3);
   }
 
   .glow-crimson {
-    box-shadow: 0 0 30px -5px hsl(45 95% 55% / 0.3);
+    box-shadow: 0 0 30px -5px hsl(207 90% 54% / 0.3);
   }
 
   .glass-surface {
