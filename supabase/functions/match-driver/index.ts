@@ -1,15 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const DISPATCH_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 3_000;
 const MAX_CANDIDATES = 3;
 const CITY_SPEED_KMH = 30;
+
+// Rate-limit: max 3 calls per user per 60 seconds
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 3;
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(userId: string): { allowed: boolean; retryAfterMs?: number } {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true };
+  }
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return { allowed: false, retryAfterMs: entry.resetAt - now };
+  }
+  entry.count++;
+  return { allowed: true };
+}
+
+// Periodically clean up expired entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateLimitMap) {
+    if (now >= val.resetAt) rateLimitMap.delete(key);
+  }
+}, 60_000);
+
+// Input validation schema
+const RequestBody = z.object({
+  ride_id: z.string().uuid("ride_id must be a valid UUID"),
+});
 
 /** Haversine distance in km */
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -38,36 +72,60 @@ function serviceFilter(serviceType: string): Record<string, any> {
   }
 }
 
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { ride_id } = await req.json();
-    if (!ride_id) {
-      return new Response(JSON.stringify({ error: "ride_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // --- Validate input ---
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
     }
+
+    const parsed = RequestBody.safeParse(body);
+    if (!parsed.success) {
+      return jsonResponse({ error: parsed.error.flatten().fieldErrors }, 400);
+    }
+    const { ride_id } = parsed.data;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const googleKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
 
-    // Validate caller owns the ride
+    // --- Authenticate caller ---
     const authHeader = req.headers.get("Authorization");
-    let callerUserId: string | null = null;
-    if (authHeader?.startsWith("Bearer ")) {
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData, error: userErr } = await userClient.auth.getUser();
-      if (!userErr && userData?.user) {
-        callerUserId = userData.user.id;
-      }
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+    const callerUserId = userData.user.id;
+
+    // --- Rate-limit ---
+    const rl = checkRateLimit(callerUserId);
+    if (!rl.allowed) {
+      return jsonResponse(
+        { error: "Too many requests. Try again later.", retry_after_ms: rl.retryAfterMs },
+        429
+      );
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
@@ -80,32 +138,21 @@ serve(async (req) => {
       .single();
 
     if (rideErr || !ride) {
-      return new Response(JSON.stringify({ error: "Ride not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Ride not found" }, 404);
     }
 
     // Verify ownership
-    if (callerUserId) {
-      const { data: riderProfile } = await admin
-        .from("profiles")
-        .select("id")
-        .eq("user_id", callerUserId)
-        .single();
-      if (!riderProfile || riderProfile.id !== ride.rider_id) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    const { data: riderProfile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("user_id", callerUserId)
+      .single();
+    if (!riderProfile || riderProfile.id !== ride.rider_id) {
+      return jsonResponse({ error: "Unauthorized" }, 403);
     }
 
     if (!ride.pickup_lat || !ride.pickup_lng) {
-      return new Response(JSON.stringify({ error: "Ride has no pickup coordinates" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Ride has no pickup coordinates" }, 400);
     }
 
     // Find eligible drivers
@@ -128,10 +175,7 @@ serve(async (req) => {
 
     const { data: drivers } = await query;
     if (!drivers || drivers.length === 0) {
-      return new Response(
-        JSON.stringify({ matched: false, reason: "no_drivers_available" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ matched: false, reason: "no_drivers_available" });
     }
 
     // Calculate distances and sort
@@ -150,14 +194,12 @@ serve(async (req) => {
 
     // Sequential dispatch
     for (const candidate of ranked) {
-      // Mark ride as dispatched to this driver
       await admin.from("rides").update({
         status: "dispatched",
         dispatched_to_driver_id: candidate.id,
         dispatch_expires_at: new Date(Date.now() + DISPATCH_TIMEOUT_MS).toISOString(),
       }).eq("id", ride_id);
 
-      // Notify driver
       await admin.from("notifications").insert({
         user_id: candidate.id,
         title: "New ride request",
@@ -166,7 +208,6 @@ serve(async (req) => {
         ride_id: ride_id,
       });
 
-      // Poll for acceptance (using atomic accept_ride function on driver side)
       let accepted = false;
       const deadline = Date.now() + DISPATCH_TIMEOUT_MS;
       while (Date.now() < deadline) {
@@ -182,21 +223,16 @@ serve(async (req) => {
           break;
         }
         if (updated?.status === "cancelled") {
-          return new Response(
-            JSON.stringify({ matched: false, reason: "ride_cancelled" }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return jsonResponse({ matched: false, reason: "ride_cancelled" });
         }
       }
 
       if (accepted) {
-        // Clear dispatch fields
         await admin.from("rides").update({
           dispatched_to_driver_id: null,
           dispatch_expires_at: null,
         }).eq("id", ride_id);
 
-        // Get ETA via Directions API
         let etaSeconds = Math.round((candidate.distance_km / CITY_SPEED_KMH) * 3600);
         let etaText = `${Math.round(etaSeconds / 60)} min`;
         let distanceKm = candidate.distance_km;
@@ -217,20 +253,16 @@ serve(async (req) => {
           }
         }
 
-        return new Response(
-          JSON.stringify({
-            matched: true,
-            driver_id: candidate.id,
-            driver_name: candidate.full_name,
-            eta_seconds: etaSeconds,
-            eta_text: etaText,
-            distance_km: Math.round(distanceKm * 10) / 10,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({
+          matched: true,
+          driver_id: candidate.id,
+          driver_name: candidate.full_name,
+          eta_seconds: etaSeconds,
+          eta_text: etaText,
+          distance_km: Math.round(distanceKm * 10) / 10,
+        });
       }
 
-      // Not accepted — clear dispatch for this candidate and try next
       await admin.from("rides").update({
         dispatched_to_driver_id: null,
         dispatch_expires_at: null,
@@ -244,14 +276,8 @@ serve(async (req) => {
       dispatch_expires_at: null,
     }).eq("id", ride_id);
 
-    return new Response(
-      JSON.stringify({ matched: false, reason: "no_driver_accepted" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ matched: false, reason: "no_driver_accepted" });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: err.message }, 500);
   }
 });
