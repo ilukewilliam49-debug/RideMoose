@@ -255,6 +255,7 @@ const RiderDashboard = () => {
 
   return (
     <div className="space-y-6 pt-4">
+      <DriverMatchingOverlay visible={matchingInProgress} />
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-3">
