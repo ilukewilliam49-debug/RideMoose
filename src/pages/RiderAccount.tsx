@@ -251,6 +251,22 @@ const RiderAccount = () => {
         )}
       </div>
 
+      {/* Test Notification */}
+      <div className="rounded-xl border border-border/40 p-4">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 h-12 rounded-xl"
+          onClick={handleTestNotification}
+          disabled={testingSend}
+        >
+          <Bell className="h-4 w-4" />
+          {testingSend ? "Sending…" : "Test Push Notification"}
+        </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          Send a test notification to verify your push setup is working.
+        </p>
+      </div>
+
       {/* Navigation links */}
       <div className="space-y-1">
         <button
