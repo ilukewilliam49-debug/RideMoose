@@ -38,9 +38,21 @@ const DriverOnboarding = () => {
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
 
+  const currentYear = new Date().getFullYear();
+  const LICENSE_PLATE_REGEX = /^[A-Z0-9]{1,8}[-\s]?[A-Z0-9]{1,8}$/i;
+
   const handleSaveVehicle = async () => {
     if (!vehicleType || !vehicleMake.trim() || !vehicleModel.trim() || !vehicleYear || !vehicleColor.trim() || !licensePlate.trim()) {
       toast.error("Please fill in all vehicle details");
+      return;
+    }
+    const yearNum = parseInt(vehicleYear);
+    if (isNaN(yearNum) || yearNum < 2016 || yearNum > currentYear) {
+      toast.error(`Vehicle year must be between 2016 and ${currentYear}`);
+      return;
+    }
+    if (!LICENSE_PLATE_REGEX.test(licensePlate.trim())) {
+      toast.error("Enter a valid license plate (letters and numbers, e.g. ABC-1234)");
       return;
     }
     setSaving(true);
