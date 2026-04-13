@@ -54,3 +54,6 @@ verify_jwt = false
 [functions.match-driver]
 verify_jwt = false
 
+[functions.cleanup-stale-rides]
+verify_jwt = false
+

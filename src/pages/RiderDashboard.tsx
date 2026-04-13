@@ -46,6 +46,7 @@ const RiderDashboard = () => {
   const state = useRideBookingState();
   const [matchingInProgress, setMatchingInProgress] = useState(false);
   const matchingRideIdRef = useRef<string | null>(null);
+  const submittingRef = useRef(false);
   const queries = useRideQueries({
     profileId: profile?.id,
     userId: profile?.user_id,
@@ -93,11 +94,13 @@ const RiderDashboard = () => {
   };
 
   const requestRide = async () => {
+    if (submittingRef.current) return;
     if (!profile?.id || !state.pickup || !state.dropoff || !state.pickupCoords || !state.dropoffCoords) return;
     if (state.serviceType === "retail_delivery" && !queries.riderOrgMembership) {
       toast.error(t("rider.businessAccountRequired"));
       return;
     }
+    submittingRef.current = true;
     state.setLoading(true);
     try {
       const estCents = Math.round(parseFloat(queries.estimatedPrice || "0") * 100);
@@ -219,6 +222,7 @@ const RiderDashboard = () => {
       toast.error(err.message);
     } finally {
       state.setLoading(false);
+      submittingRef.current = false;
     }
   };
 

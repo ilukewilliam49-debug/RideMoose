@@ -51,6 +51,13 @@ export type Database = {
             foreignKeyName: "delivery_bids_ride_id_fkey"
             columns: ["ride_id"]
             isOneToOne: false
+            referencedRelation: "driver_rides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_bids_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
             referencedRelation: "rides"
             referencedColumns: ["id"]
           },
@@ -93,6 +100,13 @@ export type Database = {
             columns: ["menu_item_id"]
             isOneToOne: false
             referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_order_items_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "driver_rides"
             referencedColumns: ["id"]
           },
           {
@@ -327,6 +341,13 @@ export type Database = {
             foreignKeyName: "notification_logs_ride_id_fkey"
             columns: ["ride_id"]
             isOneToOne: false
+            referencedRelation: "driver_rides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
             referencedRelation: "rides"
             referencedColumns: ["id"]
           },
@@ -392,6 +413,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "driver_rides"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_ride_id_fkey"
             columns: ["ride_id"]
@@ -969,6 +997,13 @@ export type Database = {
             foreignKeyName: "ride_events_ride_id_fkey"
             columns: ["ride_id"]
             isOneToOne: false
+            referencedRelation: "driver_rides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ride_events_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
             referencedRelation: "rides"
             referencedColumns: ["id"]
           },
@@ -1055,6 +1090,13 @@ export type Database = {
             foreignKeyName: "ride_messages_ride_id_fkey"
             columns: ["ride_id"]
             isOneToOne: false
+            referencedRelation: "driver_rides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ride_messages_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
             referencedRelation: "rides"
             referencedColumns: ["id"]
           },
@@ -1108,6 +1150,13 @@ export type Database = {
             columns: ["rated_user"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ride_ratings_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "driver_rides"
             referencedColumns: ["id"]
           },
           {
@@ -1551,6 +1600,13 @@ export type Database = {
             foreignKeyName: "support_conversations_ride_id_fkey"
             columns: ["ride_id"]
             isOneToOne: false
+            referencedRelation: "driver_rides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_conversations_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
             referencedRelation: "rides"
             referencedColumns: ["id"]
           },
@@ -1639,7 +1695,246 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      driver_rides: {
+        Row: {
+          bidding_ends_at: string | null
+          billed_to: string | null
+          cancellation_fee_cents: number | null
+          cancellation_reason: string | null
+          commission_cents: number | null
+          completed_at: string | null
+          cost_center: string | null
+          created_at: string | null
+          delivery_fee_cents: number | null
+          dispatch_expires_at: string | null
+          dispatched_to_driver_id: string | null
+          distance_km: number | null
+          driver_earnings_cents: number | null
+          driver_id: string | null
+          dropoff_address: string | null
+          dropoff_lat: number | null
+          dropoff_lng: number | null
+          dropoff_notes: string | null
+          duration_min: number | null
+          estimated_item_cost_cents: number | null
+          estimated_price: number | null
+          final_fare_cents: number | null
+          final_item_cost_cents: number | null
+          final_price: number | null
+          id: string | null
+          invoice_id: string | null
+          invoiced: boolean | null
+          item_description: string | null
+          marketplace_delivery: boolean | null
+          meter_ended_at: string | null
+          meter_started_at: string | null
+          meter_status: string | null
+          order_value_cents: number | null
+          organization_id: string | null
+          package_size: string | null
+          passenger_count: number | null
+          payment_option: string | null
+          pickup_address: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          pickup_notes: string | null
+          po_number: string | null
+          price_increase_count: number | null
+          pricing_model: string | null
+          proof_photo_required: boolean | null
+          proof_photo_url: string | null
+          quantity: number | null
+          receipt_photo_url: string | null
+          requires_loading_help: boolean | null
+          rider_id: string | null
+          scheduled_at: string | null
+          service_fee_cents: number | null
+          service_type: Database["public"]["Enums"]["service_type"] | null
+          shopper_fee_cents: number | null
+          signature_required: boolean | null
+          stairs_involved: boolean | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["ride_status"] | null
+          store_id: string | null
+          store_name: string | null
+          tax_cents: number | null
+          tip_cents: number | null
+          updated_at: string | null
+          waiting_min: number | null
+          weight_estimate_kg: number | null
+        }
+        Insert: {
+          bidding_ends_at?: string | null
+          billed_to?: string | null
+          cancellation_fee_cents?: number | null
+          cancellation_reason?: string | null
+          commission_cents?: number | null
+          completed_at?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          delivery_fee_cents?: number | null
+          dispatch_expires_at?: string | null
+          dispatched_to_driver_id?: string | null
+          distance_km?: number | null
+          driver_earnings_cents?: number | null
+          driver_id?: string | null
+          dropoff_address?: string | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          dropoff_notes?: string | null
+          duration_min?: number | null
+          estimated_item_cost_cents?: number | null
+          estimated_price?: number | null
+          final_fare_cents?: number | null
+          final_item_cost_cents?: number | null
+          final_price?: number | null
+          id?: string | null
+          invoice_id?: string | null
+          invoiced?: boolean | null
+          item_description?: string | null
+          marketplace_delivery?: boolean | null
+          meter_ended_at?: string | null
+          meter_started_at?: string | null
+          meter_status?: string | null
+          order_value_cents?: number | null
+          organization_id?: string | null
+          package_size?: string | null
+          passenger_count?: number | null
+          payment_option?: string | null
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_notes?: string | null
+          po_number?: string | null
+          price_increase_count?: number | null
+          pricing_model?: string | null
+          proof_photo_required?: boolean | null
+          proof_photo_url?: string | null
+          quantity?: number | null
+          receipt_photo_url?: string | null
+          requires_loading_help?: boolean | null
+          rider_id?: string | null
+          scheduled_at?: string | null
+          service_fee_cents?: number | null
+          service_type?: Database["public"]["Enums"]["service_type"] | null
+          shopper_fee_cents?: number | null
+          signature_required?: boolean | null
+          stairs_involved?: boolean | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ride_status"] | null
+          store_id?: string | null
+          store_name?: string | null
+          tax_cents?: number | null
+          tip_cents?: number | null
+          updated_at?: string | null
+          waiting_min?: number | null
+          weight_estimate_kg?: number | null
+        }
+        Update: {
+          bidding_ends_at?: string | null
+          billed_to?: string | null
+          cancellation_fee_cents?: number | null
+          cancellation_reason?: string | null
+          commission_cents?: number | null
+          completed_at?: string | null
+          cost_center?: string | null
+          created_at?: string | null
+          delivery_fee_cents?: number | null
+          dispatch_expires_at?: string | null
+          dispatched_to_driver_id?: string | null
+          distance_km?: number | null
+          driver_earnings_cents?: number | null
+          driver_id?: string | null
+          dropoff_address?: string | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          dropoff_notes?: string | null
+          duration_min?: number | null
+          estimated_item_cost_cents?: number | null
+          estimated_price?: number | null
+          final_fare_cents?: number | null
+          final_item_cost_cents?: number | null
+          final_price?: number | null
+          id?: string | null
+          invoice_id?: string | null
+          invoiced?: boolean | null
+          item_description?: string | null
+          marketplace_delivery?: boolean | null
+          meter_ended_at?: string | null
+          meter_started_at?: string | null
+          meter_status?: string | null
+          order_value_cents?: number | null
+          organization_id?: string | null
+          package_size?: string | null
+          passenger_count?: number | null
+          payment_option?: string | null
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_notes?: string | null
+          po_number?: string | null
+          price_increase_count?: number | null
+          pricing_model?: string | null
+          proof_photo_required?: boolean | null
+          proof_photo_url?: string | null
+          quantity?: number | null
+          receipt_photo_url?: string | null
+          requires_loading_help?: boolean | null
+          rider_id?: string | null
+          scheduled_at?: string | null
+          service_fee_cents?: number | null
+          service_type?: Database["public"]["Enums"]["service_type"] | null
+          shopper_fee_cents?: number | null
+          signature_required?: boolean | null
+          stairs_involved?: boolean | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ride_status"] | null
+          store_id?: string | null
+          store_name?: string | null
+          tax_cents?: number | null
+          tip_cents?: number | null
+          updated_at?: string | null
+          waiting_min?: number | null
+          weight_estimate_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rides_dispatched_to_driver_id_fkey"
+            columns: ["dispatched_to_driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rides_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rides_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rides_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_ride: {

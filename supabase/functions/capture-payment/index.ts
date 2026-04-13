@@ -215,7 +215,8 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const stripeFeeCents = Math.round(grossFareCents * STRIPE_RATE + STRIPE_FIXED_CENTS);
+    // Stripe fees are based on what we actually capture (riderTotalCents), not just the fare
+    const stripeFeeCents = Math.round(riderTotalCents * STRIPE_RATE + STRIPE_FIXED_CENTS);
     const driverEarnings = grossFareCents - commissionCents - stripeFeeCents;
     const authorizedAmount = ride.authorized_amount_cents || 0;
 
