@@ -59,20 +59,31 @@ export const useAuth = () => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (event === "TOKEN_REFRESHED") {
-          // Successfully refreshed — clear any expired state
           clearSessionExpired();
         }
 
         if (event === "SIGNED_OUT") {
           // Only show expired dialog if we had a user before (not manual sign-out)
-          // Manual sign-out sets user to null before this fires
         }
 
         setUser(session?.user ?? null);
         if (session?.user) {
           clearSessionExpired();
+
+          // Handle Google OAuth role assignment from URL params
+          if (event === "SIGNED_IN") {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roleParam = urlParams.get("role");
+            if (roleParam === "driver") {
+              // Update user metadata so profile trigger picks it up for new users,
+              // and update existing profile for returning users
+              await supabase.auth.updateUser({ data: { role: "driver" } });
+              await supabase.from("profiles").update({ role: "driver" as any }).eq("user_id", session.user.id);
+            }
+          }
+
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
