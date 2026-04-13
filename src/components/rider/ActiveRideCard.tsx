@@ -47,6 +47,17 @@ const ActiveRideCard = ({ activeRide, driverName, statusColor, onCancelClick }: 
             <DeliveryBidsList rideId={activeRide.id} />
           </div>
         )}
+        {(activeRide.status === "accepted" || activeRide.status === "in_progress") && (
+          <div className="mt-2">
+            <RideSafetyActions
+              rideId={activeRide.id}
+              pickupAddress={activeRide.pickup_address}
+              dropoffAddress={activeRide.dropoff_address}
+              driverName={driverName}
+              serviceType={activeRide.service_type}
+            />
+          </div>
+        )}
         {(activeRide.status === "requested" || activeRide.status === "accepted") && (
           <div className="flex gap-2 mt-2">
             {activeRide.driver_id && (
