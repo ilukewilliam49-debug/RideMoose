@@ -284,6 +284,31 @@ export default function AdminUserDetail() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Vehicle Details */}
+              {(profile.vehicle_make || profile.vehicle_model || profile.license_plate) && (
+                <div className="pt-2 border-t space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vehicle Details</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    {profile.vehicle_make && (
+                      <div><span className="text-muted-foreground">Make:</span> {profile.vehicle_make}</div>
+                    )}
+                    {profile.vehicle_model && (
+                      <div><span className="text-muted-foreground">Model:</span> {profile.vehicle_model}</div>
+                    )}
+                    {profile.vehicle_year && (
+                      <div><span className="text-muted-foreground">Year:</span> {profile.vehicle_year}</div>
+                    )}
+                    {profile.vehicle_color && (
+                      <div><span className="text-muted-foreground">Color:</span> {profile.vehicle_color}</div>
+                    )}
+                  </div>
+                  {profile.license_plate && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="font-mono text-xs tracking-wider">{profile.license_plate}</Badge>
+                    </div>
+                  )}
+                </div>
+              )}
               {[
                 { field: "can_taxi", label: "Taxi", icon: Car },
                 { field: "can_courier", label: "Courier", icon: Package },
