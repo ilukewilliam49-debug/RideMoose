@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
+import TestRideFlowPanel from "@/components/admin/TestRideFlowPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
