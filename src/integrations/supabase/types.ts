@@ -1495,6 +1495,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_ride: {
+        Args: { _driver_profile_id: string; _ride_id: string }
+        Returns: Json
+      }
       authorize_realtime_channel: {
         Args: { _channel: string; _user_id: string }
         Returns: boolean
