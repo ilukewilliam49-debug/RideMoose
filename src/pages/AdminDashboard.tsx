@@ -152,7 +152,7 @@ const AdminDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.06, duration: 0.3 }}
                   onClick={() => navigate(card.path)}
-                  className="rounded-3xl border border-border/50 bg-card/70 p-6 text-left transition-all hover:border-primary/30 hover:shadow-[0_10px_30px_-12px_hsl(45_95%_55%/0.18)]"
+                  className="rounded-3xl border border-border/50 bg-card/70 p-6 text-left transition-all hover:border-primary/30 hover:shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.18)]"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="rounded-2xl bg-primary/10 p-3 text-primary">
