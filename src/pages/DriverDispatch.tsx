@@ -357,7 +357,16 @@ const DriverDispatch = () => {
   }
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="relative space-y-4 pb-6">
+      {/* Urgent dispatch flash overlay */}
+      <div
+        className={`pointer-events-none fixed inset-0 z-40 transition-opacity duration-300 ${
+          urgentFlash ? "opacity-100" : "opacity-0"
+        }`}
+        style={{
+          background: "radial-gradient(circle at center, hsl(var(--primary) / 0.15) 0%, transparent 70%)",
+        }}
+      />
       <PageHeader profile={profile} />
 
       {/* Trip summary after completion */}
