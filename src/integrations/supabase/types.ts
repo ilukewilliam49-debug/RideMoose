@@ -1510,6 +1510,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_total_revenue: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
