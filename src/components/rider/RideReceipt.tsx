@@ -31,14 +31,18 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+const PICKYOU_SURCHARGE_CENTS = 120; // $1.20
+
 export default function RideReceipt({ ride, driverName, vehicleMake, vehicleModel, vehicleYear, vehicleColor, licensePlate }: RideReceiptProps) {
   const { t } = useTranslation();
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const totalFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
+  const isPrivateHire = ride.service_type === "private_hire";
+  const grossFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
   const serviceFee = ride.service_fee_cents || 0;
+  const surchargeCents = isPrivateHire ? PICKYOU_SURCHARGE_CENTS : 0;
   const tax = ride.tax_cents || 0;
-  const subtotal = totalFare - serviceFee - tax;
+  const totalFare = grossFare + serviceFee + surchargeCents + tax;
   const captured = ride.captured_amount_cents || 0;
   const outstanding = ride.outstanding_amount_cents || 0;
   const tip = ride.tip_cents || 0;
@@ -59,8 +63,9 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     vehicleDesc ? `Vehicle: ${vehicleDesc}` : "",
     licensePlate ? `Plate: ${licensePlate}` : "",
     `--- Fare Breakdown ---`,
-    `Subtotal: ${cents(subtotal)}`,
+    `Fare: ${cents(grossFare)}`,
     serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
+    surchargeCents > 0 ? `PickYou Surcharge: ${cents(surchargeCents)}` : "",
     tax > 0 ? `GST (5%): ${cents(tax)}` : "",
     tip > 0 ? `Tip: ${cents(tip)}` : "",
     `Total: ${cents(totalFare + tip)}`,
@@ -72,7 +77,7 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
 
   const generatePdf = useCallback(async () => {
     const { default: jsPDF } = await import("jspdf");
-    const doc = new jsPDF({ unit: "mm", format: [80, 200] }); // receipt-width
+    const doc = new jsPDF({ unit: "mm", format: [80, 200] });
 
     const w = 80;
     const margin = 6;
@@ -93,14 +98,12 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
       y += 10;
     }
 
-    // Title
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(120);
     doc.text("TRIP RECEIPT", w / 2, y, { align: "center" });
     y += 5;
 
-    // Dashed line helper
     const dashLine = (atY: number) => {
       doc.setDrawColor(180);
       doc.setLineDashPattern([1, 1], 0);
@@ -111,7 +114,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     dashLine(y);
     y += 4;
 
-    // Trip info rows
     const infoRow = (label: string, value: string) => {
       doc.setFontSize(7);
       doc.setFont("helvetica", "normal");
@@ -141,7 +143,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "normal");
 
-    // Pickup dot
     doc.setFillColor(34, 197, 94);
     doc.circle(margin + 1.5, y - 0.8, 1, "F");
     doc.setTextColor(60);
@@ -149,7 +150,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     doc.text(pickupLines, margin + 5, y);
     y += pickupLines.length * 3 + 2;
 
-    // Dropoff dot
     doc.setFillColor(124, 58, 237);
     doc.circle(margin + 1.5, y - 0.8, 1, "F");
     doc.setTextColor(60);
@@ -174,8 +174,9 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
       y += 4;
     };
 
-    fareRow("Subtotal", cents(subtotal));
+    fareRow("Fare", cents(grossFare));
     if (serviceFee > 0) fareRow("Service fee", cents(serviceFee));
+    if (surchargeCents > 0) fareRow("PickYou Surcharge", cents(surchargeCents));
     if (tax > 0) fareRow("GST (5%)", cents(tax));
     if (tip > 0) fareRow("Tip", cents(tip));
 
@@ -191,26 +192,23 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     dashLine(y);
     y += 4;
 
-    // Payment info
     fareRow("Payment", ride.payment_option.replace("_", " "));
     if (captured > 0) fareRow("Paid in-app", cents(captured));
     if (outstanding > 0) fareRow("Due to driver", cents(outstanding), true, [234, 179, 8]);
 
     y += 3;
 
-    // Footer
     doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150);
     doc.text("Thank you for riding with PickYou!", w / 2, y, { align: "center" });
     y += 8;
 
-    // Trim page to content height
     const pageHeight = y;
     (doc as any).internal.pageSize.height = pageHeight;
 
     return doc;
-  }, [ride, totalFare, serviceFee, tax, subtotal, captured, outstanding, tip, tripId, dateStr]);
+  }, [ride, grossFare, serviceFee, surchargeCents, tax, totalFare, captured, outstanding, tip, tripId, dateStr]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -239,7 +237,7 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     toast.success(t("receipt.copiedToClipboard", "Receipt copied to clipboard"));
   }, [generatePdf, tripId, receiptText, t]);
 
-  if (ride.status !== "completed" || totalFare <= 0) return null;
+  if (ride.status !== "completed" || grossFare <= 0) return null;
 
   return (
     <div className="space-y-3">
@@ -307,13 +305,19 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
         {/* Fare breakdown */}
         <div className="border-t border-dashed border-border pt-3 space-y-1.5 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">{t("receipt.subtotal", "Subtotal")}</span>
-            <span className="font-mono">{cents(subtotal)}</span>
+            <span className="text-muted-foreground">{t("receipt.fare", "Fare")}</span>
+            <span className="font-mono">{cents(grossFare)}</span>
           </div>
           {serviceFee > 0 && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("receipt.serviceFee", "Service fee")}</span>
               <span className="font-mono">{cents(serviceFee)}</span>
+            </div>
+          )}
+          {surchargeCents > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">PickYou Surcharge</span>
+              <span className="font-mono">{cents(surchargeCents)}</span>
             </div>
           )}
           {tax > 0 && (
