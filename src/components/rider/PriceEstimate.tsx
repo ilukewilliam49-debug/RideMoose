@@ -21,10 +21,13 @@ const PriceEstimate = ({
   if (!estimatedPrice) return null;
 
   const priceNum = parseFloat(estimatedPrice);
-  const gstAmount = (priceNum * 0.05).toFixed(2);
-  const totalWithTax = (priceNum * 1.05).toFixed(2);
 
   if (serviceType === "private_hire") {
+    const surcharge = 1.20;
+    const subtotal = priceNum + surcharge;
+    const gstAmount = (subtotal * 0.05).toFixed(2);
+    const totalWithTax = (subtotal * 1.05).toFixed(2);
+
     return (
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
         <div className="flex items-center justify-between">
@@ -40,6 +43,10 @@ const PriceEstimate = ({
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Fare</span>
             <span>${estimatedPrice}</span>
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>PickYou Surcharge</span>
+            <span>${surcharge.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>GST (5%)</span>
@@ -83,17 +90,7 @@ const PriceEstimate = ({
             <span className="text-sm font-semibold">{t("rider.taxiMeterEstimate")}</span>
           </div>
           <div className="text-right">
-            <span className="text-2xl font-mono font-bold">${totalWithTax}</span>
-          </div>
-        </div>
-        <div className="space-y-1 pt-1 border-t border-border/50">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Fare</span>
-            <span>${estimatedPrice}</span>
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>GST (5%)</span>
-            <span>${gstAmount}</span>
+            <span className="text-2xl font-mono font-bold">${estimatedPrice}</span>
           </div>
         </div>
         {directionsData && (
@@ -117,7 +114,7 @@ const PriceEstimate = ({
         {directionsFetching && !directionsData && (
           <p className="text-xs text-muted-foreground animate-pulse">{t("rider.checkingTraffic")}</p>
         )}
-        <p className="text-[10px] text-muted-foreground">{t("rider.finalFareNote")}. GST included.</p>
+        <p className="text-[10px] text-muted-foreground">{t("rider.finalFareNote")}. Metered fare only — no tax added.</p>
       </div>
     );
   }
