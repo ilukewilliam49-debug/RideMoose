@@ -27,6 +27,7 @@ const DriverDispatch = () => {
   const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
   const [dismissedSummaryId, setDismissedSummaryId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [urgentFlash, setUrgentFlash] = useState(false);
   const prevPendingCountRef = useRef(0);
   const prevDispatchedIdsRef = useRef<Set<string>>(new Set());
 
@@ -261,6 +262,10 @@ const DriverDispatch = () => {
         setTimeout(() => ctx.close(), 900);
       } catch { /* audio not available */ }
 
+      // Trigger visual flash
+      setUrgentFlash(true);
+      setTimeout(() => setUrgentFlash(false), 1500);
+
       // Strong haptic pattern for dispatched rides
       if (navigator.vibrate) {
         navigator.vibrate([100, 50, 100, 50, 200, 100, 300]);
@@ -352,7 +357,16 @@ const DriverDispatch = () => {
   }
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="relative space-y-4 pb-6">
+      {/* Urgent dispatch flash overlay */}
+      <div
+        className={`pointer-events-none fixed inset-0 z-40 transition-opacity duration-300 ${
+          urgentFlash ? "opacity-100" : "opacity-0"
+        }`}
+        style={{
+          background: "radial-gradient(circle at center, hsl(var(--primary) / 0.15) 0%, transparent 70%)",
+        }}
+      />
       <PageHeader profile={profile} />
 
       {/* Trip summary after completion */}
