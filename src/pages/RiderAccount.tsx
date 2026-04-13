@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle } from "lucide-react";
+import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import SupportChatDialog from "@/components/SupportChatDialog";
@@ -30,6 +30,27 @@ const RiderAccount = () => {
   const [nameValue, setNameValue] = useState(profile?.full_name || "");
   const [nameSaving, setNameSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [testingSend, setTestingSend] = useState(false);
+
+  const handleTestNotification = async () => {
+    setTestingSend(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-push-notification", {
+        body: { mode: "test" },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success("Test notification sent! ✅");
+      } else {
+        toast.info(`Notification sent via ${data?.method || "fallback"}`);
+      }
+    } catch (err: any) {
+      toast.error("Failed to send test notification");
+      console.error(err);
+    } finally {
+      setTestingSend(false);
+    }
+  };
 
   useEffect(() => {
     if (profile?.phone) setRiderPhone(profile.phone);
@@ -228,6 +249,22 @@ const RiderAccount = () => {
             />
           </div>
         )}
+      </div>
+
+      {/* Test Notification */}
+      <div className="rounded-xl border border-border/40 p-4">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 h-12 rounded-xl"
+          onClick={handleTestNotification}
+          disabled={testingSend}
+        >
+          <Bell className="h-4 w-4" />
+          {testingSend ? "Sending…" : "Test Push Notification"}
+        </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          Send a test notification to verify your push setup is working.
+        </p>
       </div>
 
       {/* Navigation links */}
