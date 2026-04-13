@@ -658,6 +658,7 @@ export type Database = {
           launch_start_date: string | null
           license_plate: string | null
           longitude: number | null
+          onesignal_player_id: string | null
           organization_id: string | null
           pet_approved: boolean
           phone: string | null
@@ -695,6 +696,7 @@ export type Database = {
           launch_start_date?: string | null
           license_plate?: string | null
           longitude?: number | null
+          onesignal_player_id?: string | null
           organization_id?: string | null
           pet_approved?: boolean
           phone?: string | null
@@ -732,6 +734,7 @@ export type Database = {
           launch_start_date?: string | null
           license_plate?: string | null
           longitude?: number | null
+          onesignal_player_id?: string | null
           organization_id?: string | null
           pet_approved?: boolean
           phone?: string | null

@@ -1,74 +1,80 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 
 /**
- * Registers the service worker and subscribes to push notifications.
- * Renders nothing — just a side-effect hook component.
+ * Initialises OneSignal Web Push SDK and stores the player ID in the user's profile.
+ * Renders nothing — side-effect only.
  */
 const PushNotificationSetup = () => {
   const { profile } = useAuth();
 
   useEffect(() => {
-    if (!profile?.id || profile.role !== "driver") return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (!profile?.id) return;
 
     const setup = async () => {
       try {
-        // Get VAPID public key from edge function
-        const { data: vapidData, error: vapidErr } = await supabase.functions.invoke("push-vapid-key", {
+        // Fetch OneSignal App ID from edge function
+        const { data, error } = await supabase.functions.invoke("onesignal-app-id", {
           method: "GET",
         });
-        if (vapidErr || !vapidData?.publicKey) return;
-
-        const registration = await navigator.serviceWorker.register("/sw.js");
-        await navigator.serviceWorker.ready;
-
-        const pushManager = (registration as any).pushManager;
-        if (!pushManager) return;
-
-        // Check existing subscription
-        let subscription = await pushManager.getSubscription();
-        if (!subscription) {
-          const permission = await Notification.requestPermission();
-          if (permission !== "granted") return;
-
-          subscription = await pushManager.subscribe({
-            userVisuallyPushes: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey),
-          });
+        if (error || !data?.appId) {
+          console.warn("Could not fetch OneSignal App ID");
+          return;
         }
 
-        const subJson = subscription.toJSON();
-        // Save to DB (upsert)
-        await supabase.from("push_subscriptions").upsert({
-          user_id: profile.id,
-          endpoint: subJson.endpoint,
-          p256dh: subJson.keys?.p256dh || "",
-          auth: subJson.keys?.auth || "",
-        } as any, { onConflict: "user_id,endpoint" });
+        const appId = data.appId;
+
+        // Load OneSignal SDK if not already present
+        if (!(window as any).OneSignal) {
+          await loadOneSignalScript();
+        }
+
+        const OneSignal = (window as any).OneSignal;
+        if (!OneSignal) return;
+
+        await OneSignal.init({ appId, allowLocalhostAsSecureOrigin: true });
+
+        // Wait until the user has subscribed (or is already subscribed)
+        const playerId: string | null = await OneSignal.getUserId();
+        if (playerId) {
+          await savePlayerId(profile.id, playerId);
+        }
+
+        // Listen for future subscription changes
+        OneSignal.on("subscriptionChange", async (isSubscribed: boolean) => {
+          if (isSubscribed) {
+            const newId: string | null = await OneSignal.getUserId();
+            if (newId) await savePlayerId(profile.id, newId);
+          }
+        });
       } catch (err) {
-        // Silent fail — push is optional
-        console.warn("Push notification setup failed:", err);
+        console.warn("OneSignal setup failed:", err);
       }
     };
 
     setup();
-  }, [profile?.id, profile?.role]);
+  }, [profile?.id]);
 
   return null;
 };
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
+async function savePlayerId(profileId: string, playerId: string) {
+  await supabase
+    .from("profiles")
+    .update({ onesignal_player_id: playerId } as any)
+    .eq("id", profileId);
+}
+
+function loadOneSignalScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load OneSignal SDK"));
+    document.head.appendChild(script);
+  });
 }
 
 export default PushNotificationSetup;
