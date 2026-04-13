@@ -58,7 +58,7 @@ const LandingHero = () => {
                   className="h-12 flex-1 rounded-xl text-sm font-bold"
                   onClick={() => navigate("/login")}
                 >
-                  See prices
+                  {t("landing.requestRide")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -68,7 +68,7 @@ const LandingHero = () => {
               onClick={() => navigate("/login")}
               className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline transition-colors"
             >
-              Log in to see your recent activity
+              {t("landing.ctaDesc", "Log in to see your recent activity")}
             </button>
           </motion.div>
 
@@ -89,7 +89,7 @@ const LandingHero = () => {
               />
               {/* Schedule card overlay */}
               <div className="absolute bottom-4 right-4 rounded-2xl bg-card/90 backdrop-blur-sm px-5 py-3.5 ring-1 ring-border/30">
-                <p className="text-xs text-muted-foreground mb-1">Ready to travel?</p>
+                <p className="text-xs text-muted-foreground mb-1">{t("landing.ctaEyebrow", "Ready to travel?")}</p>
                 <button
                   onClick={() => navigate("/login")}
                   className="text-sm font-bold text-primary hover:underline"

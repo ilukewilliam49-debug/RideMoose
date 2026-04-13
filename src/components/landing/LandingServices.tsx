@@ -22,7 +22,7 @@ const LandingServices = () => {
           viewport={{ once: true }}
           className="text-2xl font-black tracking-tight md:text-4xl mb-8"
         >
-          Explore what you can do
+          {t("landing.servicesTitle", "Explore what you can do")}
         </motion.h2>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
