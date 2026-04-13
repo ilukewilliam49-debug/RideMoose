@@ -154,8 +154,25 @@ export default function IncomingRequestCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="rounded-2xl bg-card ring-1 ring-border/50 overflow-hidden"
+      className={cn(
+        "rounded-2xl bg-card overflow-hidden",
+        isDispatchedToMe
+          ? "ring-2 ring-primary shadow-[0_0_20px_-4px_hsl(var(--primary)/0.3)]"
+          : "ring-1 ring-border/50"
+      )}
     >
+      {/* Dispatched badge */}
+      {isDispatchedToMe && (
+        <div className="bg-primary/10 px-4 py-1.5 flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+            Dispatched to you
+          </span>
+        </div>
+      )}
       {/* Request header */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-1.5">
         <div className="flex items-center gap-2 min-w-0">
