@@ -276,6 +276,52 @@ export default function ActiveTripPanel({
     return false;
   };
 
+  const CANCEL_REASONS = [
+    "Vehicle issue / breakdown",
+    "Personal emergency",
+    "Rider unreachable",
+    "Safety concern",
+    "Wrong pickup location",
+  ];
+
+  const handleDriverCancel = async () => {
+    if (!cancelReason.trim()) {
+      toast.error("Please select a reason");
+      return;
+    }
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("rides")
+        .update({
+          status: "cancelled" as any,
+          cancellation_reason: `Driver cancelled: ${cancelReason}`,
+          driver_id: null,
+        } as any)
+        .eq("id", activeRide.id);
+      if (error) throw error;
+
+      // Notify the rider
+      await supabase.from("notifications").insert({
+        user_id: activeRide.rider_id,
+        title: "Driver cancelled your ride",
+        body: `Your driver cancelled the ride. Reason: ${cancelReason}. Please request a new ride.`,
+        type: "ride_cancelled",
+        ride_id: activeRide.id,
+      });
+
+      toast.info("Ride cancelled");
+      setCancelDialogOpen(false);
+      setCancelReason("");
+      queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+      queryClient.invalidateQueries({ queryKey: ["dispatch-rides"] });
+    } catch (err: any) {
+      toast.error(err.message || "Could not cancel ride");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const handleNextAction = () => {
     if (activeRide.status === "accepted") updateRideStatus(activeRide.id, "in_progress");
     else if ((activeRide.status as string) === "arrived") updateRideStatus(activeRide.id, "in_progress");
