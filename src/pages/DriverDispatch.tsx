@@ -28,6 +28,7 @@ const DriverDispatch = () => {
   const [dismissedSummaryId, setDismissedSummaryId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const prevPendingCountRef = useRef(0);
+  const prevDispatchedIdsRef = useRef<Set<string>>(new Set());
 
   useDriverLocation(profile?.id, !!profile?.is_available);
 
@@ -206,8 +207,66 @@ const DriverDispatch = () => {
   // ─── Sound + vibration on new requests ───
   useEffect(() => {
     const currentCount = visiblePendingRides.length;
-    if (currentCount > prevPendingCountRef.current && prevPendingCountRef.current >= 0) {
-      // Play alert sound
+
+    // Check for newly dispatched-to-me rides (urgent alert)
+    const currentDispatchedIds = new Set(
+      visiblePendingRides
+        .filter((r) => r.dispatched_to_driver_id === profile?.id)
+        .map((r) => r.id)
+    );
+    const newDispatched = [...currentDispatchedIds].filter(
+      (id) => !prevDispatchedIdsRef.current.has(id)
+    );
+
+    if (newDispatched.length > 0) {
+      // Urgent two-tone siren for dispatched rides
+      try {
+        const ctx = new AudioContext();
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.value = 0.45;
+
+        // First tone — high
+        const osc1 = ctx.createOscillator();
+        osc1.connect(gain);
+        osc1.frequency.value = 1200;
+        osc1.type = "sine";
+        osc1.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.15);
+
+        // Second tone — higher
+        const osc2 = ctx.createOscillator();
+        osc2.connect(gain);
+        osc2.frequency.value = 1500;
+        osc2.type = "sine";
+        osc2.start(ctx.currentTime + 0.18);
+        osc2.stop(ctx.currentTime + 0.33);
+
+        // Repeat
+        const osc3 = ctx.createOscillator();
+        osc3.connect(gain);
+        osc3.frequency.value = 1200;
+        osc3.type = "sine";
+        osc3.start(ctx.currentTime + 0.4);
+        osc3.stop(ctx.currentTime + 0.55);
+
+        const osc4 = ctx.createOscillator();
+        osc4.connect(gain);
+        osc4.frequency.value = 1500;
+        osc4.type = "sine";
+        osc4.start(ctx.currentTime + 0.58);
+        osc4.stop(ctx.currentTime + 0.73);
+
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+        setTimeout(() => ctx.close(), 900);
+      } catch { /* audio not available */ }
+
+      // Strong haptic pattern for dispatched rides
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100, 50, 200, 100, 300]);
+      }
+    } else if (currentCount > prevPendingCountRef.current && prevPendingCountRef.current >= 0) {
+      // Standard alert for broadcast requests
       try {
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
@@ -223,12 +282,14 @@ const DriverDispatch = () => {
         setTimeout(() => ctx.close(), 600);
       } catch { /* audio not available */ }
 
-      // Vibrate
+      // Standard vibrate
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
       }
     }
+
     prevPendingCountRef.current = currentCount;
+    prevDispatchedIdsRef.current = currentDispatchedIds;
   });
 
   // ─── Actions ───
