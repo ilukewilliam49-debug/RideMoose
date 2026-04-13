@@ -39,8 +39,8 @@ const DriverOnboarding = () => {
   const [saving, setSaving] = useState(false);
 
   const handleSaveVehicle = async () => {
-    if (!vehicleType) {
-      toast.error("Please select a vehicle type");
+    if (!vehicleType || !vehicleMake.trim() || !vehicleModel.trim() || !vehicleYear || !vehicleColor.trim() || !licensePlate.trim()) {
+      toast.error("Please fill in all vehicle details");
       return;
     }
     setSaving(true);
