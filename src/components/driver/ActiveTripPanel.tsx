@@ -537,16 +537,55 @@ export default function ActiveTripPanel({
               {getNextActionLabel()}
               {activeRide.status !== "accepted" && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
-            <Button
-              variant="outline"
-              className="h-14 w-14 rounded-xl active:scale-[0.98]"
-              onClick={() => updateRideStatus(activeRide.id, "cancelled")}
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            {activeRide.status === "accepted" && (
+              <Button
+                variant="outline"
+                className="h-14 w-14 rounded-xl active:scale-[0.98] border-destructive/30 text-destructive hover:bg-destructive/10"
+                onClick={() => setCancelDialogOpen(true)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Driver cancel dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this ride?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The rider will be notified and can request a new driver. Please select a reason.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            {CANCEL_REASONS.map((reason) => (
+              <button
+                key={reason}
+                onClick={() => setCancelReason(reason)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  cancelReason === reason
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/30 font-medium"
+                    : "bg-secondary/50 text-foreground hover:bg-secondary"
+                }`}
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>Keep ride</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDriverCancel}
+              disabled={!cancelReason || cancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelling ? "Cancelling…" : "Cancel ride"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
