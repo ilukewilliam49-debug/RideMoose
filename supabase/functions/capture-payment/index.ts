@@ -115,9 +115,12 @@ serve(async (req) => {
     }
 
     const grossFareCents = ride.final_fare_cents || 0;
+    // GST for Northwest Territories (Yellowknife) — 5%
+    const GST_RATE = 0.05;
+    const taxCents = Math.round(grossFareCents * GST_RATE);
     const commissionCents = Math.round(grossFareCents * effectiveCommissionRate);
     const SERVICE_FEE_CENTS = cfg.service_fee_cents ?? 99;
-    const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS;
+    const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS + taxCents;
 
     // Organization billing — skip Stripe
     if (ride.billed_to === "organization" && ride.organization_id) {
