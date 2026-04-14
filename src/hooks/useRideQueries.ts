@@ -147,7 +147,7 @@ export const useRideQueries = ({
 
   // Dynamic price estimate for current service
   const estimatedPrice = useMemo(() => computePrice(serviceType),
-    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, directionsData, petMode, petPricingConfig, estimatedItemCostCents, servicePricing]);
+    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, directionsData, estimatedItemCostCents, servicePricing]);
 
   // All main service prices for the selection cards
   const allServicePrices = useMemo(() => ({
