@@ -1,3 +1,4 @@
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,41 +10,61 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleLayout from "./components/RoleLayout";
 import SessionExpiredDialog from "./components/SessionExpiredDialog";
 import OfflineBanner from "./components/OfflineBanner";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminVerifications from "./pages/AdminVerifications";
-import AdminReports from "./pages/AdminReports";
-import AdminUsers from "./pages/AdminUsers";
-import AdminUserDetail from "./pages/AdminUserDetail";
-import AdminPricing from "./pages/AdminPricing";
-import AdminZones from "./pages/AdminZones";
-import AdminCorporate from "./pages/AdminCorporate";
-import AdminSupport from "./pages/AdminSupport";
-import AdminBookings from "./pages/AdminBookings";
-import AdminRideDetail from "./pages/AdminRideDetail";
-import AdminSimulator from "./pages/AdminSimulator";
-import AdminNotificationLogs from "./pages/AdminNotificationLogs";
-import AdminLiveMap from "./pages/AdminLiveMap";
-import AdminAuditLog from "./pages/AdminAuditLog";
-import DriverDashboard from "./pages/DriverDashboard";
-import DriverDispatch from "./pages/DriverDispatch";
-import DriverEarnings from "./pages/DriverEarnings";
-import DriverAccount from "./pages/DriverAccount";
-import DriverOnboarding from "./pages/DriverOnboarding";
-import DriverOnboardingPending from "./pages/DriverOnboardingPending";
-import DashboardHome from "./pages/DashboardHome";
-import RiderDashboard from "./pages/RiderDashboard";
-import CourierBooking from "./pages/CourierBooking";
-import CorporateApply from "./pages/CorporateApply";
-import RiderActivity from "./pages/RiderActivity";
-import RiderAccount from "./pages/RiderAccount";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
+import NetworkErrorBanner from "./components/NetworkErrorBanner";
+import SplashScreen from "./components/SplashScreen";
 import { useAuth } from "./hooks/useAuth";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-const queryClient = new QueryClient();
+// Lazy load heavy route pages for faster initial load
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminVerifications = lazy(() => import("./pages/AdminVerifications"));
+const AdminReports = lazy(() => import("./pages/AdminReports"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminUserDetail = lazy(() => import("./pages/AdminUserDetail"));
+const AdminPricing = lazy(() => import("./pages/AdminPricing"));
+const AdminZones = lazy(() => import("./pages/AdminZones"));
+const AdminCorporate = lazy(() => import("./pages/AdminCorporate"));
+const AdminSupport = lazy(() => import("./pages/AdminSupport"));
+const AdminBookings = lazy(() => import("./pages/AdminBookings"));
+const AdminRideDetail = lazy(() => import("./pages/AdminRideDetail"));
+const AdminSimulator = lazy(() => import("./pages/AdminSimulator"));
+const AdminNotificationLogs = lazy(() => import("./pages/AdminNotificationLogs"));
+const AdminLiveMap = lazy(() => import("./pages/AdminLiveMap"));
+const AdminAuditLog = lazy(() => import("./pages/AdminAuditLog"));
+
+const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
+const DriverDispatch = lazy(() => import("./pages/DriverDispatch"));
+const DriverEarnings = lazy(() => import("./pages/DriverEarnings"));
+const DriverAccount = lazy(() => import("./pages/DriverAccount"));
+const DriverOnboarding = lazy(() => import("./pages/DriverOnboarding"));
+const DriverOnboardingPending = lazy(() => import("./pages/DriverOnboardingPending"));
+
+const DashboardHome = lazy(() => import("./pages/DashboardHome"));
+const RiderDashboard = lazy(() => import("./pages/RiderDashboard"));
+const CourierBooking = lazy(() => import("./pages/CourierBooking"));
+const CorporateApply = lazy(() => import("./pages/CorporateApply"));
+const RiderActivity = lazy(() => import("./pages/RiderActivity"));
+const RiderAccount = lazy(() => import("./pages/RiderAccount"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-pulse-glow w-8 h-8 rounded-full bg-primary" />
+  </div>
+);
 
 const AppContent = () => {
   const { sessionExpired, expiredEmail, clearSessionExpired } = useAuth();
@@ -61,77 +82,89 @@ const AppContent = () => {
   return (
     <>
       <OfflineBanner />
+      <NetworkErrorBanner />
       <SessionExpiredDialog
         open={sessionExpired}
         email={expiredEmail}
         onSuccess={handleReLoginSuccess}
         onSwitchAccount={handleSwitchAccount}
       />
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/auth" element={<Navigate to="/login" replace />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth" element={<Navigate to="/login" replace />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
-        <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="verifications" element={<AdminVerifications />} />
-          <Route path="reports" element={<AdminReports />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="users/:id" element={<AdminUserDetail />} />
-          <Route path="pricing" element={<AdminPricing />} />
-          <Route path="zones" element={<AdminZones />} />
-          <Route path="rides/:id" element={<AdminRideDetail />} />
-          <Route path="corporate" element={<AdminCorporate />} />
-          <Route path="bookings" element={<AdminBookings />} />
-          <Route path="support" element={<AdminSupport />} />
-          
-          <Route path="simulator" element={<AdminSimulator />} />
-          <Route path="notifications" element={<AdminNotificationLogs />} />
-          <Route path="live-map" element={<AdminLiveMap />} />
-          <Route path="audit-log" element={<AdminAuditLog />} />
-        </Route>
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="verifications" element={<AdminVerifications />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:id" element={<AdminUserDetail />} />
+            <Route path="pricing" element={<AdminPricing />} />
+            <Route path="zones" element={<AdminZones />} />
+            <Route path="rides/:id" element={<AdminRideDetail />} />
+            <Route path="corporate" element={<AdminCorporate />} />
+            <Route path="bookings" element={<AdminBookings />} />
+            <Route path="support" element={<AdminSupport />} />
+            <Route path="simulator" element={<AdminSimulator />} />
+            <Route path="notifications" element={<AdminNotificationLogs />} />
+            <Route path="live-map" element={<AdminLiveMap />} />
+            <Route path="audit-log" element={<AdminAuditLog />} />
+          </Route>
 
-        <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
-          <Route index element={<DriverDashboard />} />
-          <Route path="dispatch" element={<DriverDispatch />} />
-          <Route path="earnings" element={<DriverEarnings />} />
-          <Route path="account" element={<DriverAccount />} />
-        </Route>
-        <Route path="/driver/onboarding" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboarding /></ProtectedRoute>} />
-        <Route path="/driver/onboarding/pending" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboardingPending /></ProtectedRoute>} />
+          <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
+            <Route index element={<DriverDashboard />} />
+            <Route path="dispatch" element={<DriverDispatch />} />
+            <Route path="earnings" element={<DriverEarnings />} />
+            <Route path="account" element={<DriverAccount />} />
+          </Route>
+          <Route path="/driver/onboarding" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboarding /></ProtectedRoute>} />
+          <Route path="/driver/onboarding/pending" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboardingPending /></ProtectedRoute>} />
 
-        <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>
-          <Route index element={<DashboardHome />} />
-          <Route path="rides" element={<RiderDashboard />} />
-          <Route path="courier" element={<CourierBooking />} />
-          <Route path="activity" element={<RiderActivity />} />
-          <Route path="account" element={<RiderAccount />} />
-          <Route path="corporate-apply" element={<CorporateApply />} />
-        </Route>
+          <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider"]}><RoleLayout /></ProtectedRoute>}>
+            <Route index element={<DashboardHome />} />
+            <Route path="rides" element={<RiderDashboard />} />
+            <Route path="courier" element={<CourierBooking />} />
+            <Route path="activity" element={<RiderActivity />} />
+            <Route path="account" element={<RiderAccount />} />
+            <Route path="corporate-apply" element={<CorporateApply />} />
+          </Route>
 
-        <Route path="/dashboard/*" element={<Navigate to="/rider" replace />} />
+          <Route path="/dashboard/*" element={<Navigate to="/rider" replace />} />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </>
   );
 };
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <SplashScreen visible={showSplash} />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;
