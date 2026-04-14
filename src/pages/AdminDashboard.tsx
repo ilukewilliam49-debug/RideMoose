@@ -5,13 +5,14 @@ import { motion } from "framer-motion";
 import {
   Shield, FileCheck, Users, BarChart3,
   MessageSquare, ArrowRight, DollarSign,
-  AlertTriangle, Radio,
+  AlertTriangle, Radio, Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import TestRideFlowPanel from "@/components/admin/TestRideFlowPanel";
+import BroadcastNotificationPanel from "@/components/admin/BroadcastNotificationPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -282,6 +283,7 @@ const AdminDashboard = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <BroadcastNotificationPanel />
             <Button variant="outline" onClick={() => navigate("/admin/live-map")}>Live Map</Button>
             <Button variant="outline" onClick={() => navigate("/admin/bookings")}>Bookings</Button>
             <Button variant="outline" onClick={() => navigate("/admin/pricing")}>Pricing</Button>
