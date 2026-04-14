@@ -21,7 +21,7 @@ const RoleLayout = () => {
           <AppSidebar />
         </div>
         <div className="flex-1 flex flex-col min-w-0">
-          <header className={`h-14 flex items-center border-b border-border px-4 shrink-0 ${hasMobileNav ? "md:flex" : "flex"}`}>
+          <header className={`h-14 flex items-center border-b border-border px-4 shrink-0 safe-top ${hasMobileNav ? "md:flex" : "flex"}`}>
             <div className={hasMobileNav ? "hidden md:block" : ""}>
               <SidebarTrigger className="mr-4" />
             </div>
