@@ -14,12 +14,11 @@ interface UseRideQueriesParams {
   distanceKm: number | null;
   passengerCount: number;
   estimatedItemCostCents: number | "";
-  petMode: "pet_with_owner" | "pet_only_transport";
 }
 
 export const useRideQueries = ({
   profileId, userId, serviceType, pickupCoords, dropoffCoords,
-  pickup, dropoff, distanceKm, passengerCount, estimatedItemCostCents, petMode,
+  pickup, dropoff, distanceKm, passengerCount, estimatedItemCostCents,
 }: UseRideQueriesParams) => {
   const queryClient = useQueryClient();
 
@@ -92,17 +91,7 @@ export const useRideQueries = ({
     return Math.max((directionsData.duration_in_traffic_sec - directionsData.duration_sec) / 60, 0);
   }, [directionsData]);
 
-  const { data: petPricingConfig } = useQuery({
-    queryKey: ["pet-pricing-config"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("platform_config").select("key, value").in("key", ["pet_surcharge_cents", "pet_only_base_cents", "pet_only_per_km_cents", "pet_only_minimum_cents"]);
-      if (error) throw error;
-      const map: Record<string, number> = {};
-      data?.forEach((r) => { map[r.key] = Number(r.value); });
-      return map;
-    },
-    enabled: false,
-  });
+  // Pet pricing config removed — pet_transport is no longer a service
 
   const currentPricing = useMemo(
     () => servicePricing?.find((p) => p.service_type === serviceType),
@@ -144,19 +133,6 @@ export const useRideQueries = ({
       const shopperFeeCents = estimatedItemCostCents ? Math.round(Number(estimatedItemCostCents) * 0.10) : 0;
       const totalCents = deliveryFeeCents + shopperFeeCents + Number(estimatedItemCostCents || 0);
       return (totalCents / 100).toFixed(2);
-    }
-    if (svcType === "pet_transport") {
-      if (!routeKm) return null;
-      const surcharge = petPricingConfig?.pet_surcharge_cents ?? 500;
-      const petBase = petPricingConfig?.pet_only_base_cents ?? 2000;
-      const petPerKm = petPricingConfig?.pet_only_per_km_cents ?? 200;
-      const petMin = petPricingConfig?.pet_only_minimum_cents ?? 2500;
-      if (petMode === "pet_with_owner") {
-        if (!taxiRates) return null;
-        return ((taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents + surcharge) / 100).toFixed(2);
-      } else {
-        return (Math.max(petMin, petBase + Math.round(routeKm * petPerKm)) / 100).toFixed(2);
-      }
     }
     if (svcType === "taxi") {
       if (!routeKm || !taxiRates) return null;
