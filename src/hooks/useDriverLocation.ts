@@ -5,11 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
  * Tracks the current driver's GPS location and updates their profile
  * in the database every `intervalMs` milliseconds.
  */
-export const useDriverLocation = (profileId: string | undefined, isActive: boolean, intervalMs = 10000) => {
+export const useDriverLocation = (profileId: string | undefined, isActive: boolean, intervalMs = 10000, hasActiveRide = false) => {
   const watchRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!profileId || !isActive) return;
+    if (!profileId || (!isActive && !hasActiveRide)) return;
 
     const updateLocation = (pos: GeolocationPosition) => {
       supabase
@@ -39,5 +39,5 @@ export const useDriverLocation = (profileId: string | undefined, isActive: boole
         watchRef.current = null;
       }
     };
-  }, [profileId, isActive, intervalMs]);
+  }, [profileId, isActive, hasActiveRide, intervalMs]);
 };

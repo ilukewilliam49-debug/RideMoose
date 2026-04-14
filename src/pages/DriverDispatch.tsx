@@ -44,7 +44,7 @@ const DriverDispatch = () => {
   const prevPendingCountRef = useRef(0);
   const prevDispatchedIdsRef = useRef<Set<string>>(new Set());
 
-  useDriverLocation(profile?.id, !!profile?.is_available);
+  useDriverLocation(profile?.id, !!profile?.is_available, 10000, !!activeRide);
 
   // ─── Pending rides ───
   const { data: pendingRides, isError: pendingError, refetch: refetchPending } = useQuery({

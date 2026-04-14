@@ -81,9 +81,9 @@ serve(async (req) => {
       return jsonRes({ error: "Only the assigned driver can start this ride" }, 403);
     }
 
-    // Ride must be in 'accepted' status
-    if (ride.status !== "accepted") {
-      return jsonRes({ error: `Cannot start ride in '${ride.status}' status. Must be 'accepted'.` }, 400);
+    // Ride must be in 'accepted' or 'arrived' status
+    if (ride.status !== "accepted" && ride.status !== "arrived") {
+      return jsonRes({ error: `Cannot start ride in '${ride.status}' status. Must be 'accepted' or 'arrived'.` }, 400);
     }
 
     // Update ride status to in_progress
@@ -97,7 +97,7 @@ serve(async (req) => {
         meter_started_at: now,
       })
       .eq("id", ride_id)
-      .eq("status", "accepted"); // Optimistic lock
+      .in("status", ["accepted", "arrived"]); // Optimistic lock
 
     if (updateErr) {
       console.error("start-ride update error:", updateErr.message);
