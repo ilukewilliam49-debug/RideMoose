@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import InstallAppPrompt from "@/components/InstallAppPrompt";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Phone } from "lucide-react";
@@ -16,6 +17,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <InstallAppPrompt />
       <LandingNav />
       <LandingHero />
       <LandingServices />

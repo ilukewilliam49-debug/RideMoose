@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import InstallAppPrompt from "@/components/InstallAppPrompt";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import TripCompleteSheet from "@/components/rider/TripCompleteSheet";
@@ -292,6 +293,7 @@ const RiderDashboard = () => {
 
   return (
     <div className="space-y-6 pt-4">
+      <InstallAppPrompt />
       <DriverMatchingOverlay
         visible={matchingInProgress}
         onCancel={async () => {
