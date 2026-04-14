@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -68,6 +69,7 @@ const PageLoader = () => (
 
 const AppContent = () => {
   const { sessionExpired, expiredEmail, clearSessionExpired } = useAuth();
+  useNetworkStatus();
 
   const handleReLoginSuccess = () => {
     clearSessionExpired();
