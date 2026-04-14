@@ -47,6 +47,9 @@ const RiderDashboard = () => {
   const { t } = useTranslation();
   const state = useRideBookingState();
   const [matchingInProgress, setMatchingInProgress] = useState(false);
+  const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
+  const [tripCompleteRide, setTripCompleteRide] = useState<any>(null);
+  const prevActiveStatusRef = useRef<string | null>(null);
   const matchingRideIdRef = useRef<string | null>(null);
   const submittingRef = useRef(false);
   const lastSubmitTimeRef = useRef(0);
