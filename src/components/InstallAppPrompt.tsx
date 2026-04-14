@@ -58,9 +58,9 @@ export default function InstallAppPrompt() {
 
   if (installed || dismissed) return null;
 
-  // Don't show in desktop browsers that aren't mobile-like
-  const isMobileish = isIOS() || isAndroid() || deferredPrompt;
-  if (!isMobileish) return null;
+  // Show if: mobile device OR desktop with install prompt available
+  const canShow = isIOS() || isAndroid() || !!deferredPrompt;
+  if (!canShow) return null;
 
   return (
     <>
