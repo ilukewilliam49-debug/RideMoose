@@ -130,8 +130,7 @@ const AdminBookings = () => {
               <SelectItem value="private_hire">Private hire</SelectItem>
               <SelectItem value="shuttle">Shuttle</SelectItem>
               <SelectItem value="courier">Courier</SelectItem>
-              <SelectItem value="food_delivery">Food delivery</SelectItem>
-              <SelectItem value="pet_transport">Pet transport</SelectItem>
+              
               <SelectItem value="large_delivery">Large delivery</SelectItem>
               <SelectItem value="retail_delivery">Retail delivery</SelectItem>
               <SelectItem value="personal_shopper">Personal shopper</SelectItem>

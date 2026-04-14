@@ -24,7 +24,20 @@ const DriverDispatch = () => {
   const { profile } = useAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [declinedIds, setDeclinedIds] = useState<Set<string>>(new Set());
+  const [declinedIds, setDeclinedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("pickyou_declined_rides");
+      if (stored) {
+        const parsed = JSON.parse(stored) as { ids: string[]; ts: number };
+        // Clear if older than 1 hour
+        if (Date.now() - parsed.ts < 3600000) {
+          return new Set(parsed.ids);
+        }
+        localStorage.removeItem("pickyou_declined_rides");
+      }
+    } catch { /* ignore */ }
+    return new Set();
+  });
   const [dismissedSummaryId, setDismissedSummaryId] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [urgentFlash, setUrgentFlash] = useState(false);
@@ -42,8 +55,7 @@ const DriverDispatch = () => {
       if (profile?.can_private_hire) serviceTypes.push("private_hire");
       if (profile?.can_shuttle) serviceTypes.push("shuttle");
       if (profile?.can_courier) { serviceTypes.push("courier", "retail_delivery", "personal_shopper"); }
-      if (profile?.can_food_delivery) serviceTypes.push("food_delivery");
-      if (profile?.pet_approved) serviceTypes.push("pet_transport");
+      
       if (profile?.vehicle_type && ["SUV", "truck", "van"].includes(profile.vehicle_type)) serviceTypes.push("large_delivery");
       if (serviceTypes.length === 0) return [];
       const { data, error } = await supabase
@@ -348,7 +360,13 @@ const DriverDispatch = () => {
   }, [profile?.id, t]);
 
   const declineRide = useCallback((rideId: string) => {
-    setDeclinedIds((prev) => new Set(prev).add(rideId));
+    setDeclinedIds((prev) => {
+      const next = new Set(prev).add(rideId);
+      try {
+        localStorage.setItem("pickyou_declined_rides", JSON.stringify({ ids: [...next], ts: Date.now() }));
+      } catch { /* quota */ }
+      return next;
+    });
     toast.info("Request declined");
   }, []);
 

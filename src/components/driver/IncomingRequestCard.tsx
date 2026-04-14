@@ -69,13 +69,6 @@ function RequestDetails({ ride }: { ride: Ride }) {
   } else if (ride.service_type === "personal_shopper") {
     if (r.store_name) chips.push({ label: `🏪 ${r.store_name}` });
     if (r.item_description) chips.push({ label: `📦 ${r.item_description}` });
-  } else if (ride.service_type === "food_delivery") {
-    if (r.store_name) chips.push({ label: `🍽️ ${r.store_name}` });
-    if (r.order_value_cents) chips.push({ label: `$${(r.order_value_cents / 100).toFixed(2)}` });
-  } else if (ride.service_type === "pet_transport") {
-    if (r.pet_type) chips.push({ label: `🐾 ${r.pet_type}` });
-    if (r.pet_mode) chips.push({ label: r.pet_mode.replace("_", " ") });
-    if (r.destination_type) chips.push({ label: `→ ${r.destination_type}` });
   }
 
   if (chips.length === 0) return null;
