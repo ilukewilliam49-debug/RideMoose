@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleLayout from "./components/RoleLayout";
 import SessionExpiredDialog from "./components/SessionExpiredDialog";
+import OfflineBanner from "./components/OfflineBanner";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminVerifications from "./pages/AdminVerifications";
 import AdminReports from "./pages/AdminReports";
