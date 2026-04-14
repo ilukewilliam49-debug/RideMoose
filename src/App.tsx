@@ -58,6 +58,7 @@ const AppContent = () => {
 
   return (
     <>
+      <OfflineBanner />
       <SessionExpiredDialog
         open={sessionExpired}
         email={expiredEmail}
