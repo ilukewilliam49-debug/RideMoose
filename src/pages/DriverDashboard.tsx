@@ -165,8 +165,9 @@ const DriverDashboard = () => {
 
   // ─── Driver rating + acceptance rate ───
   // Use cached average_rating from profile instead of computing client-side
-  const ratingData = profile?.average_rating != null
-    ? { average: Number(profile.average_rating), count: profile.total_ratings ?? 0 }
+  const profileAny = profile as any;
+  const ratingData = profileAny?.average_rating != null
+    ? { average: Number(profileAny.average_rating), count: profileAny.total_ratings ?? 0 }
     : null;
 
   const { data: acceptanceRate } = useQuery({
