@@ -31,11 +31,20 @@ const RetrySchema = z.object({
   max_retries: z.number().int().min(1).max(5).optional(),
 });
 
+const BroadcastSchema = z.object({
+  mode: z.literal("broadcast"),
+  audience: z.enum(["drivers", "riders", "all"]),
+  heading: z.string().min(1).max(200),
+  message: z.string().min(1).max(500),
+  url: z.string().max(500).optional(),
+});
+
 const RequestBody = z.discriminatedUnion("mode", [
   DirectSchema,
   RideEventSchema,
   TestSchema,
   RetrySchema,
+  BroadcastSchema,
 ]);
 
 // ── In-memory rate limiter (per-isolate) ──────────────────────────
