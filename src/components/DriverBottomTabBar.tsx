@@ -1,8 +1,9 @@
-import { Home, Radio, DollarSign, User } from "lucide-react";
+import { Home, Radio, DollarSign, User, WifiOff } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsOnline } from "@/hooks/useNetworkStatus";
 
 const tabs = [
   { icon: Home, label: "Home", path: "/driver" },
