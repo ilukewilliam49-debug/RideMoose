@@ -112,8 +112,9 @@ const RiderAccount = () => {
         .upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
-      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const { data: urlData } = await supabase.storage.from("avatars").createSignedUrl(filePath, 60 * 60 * 24 * 365 * 5);
+      if (!urlData?.signedUrl) throw new Error("Failed to generate avatar URL");
+      const avatarUrl = urlData.signedUrl;
       
       const { error: updateError } = await supabase
         .from("profiles")

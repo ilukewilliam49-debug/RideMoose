@@ -168,10 +168,11 @@ const DriverAccount = () => {
         .from("avatars")
         .upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { data: urlData } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
+      if (!urlData?.signedUrl) throw new Error("Failed to generate avatar URL");
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ avatar_url: urlData.publicUrl })
+        .update({ avatar_url: urlData.signedUrl })
         .eq("id", profile.id);
       if (updateError) throw updateError;
       toast.success("Profile photo updated");
