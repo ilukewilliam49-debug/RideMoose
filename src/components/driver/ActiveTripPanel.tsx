@@ -202,17 +202,40 @@ export default function ActiveTripPanel({
       ? Math.max((activeRideDirections.duration_in_traffic_sec - activeRideDirections.duration_sec) / 60, 0)
       : 0;
 
-  const updateRideStatus = async (rideId: string, status: string) => {
-    const updates: Record<string, unknown> = { status };
-    if (status === "in_progress") updates.started_at = new Date().toISOString();
-    if (status === "completed") updates.completed_at = new Date().toISOString();
-    const { error } = await supabase.from("rides").update(updates as any).eq("id", rideId);
-    if (error) { toast.error(error.message); return; }
-    if (status === "completed" && (activeRide.service_type === "large_delivery" || activeRide.service_type === "personal_shopper") && activeRide.payment_status === "authorized") {
-      try { await supabase.functions.invoke("capture-payment", { body: { ride_id: rideId } }); } catch (e) { console.error("Payment capture failed:", e); }
-    }
-    toast.success(t("dispatch.rideStatusUpdate", { status: status.replace("_", " ") }));
-    queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+  const [transitioning, setTransitioning] = useState(false);
+
+  const handleArrivedAtPickup = async (rideId: string) => {
+    setTransitioning(true);
+    try {
+      const { error } = await supabase.from("rides").update({ status: "arrived" as any }).eq("id", rideId);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Marked as arrived at pickup");
+      queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+    } finally { setTransitioning(false); }
+  };
+
+  const handleStartTrip = async (rideId: string) => {
+    setTransitioning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("start-ride", { body: { ride_id: rideId } });
+      if (error) { toast.error("Failed to start ride"); return; }
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success("Trip started");
+      queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+    } finally { setTransitioning(false); }
+  };
+
+  const handleCompleteTrip = async (rideId: string) => {
+    setTransitioning(true);
+    try {
+      const body: Record<string, unknown> = { ride_id: rideId };
+      if (activeRide.final_fare_cents) body.final_fare_cents = activeRide.final_fare_cents;
+      const { data, error } = await supabase.functions.invoke("complete-ride", { body });
+      if (error) { toast.error("Failed to complete ride"); return; }
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success("Trip completed!");
+      queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+    } finally { setTransitioning(false); }
   };
 
   const uploadProofPhoto = async (rideId: string, file: File) => {
@@ -311,9 +334,9 @@ export default function ActiveTripPanel({
   };
 
   const handleNextAction = () => {
-    if (activeRide.status === "accepted") updateRideStatus(activeRide.id, "in_progress");
-    else if ((activeRide.status as string) === "arrived") updateRideStatus(activeRide.id, "in_progress");
-    else if (activeRide.status === "in_progress") updateRideStatus(activeRide.id, "completed");
+    if (activeRide.status === "accepted") handleArrivedAtPickup(activeRide.id);
+    else if ((activeRide.status as string) === "arrived") handleStartTrip(activeRide.id);
+    else if (activeRide.status === "in_progress") handleCompleteTrip(activeRide.id);
   };
 
   return (
@@ -514,16 +537,22 @@ export default function ActiveTripPanel({
         </div>
 
         {/* Action buttons */}
-        {activeRide.service_type !== "taxi" && (
+        {/* Action buttons — show for ALL service types */}
+        {/* For taxi: show after meter is stopped, or if not in_progress yet */}
+        {(activeRide.service_type !== "taxi" || activeRide.status !== "in_progress" || activeRide.meter_status === "stopped") && (
           <div className="px-4 pb-4 flex gap-2">
             <Button
               className="flex-1 h-14 rounded-xl text-[15px] font-bold active:scale-[0.98] transition-transform"
-              disabled={getNextActionDisabled()}
+              disabled={getNextActionDisabled() || transitioning}
               onClick={handleNextAction}
             >
-              {activeRide.status === "accepted" && <MapPinCheck className="mr-2 h-4 w-4" />}
-              {getNextActionLabel()}
-              {activeRide.status !== "accepted" && <ArrowRight className="ml-2 h-4 w-4" />}
+              {transitioning ? "Processing…" : (
+                <>
+                  {activeRide.status === "accepted" && <MapPinCheck className="mr-2 h-4 w-4" />}
+                  {getNextActionLabel()}
+                  {activeRide.status !== "accepted" && <ArrowRight className="ml-2 h-4 w-4" />}
+                </>
+              )}
             </Button>
             {activeRide.status === "accepted" && (
               <Button
