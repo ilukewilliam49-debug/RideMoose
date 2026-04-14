@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, HelpCircle, LocateFixed } from "lucide-react";
+import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, HelpCircle, LocateFixed, AlertTriangle } from "lucide-react";
 import { format, addMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,6 +26,43 @@ const getGreeting = () => {
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
+};
+
+const OutstandingBalanceBanner = ({ profileId, navigate }: { profileId?: string; navigate: (path: string) => void }) => {
+  const { t } = useTranslation();
+  const { data: outstandingRide } = useQuery({
+    queryKey: ["home-outstanding", profileId],
+    queryFn: async () => {
+      if (!profileId) return null;
+      const { data } = await supabase
+        .from("rides")
+        .select("id, outstanding_amount_cents")
+        .eq("rider_id", profileId)
+        .eq("payment_status", "partial")
+        .gt("outstanding_amount_cents", 0)
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!profileId,
+  });
+  if (!outstandingRide) return null;
+  return (
+    <button
+      onClick={() => navigate("/rider/rides")}
+      className="flex w-full items-center gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3 mb-4 text-left"
+    >
+      <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-yellow-600">{t("rider.outstandingBalance", "Outstanding balance")}</p>
+        <p className="text-xs text-muted-foreground">
+          ${((outstandingRide.outstanding_amount_cents || 0) / 100).toFixed(2)} {t("rider.duePayNow", "due — tap to pay")}
+        </p>
+      </div>
+      <ChevronRight className="h-4 w-4 text-yellow-500/60 shrink-0" />
+    </button>
+  );
 };
 
 const DashboardHome = () => {
