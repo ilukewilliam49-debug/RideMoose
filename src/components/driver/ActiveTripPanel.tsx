@@ -158,19 +158,7 @@ function TripServiceDetails({ ride, proofInputRef, receiptInputRef, uploadingPro
     if (r.receipt_photo_url) details.push(<DetailRow key="rcptok" icon="✅" label="" value="Receipt uploaded" />);
   }
 
-  if (ride.service_type === "food_delivery") {
-    if (r.store_name) details.push(<DetailRow key="rest" icon="🍽️" label="Restaurant" value={r.store_name} />);
-    if (r.order_value_cents) details.push(<DetailRow key="val" icon="💰" label="Order" value={`$${(r.order_value_cents / 100).toFixed(2)}`} />);
-  }
-
-  if (ride.service_type === "pet_transport") {
-    if (r.pet_type) details.push(<DetailRow key="type" icon="🐾" label="Pet" value={r.pet_type} />);
-    if (r.pet_mode) details.push(<DetailRow key="mode" icon="🚗" label="Mode" value={r.pet_mode.replace("_", " ")} />);
-    if (r.pet_weight_estimate) details.push(<DetailRow key="pwt" icon="⚖️" label="Weight" value={`~${r.pet_weight_estimate} kg`} />);
-    if (r.destination_type) details.push(<DetailRow key="dest" icon="📍" label="Destination" value={r.destination_type} />);
-    if (r.emergency_contact_phone) details.push(<DetailRow key="emrg" icon="📞" label="Emergency" value={r.emergency_contact_phone} />);
-    if (r.crate_confirmed) details.push(<DetailRow key="crate" icon="✅" label="" value="Crate confirmed" />);
-  }
+  
 
   if (details.length === 0) return null;
   return <div className="space-y-2 pb-2">{details}</div>;

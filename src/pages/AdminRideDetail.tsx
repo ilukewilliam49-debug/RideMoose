@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,21 @@ import {
   MapPin, Clock, Car, User, DollarSign, CreditCard,
   Package, ArrowRight, CalendarDays, Ruler, Timer,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const statusColor: Record<string, string> = {
   completed: "bg-green-500/10 text-green-500",
@@ -25,6 +40,11 @@ const statusColor: Record<string, string> = {
 
 export default function AdminRideDetail() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [newDriverId, setNewDriverId] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const { data: ride, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-ride-detail", id],
@@ -226,6 +246,119 @@ export default function AdminRideDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin Actions */}
+      {ride && !["completed", "cancelled"].includes(ride.status) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Admin Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setCancelOpen(true)}
+            >
+              Force Cancel Ride
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReassignOpen(true)}
+            >
+              Reassign Driver
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Force Cancel Dialog */}
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Force Cancel Ride</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately cancel the ride and notify all parties. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={actionLoading}
+              onClick={async () => {
+                setActionLoading(true);
+                try {
+                  const { error } = await supabase
+                    .from("rides")
+                    .update({
+                      status: "cancelled" as any,
+                      cancellation_reason: "Force cancelled by admin",
+                    } as any)
+                    .eq("id", id!);
+                  if (error) throw error;
+                  toast.success("Ride force-cancelled");
+                  refetch();
+                } catch (err: any) {
+                  toast.error(err.message);
+                } finally {
+                  setActionLoading(false);
+                  setCancelOpen(false);
+                }
+              }}
+            >
+              {actionLoading ? "Cancelling…" : "Force Cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reassign Driver Dialog */}
+      <AlertDialog open={reassignOpen} onOpenChange={setReassignOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reassign Driver</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the new driver's profile ID to reassign this ride.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            placeholder="Driver profile ID"
+            value={newDriverId}
+            onChange={(e) => setNewDriverId(e.target.value)}
+            className="my-2"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setNewDriverId("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={actionLoading || !newDriverId.trim()}
+              onClick={async () => {
+                setActionLoading(true);
+                try {
+                  const { error } = await supabase
+                    .from("rides")
+                    .update({
+                      driver_id: newDriverId.trim(),
+                      status: "accepted" as any,
+                    } as any)
+                    .eq("id", id!);
+                  if (error) throw error;
+                  toast.success("Driver reassigned");
+                  setNewDriverId("");
+                  refetch();
+                } catch (err: any) {
+                  toast.error(err.message);
+                } finally {
+                  setActionLoading(false);
+                  setReassignOpen(false);
+                }
+              }}
+            >
+              {actionLoading ? "Reassigning…" : "Reassign"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Event Timeline */}
       {id && <RideEventsTimeline rideId={id} />}

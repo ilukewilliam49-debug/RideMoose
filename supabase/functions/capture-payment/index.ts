@@ -63,7 +63,7 @@ serve(async (req) => {
       const amountToCapture = ride.final_fare_cents || ride.authorized_amount_cents || 0;
       await stripe.paymentIntents.capture(ride.stripe_payment_intent_id, {
         amount_to_capture: amountToCapture,
-      });
+      }, { idempotencyKey: `capture-${ride_id}` });
 
       await serviceClient
         .from("rides")
@@ -231,7 +231,7 @@ serve(async (req) => {
     if (riderTotalCents <= authorizedAmount) {
       await stripe.paymentIntents.capture(ride.stripe_payment_intent_id, {
         amount_to_capture: riderTotalCents,
-      });
+      }, { idempotencyKey: `capture-${ride_id}` });
 
       await serviceClient
         .from("rides")
@@ -249,7 +249,7 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     } else {
-      await stripe.paymentIntents.capture(ride.stripe_payment_intent_id);
+      await stripe.paymentIntents.capture(ride.stripe_payment_intent_id, undefined, { idempotencyKey: `capture-full-${ride_id}` });
 
       const overage = riderTotalCents - authorizedAmount;
 

@@ -478,6 +478,33 @@ const RiderDashboard = () => {
                 <p>{t("rider.paidInApp")}: ${((queries.outstandingRide.captured_amount_cents || 0) / 100).toFixed(2)}</p>
                 <p className="text-yellow-500 font-bold text-sm">{t("rider.amountDueDriver")}: ${((queries.outstandingRide.outstanding_amount_cents || 0) / 100).toFixed(2)}</p>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10"
+                onClick={async () => {
+                  try {
+                    const { data, error } = await supabase.functions.invoke("create-payment-intent", {
+                      body: {
+                        ride_id: queries.outstandingRide!.id,
+                        estimated_fare_cents: queries.outstandingRide!.outstanding_amount_cents || 0,
+                        is_overage: true,
+                      },
+                    });
+                    if (error) throw new Error(error.message);
+                    if (data?.clientSecret) {
+                      state.setPaymentClientSecret(data.clientSecret);
+                      state.setAuthorizedAmountCents(queries.outstandingRide!.outstanding_amount_cents || 0);
+                      state.setPendingRideId(queries.outstandingRide!.id);
+                    }
+                  } catch (err: any) {
+                    toast.error(err.message || "Could not initiate payment");
+                  }
+                }}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                {t("rider.payNow", "Pay Now")} — ${((queries.outstandingRide.outstanding_amount_cents || 0) / 100).toFixed(2)}
+              </Button>
               <p className="text-[10px] text-muted-foreground">{t("rider.payRemainingNote")}</p>
             </div>
           )}
