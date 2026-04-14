@@ -390,6 +390,98 @@ serve(async (req) => {
       return jsonRes(result);
     }
 
+    // ── MODE: broadcast ───────────────────────────────────────────
+    if (input.mode === "broadcast") {
+      // Require admin auth
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return jsonRes({ error: "Unauthorized" }, 401);
+      }
+      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user) return jsonRes({ error: "Unauthorized" }, 401);
+
+      // Check admin role
+      const { data: adminProfile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", userData.user.id)
+        .single();
+      if (adminProfile?.role !== "admin") {
+        return jsonRes({ error: "Admin access required" }, 403);
+      }
+
+      // Build audience query
+      let audienceQuery = supabase
+        .from("profiles")
+        .select("id, onesignal_player_id, phone, sms_notifications_enabled");
+
+      if (input.audience === "drivers") {
+        audienceQuery = audienceQuery.eq("role", "driver");
+      } else if (input.audience === "riders") {
+        audienceQuery = audienceQuery.eq("role", "rider");
+      } else {
+        audienceQuery = audienceQuery.in("role", ["driver", "rider"]);
+      }
+
+      const { data: profiles } = await audienceQuery;
+      if (!profiles?.length) {
+        return jsonRes({ sent: 0, reason: "no_users_found" });
+      }
+
+      // Collect push IDs
+      const pushIds = profiles
+        .filter((p: any) => p.onesignal_player_id)
+        .map((p: any) => p.onesignal_player_id as string);
+
+      let pushResult = { success: false, recipients: 0, onesignal_id: undefined as string | undefined, error: undefined as string | undefined };
+
+      if (pushIds.length > 0) {
+        pushResult = await sendOneSignalPushBatch(
+          onesignalAppId, onesignalApiKey,
+          pushIds, input.heading, input.message, input.url
+        );
+      }
+
+      await logNotification(supabase, {
+        event: "broadcast",
+        method: "push_batch",
+        status: pushResult.success ? "delivered" : (pushIds.length === 0 ? "skipped" : "failed"),
+        onesignal_id: pushResult.onesignal_id,
+        recipients: pushResult.recipients,
+        error_message: pushResult.error,
+        metadata: {
+          audience: input.audience,
+          total_profiles: profiles.length,
+          push_eligible: pushIds.length,
+          heading: input.heading,
+          message: input.message,
+        },
+      });
+
+      // Write in-app notifications for all targets
+      const notifRows = profiles.map((p: any) => ({
+        user_id: p.id,
+        title: input.heading,
+        body: input.message,
+        type: "broadcast",
+      }));
+
+      // Insert in batches of 500
+      for (let i = 0; i < notifRows.length; i += 500) {
+        await supabase.from("notifications").insert(notifRows.slice(i, i + 500));
+      }
+
+      return jsonRes({
+        sent: pushResult.recipients,
+        total_profiles: profiles.length,
+        push_eligible: pushIds.length,
+        success: true,
+      });
+    }
+
     // ── MODE: direct ──────────────────────────────────────────────
     if (input.mode === "direct") {
       const result = await sendOneSignalPushBatch(
