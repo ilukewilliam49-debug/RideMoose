@@ -11,20 +11,14 @@ import RideEventsTimeline from "@/components/admin/RideEventsTimeline";
 import { format } from "date-fns";
 import {
   MapPin, Clock, Car, User, DollarSign, CreditCard,
-  Package, ArrowRight, CalendarDays, Ruler, Timer,
+  Package, ArrowRight, CalendarDays, Ruler, Timer, Search,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +30,7 @@ const statusColor: Record<string, string> = {
   cancelled: "bg-destructive/10 text-destructive",
   accepted: "bg-primary/10 text-primary",
   dispatched: "bg-primary/10 text-primary",
+  arrived: "bg-cyan-500/10 text-cyan-500",
 };
 
 export default function AdminRideDetail() {
@@ -43,7 +38,9 @@ export default function AdminRideDetail() {
   const queryClient = useQueryClient();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
-  const [newDriverId, setNewDriverId] = useState("");
+  const [forceCompleteOpen, setForceCompleteOpen] = useState(false);
+  const [selectedDriverId, setSelectedDriverId] = useState("");
+  const [driverSearch, setDriverSearch] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
   const { data: ride, isLoading, isError, refetch } = useQuery({
@@ -58,6 +55,25 @@ export default function AdminRideDetail() {
       return data;
     },
     enabled: !!id,
+  });
+
+  // Search for online drivers for reassignment
+  const { data: availableDrivers } = useQuery({
+    queryKey: ["admin-available-drivers", driverSearch],
+    queryFn: async () => {
+      let query = supabase
+        .from("profiles")
+        .select("id, full_name, vehicle_type, vehicle_make, vehicle_model, license_plate, is_available, latitude, longitude")
+        .eq("role", "driver")
+        .eq("is_available", true)
+        .limit(10);
+      if (driverSearch.trim()) {
+        query = query.ilike("full_name", `%${driverSearch.trim()}%`);
+      }
+      const { data } = await query;
+      return data || [];
+    },
+    enabled: reassignOpen,
   });
 
   if (isError) {
@@ -84,6 +100,24 @@ export default function AdminRideDetail() {
 
   const rider = ride?.rider as any;
   const driver = ride?.driver as any;
+
+  const handleForceComplete = async () => {
+    setActionLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("complete-ride", {
+        body: { ride_id: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Ride force-completed");
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(false);
+      setForceCompleteOpen(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -254,20 +288,17 @@ export default function AdminRideDetail() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Admin Actions</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setCancelOpen(true)}
-            >
+            <Button variant="destructive" size="sm" onClick={() => setCancelOpen(true)}>
               Force Cancel Ride
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setReassignOpen(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => { setReassignOpen(true); setDriverSearch(""); setSelectedDriverId(""); }}>
               Reassign Driver
             </Button>
+            {ride.status === "in_progress" && (
+              <Button variant="secondary" size="sm" onClick={() => setForceCompleteOpen(true)}>
+                Force Complete
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -313,38 +344,84 @@ export default function AdminRideDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Force Complete Dialog */}
+      <AlertDialog open={forceCompleteOpen} onOpenChange={setForceCompleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Force Complete Ride</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the ride as completed, process payment capture, and calculate driver earnings. Use this for stuck rides where the driver's app has crashed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={actionLoading} onClick={handleForceComplete}>
+              {actionLoading ? "Completing…" : "Force Complete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Reassign Driver Dialog */}
       <AlertDialog open={reassignOpen} onOpenChange={setReassignOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Reassign Driver</AlertDialogTitle>
             <AlertDialogDescription>
-              Enter the new driver's profile ID to reassign this ride.
+              Search for an online driver to reassign this ride.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Input
-            placeholder="Driver profile ID"
-            value={newDriverId}
-            onChange={(e) => setNewDriverId(e.target.value)}
-            className="my-2"
-          />
+          <div className="space-y-3 my-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search driver by name..."
+                value={driverSearch}
+                onChange={(e) => setDriverSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-1">
+              {availableDrivers && availableDrivers.length > 0 ? (
+                availableDrivers.map((d: any) => (
+                  <button
+                    key={d.id}
+                    onClick={() => setSelectedDriverId(d.id)}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      selectedDriverId === d.id
+                        ? "bg-primary/10 border border-primary/30"
+                        : "hover:bg-muted/50"
+                    }`}
+                  >
+                    <p className="font-medium">{d.full_name || "Unnamed"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {[d.vehicle_make, d.vehicle_model, d.license_plate].filter(Boolean).join(" · ") || "No vehicle info"}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No online drivers found</p>
+              )}
+            </div>
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setNewDriverId("")}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setSelectedDriverId(""); setDriverSearch(""); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              disabled={actionLoading || !newDriverId.trim()}
+              disabled={actionLoading || !selectedDriverId}
               onClick={async () => {
                 setActionLoading(true);
                 try {
                   const { error } = await supabase
                     .from("rides")
                     .update({
-                      driver_id: newDriverId.trim(),
+                      driver_id: selectedDriverId,
                       status: "accepted" as any,
                     } as any)
                     .eq("id", id!);
                   if (error) throw error;
                   toast.success("Driver reassigned");
-                  setNewDriverId("");
+                  setSelectedDriverId("");
+                  setDriverSearch("");
                   refetch();
                 } catch (err: any) {
                   toast.error(err.message);

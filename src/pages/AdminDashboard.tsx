@@ -1,15 +1,11 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  Shield,
-  FileCheck,
-  Users,
-  BarChart3,
-  CalendarCheck,
-  MessageSquare,
-  ArrowRight,
-  DollarSign,
+  Shield, FileCheck, Users, BarChart3,
+  MessageSquare, ArrowRight, DollarSign,
+  AlertTriangle, Radio,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +15,7 @@ import TestRideFlowPanel from "@/components/admin/TestRideFlowPanel";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-dashboard-stats"],
@@ -29,6 +26,7 @@ const AdminDashboard = () => {
         ridesRes,
         supportRes,
         revenueRes,
+        driversOnlineRes,
       ] = await Promise.all([
         supabase
           .from("verifications")
@@ -46,6 +44,11 @@ const AdminDashboard = () => {
           .select("id", { count: "exact", head: true })
           .in("status", ["open", "in_progress"]),
         supabase.rpc("get_total_revenue"),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "driver")
+          .eq("is_available", true),
       ]);
 
       return {
@@ -54,28 +57,64 @@ const AdminDashboard = () => {
         activeRides: ridesRes.count || 0,
         openSupport: supportRes.count || 0,
         totalRevenue: Number(revenueRes.data || 0),
+        driversOnline: driversOnlineRes.count || 0,
       };
     },
     refetchInterval: 30000,
   });
 
+  // Alerts query — stale rides, failed payments
+  const { data: alerts } = useQuery({
+    queryKey: ["admin-dashboard-alerts"],
+    queryFn: async () => {
+      const twoMinAgo = new Date(Date.now() - 120_000).toISOString();
+      const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
+
+      const [staleRidesRes, failedPaymentsRes] = await Promise.all([
+        supabase
+          .from("rides")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "requested")
+          .lt("created_at", twoMinAgo),
+        supabase
+          .from("rides")
+          .select("id", { count: "exact", head: true })
+          .eq("payment_status", "failed")
+          .gte("updated_at", oneHourAgo),
+      ]);
+
+      return {
+        staleRides: staleRidesRes.count || 0,
+        failedPayments: failedPaymentsRes.count || 0,
+      };
+    },
+    refetchInterval: 30000,
+  });
+
+  // Realtime invalidation on rides and profiles changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rides" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-dashboard-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-dashboard-alerts"] });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-dashboard-stats"] });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const cards = [
     {
-      title: "Driver verifications",
-      description: "Review pending documents and approve or reject drivers.",
-      value: stats?.pendingVerifications ?? 0,
-      icon: FileCheck,
-      path: "/admin/verifications",
-      cta: "Open verifications",
-      format: "count" as const,
-    },
-    {
-      title: "User management",
-      description: "Manage roles, driver capabilities, and account access.",
-      value: stats?.totalUsers ?? 0,
-      icon: Users,
+      title: "Drivers online",
+      description: "Drivers currently available to accept ride requests.",
+      value: stats?.driversOnline ?? 0,
+      icon: Radio,
       path: "/admin/users",
-      cta: "Open users",
+      cta: "View drivers",
       format: "count" as const,
     },
     {
@@ -97,6 +136,24 @@ const AdminDashboard = () => {
       format: "currency" as const,
     },
     {
+      title: "Driver verifications",
+      description: "Review pending documents and approve or reject drivers.",
+      value: stats?.pendingVerifications ?? 0,
+      icon: FileCheck,
+      path: "/admin/verifications",
+      cta: "Open verifications",
+      format: "count" as const,
+    },
+    {
+      title: "User management",
+      description: "Manage roles, driver capabilities, and account access.",
+      value: stats?.totalUsers ?? 0,
+      icon: Users,
+      path: "/admin/users",
+      cta: "Open users",
+      format: "count" as const,
+    },
+    {
       title: "Support inbox",
       description: "Reply to customer conversations and resolve open cases.",
       value: stats?.openSupport ?? 0,
@@ -106,6 +163,8 @@ const AdminDashboard = () => {
       format: "count" as const,
     },
   ];
+
+  const hasAlerts = alerts && (alerts.staleRides > 0 || alerts.failedPayments > 0);
 
   return (
     <div className="space-y-8 pt-4">
@@ -127,6 +186,40 @@ const AdminDashboard = () => {
           </p>
         </div>
       </motion.div>
+
+      {/* Operational Alerts */}
+      {hasAlerts && (
+        <div className="space-y-2">
+          {alerts.staleRides > 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3"
+            >
+              <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">{alerts.staleRides} ride{alerts.staleRides > 1 ? "s" : ""} waiting 2+ minutes with no driver</p>
+                <p className="text-xs text-muted-foreground">These rides may need manual intervention or driver re-dispatch.</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => navigate("/admin/reports")}>View rides</Button>
+            </motion.div>
+          )}
+          {alerts.failedPayments > 0 && (
+            <motion.div
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3"
+            >
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">{alerts.failedPayments} failed payment{alerts.failedPayments > 1 ? "s" : ""} in the last hour</p>
+                <p className="text-xs text-muted-foreground">Check Stripe logs and rider payment methods.</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => navigate("/admin/reports")}>View reports</Button>
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {isError ? (
         <ErrorRetry message="Failed to load dashboard stats" onRetry={() => refetch()} />
