@@ -115,7 +115,7 @@ const DriverDashboard = () => {
             .from("rides")
             .select("id, status, pickup_address, dropoff_address, service_type, created_at")
             .eq("driver_id", profile.id)
-            .in("status", ["accepted", "in_progress"])
+            .in("status", ["accepted", "arrived", "in_progress"])
             .limit(1)
             .maybeSingle(),
           supabase
