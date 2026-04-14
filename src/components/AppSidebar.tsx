@@ -1,4 +1,4 @@
-import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList, Bell, Radio } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList, Bell, Radio, FileText } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
@@ -50,6 +50,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
     { icon: Radio, title: "Live Map", url: "/admin/live-map" },
     { icon: Zap, title: "Simulator", url: "/admin/simulator" },
     { icon: Bell, title: "Notification Logs", url: "/admin/notifications" },
+    { icon: FileText, title: "Audit Log", url: "/admin/audit-log" },
   ],
 });
 
