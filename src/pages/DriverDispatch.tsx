@@ -189,21 +189,46 @@ const DriverDispatch = () => {
     refetchInterval: 30_000,
   });
 
-  // ─── Realtime ───
+  // ─── Scoped Realtime: only listen for driver's own rides + status changes ───
   useEffect(() => {
+    if (!profile?.id) return;
     const channel = supabase
-      .channel("rides-dispatch")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rides" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["dispatch-rides"] });
+      .channel(`driver-dispatch-${profile.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "rides",
+        filter: `driver_id=eq.${profile.id}`,
+      }, () => {
         queryClient.invalidateQueries({ queryKey: ["active-ride"] });
         queryClient.invalidateQueries({ queryKey: ["outstanding-rides"] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_bids" }, () => {
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "rides",
+        filter: `status=eq.requested`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dispatch-rides"] });
+      })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "rides",
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["dispatch-rides"] });
+      })
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "delivery_bids",
+        filter: `driver_id=eq.${profile.id}`,
+      }, () => {
         queryClient.invalidateQueries({ queryKey: ["my-delivery-bids"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
+  }, [queryClient, profile?.id]);
 
   // ─── Sound + vibration on new requests ───
   useEffect(() => {
