@@ -263,11 +263,23 @@ async function notifyUser(
   return { method: "none", success: false };
 }
 
-// ── In-app notification writer ─────────────────────────────────────
+// ── In-app notification writer (with deduplication) ────────────────
 
 async function writeNotification(
   supabase: any, userId: string, title: string, body: string, type: string, rideId?: string
 ) {
+  // Deduplicate: check if this exact notification was already sent in the last 60s
+  if (rideId) {
+    const { data: existing } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("type", type)
+      .eq("ride_id", rideId)
+      .gte("created_at", new Date(Date.now() - 60_000).toISOString())
+      .limit(1);
+    if (existing?.length) return; // Already sent
+  }
   await supabase.from("notifications").insert({
     user_id: userId, title, body, type, ride_id: rideId || null,
   });
