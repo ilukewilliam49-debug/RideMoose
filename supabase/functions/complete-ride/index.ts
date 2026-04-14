@@ -159,6 +159,23 @@ serve(async (req) => {
       }
     }
 
+    // Send earnings notification to driver
+    try {
+      const fareDisplay = final_fare_cents
+        ? `$${(final_fare_cents / 100).toFixed(2)}`
+        : "calculated";
+      
+      await admin.from("notifications").insert({
+        user_id: ride.driver_id,
+        title: "Trip completed!",
+        body: `You earned on this trip. Fare: ${fareDisplay}. Check your earnings for details.`,
+        type: "trip_completed",
+        ride_id,
+      });
+    } catch (notifErr: any) {
+      console.error("[complete-ride] driver notification failed:", notifErr.message);
+    }
+
     console.log(`[complete-ride] ride=${ride_id} driver=${profile.id} completed_at=${now} duration=${computedDuration}min`);
 
     return jsonRes({

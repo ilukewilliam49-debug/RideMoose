@@ -160,8 +160,26 @@ const DriverDashboard = () => {
       };
     },
     enabled: !!profile?.id,
-    refetchInterval: 8000,
+    refetchInterval: 30000, // Fallback polling, Realtime handles most updates
   });
+
+  // ─── Realtime subscription for instant dashboard updates ───
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel(`driver-dashboard-${profile.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "rides",
+        filter: `driver_id=eq.${profile.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["driver-dashboard-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["driver-recent-trips"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient, profile?.id]);
 
   // ─── Driver rating + acceptance rate ───
   // Use cached average_rating from profile instead of computing client-side
