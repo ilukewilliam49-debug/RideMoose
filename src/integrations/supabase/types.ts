@@ -1767,6 +1767,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_ride_stats: {
+        Args: {
+          _date_from?: string
+          _date_to?: string
+          _service_type?: string
+          _status?: string
+        }
+        Returns: Json
+      }
       get_total_revenue: { Args: never; Returns: number }
       has_role: {
         Args: {
