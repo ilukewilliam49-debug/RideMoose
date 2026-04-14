@@ -30,7 +30,7 @@ interface ProfileRow {
   role: "rider" | "driver" | "admin";
   is_available: boolean | null;
   can_courier: boolean;
-  pet_approved: boolean;
+  
   vehicle_type: string | null;
   created_at: string;
 }
@@ -74,7 +74,7 @@ const AdminUsers = () => {
     setLoading(true);
     const { data, error: err } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, phone, role, is_available, can_courier, pet_approved, vehicle_type, created_at")
+      .select("id, user_id, full_name, phone, role, is_available, can_courier, vehicle_type, created_at")
       .order("created_at", { ascending: false });
 
     if (err) {
