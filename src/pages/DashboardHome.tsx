@@ -47,7 +47,17 @@ const DashboardHome = () => {
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          setPickupAddressCoords({ lat: latitude, lng: longitude });
+          // Auto-fill pickup address via reverse-geocode
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const geo = await res.json();
+            if (geo.display_name) setPickupAddress(geo.display_name);
+          } catch { /* silent */ }
+        },
         () => {}
       );
     }
@@ -161,6 +171,9 @@ const DashboardHome = () => {
       <div className="mb-4">
         <ActiveRideBanner />
       </div>
+
+      {/* ── Outstanding balance banner ── */}
+      <OutstandingBalanceBanner profileId={profile?.id} navigate={navigate} />
 
 
       {/* ── Pickup & Dropoff fields ── */}

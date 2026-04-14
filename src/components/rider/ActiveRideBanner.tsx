@@ -32,6 +32,23 @@ export default function ActiveRideBanner() {
     refetchInterval: 10_000,
   });
 
+  // Realtime: instantly invalidate banner query on ride changes
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel(`banner-ride-${profile.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "rides",
+        filter: `rider_id=eq.${profile.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["rider-active-ride-banner"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id, queryClient]);
+
   // Fetch driver name if assigned
   const { data: driverName } = useQuery({
     queryKey: ["banner-driver-name", activeRide?.driver_id],
