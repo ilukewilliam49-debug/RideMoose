@@ -146,7 +146,25 @@ const DriverDispatch = () => {
     enabled: !!profile?.id,
   });
 
-  // ─── Recent deliveries ───
+  // ─── Recent completed rides (all types for TripSummaryCard) ───
+  const { data: recentCompletedRides } = useQuery({
+    queryKey: ["recent-completed-rides", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase
+        .from("rides")
+        .select("*")
+        .eq("driver_id", profile.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data as Ride[];
+    },
+    enabled: !!profile?.id,
+  });
+
+  // ─── Recent deliveries (for delivery-specific list) ───
   const { data: recentDeliveries } = useQuery({
     queryKey: ["recent-deliveries", profile?.id],
     queryFn: async () => {
@@ -424,12 +442,12 @@ const DriverDispatch = () => {
       />
       <PageHeader profile={profile} />
 
-      {/* Trip summary after completion */}
-      {!activeRide && recentDeliveries?.[0] && recentDeliveries[0].id !== dismissedSummaryId && (
+      {/* Trip summary after completion — all service types */}
+      {!activeRide && recentCompletedRides?.[0] && recentCompletedRides[0].id !== dismissedSummaryId && (
         <TripSummaryCard
-          ride={recentDeliveries[0] as any}
+          ride={recentCompletedRides[0] as any}
           driverProfileId={profile?.id}
-          onDismiss={() => setDismissedSummaryId(recentDeliveries[0].id)}
+          onDismiss={() => setDismissedSummaryId(recentCompletedRides[0].id)}
         />
       )}
 
@@ -448,7 +466,16 @@ const DriverDispatch = () => {
       <OutstandingBalances rides={outstandingRides || []} />
 
       {/* Incoming requests */}
-      {!activeRide && (
+      {/* Incoming requests — only when online */}
+      {!activeRide && !profile?.is_available && (
+        <div className="rounded-2xl bg-amber-500/8 ring-1 ring-amber-500/20 p-6 text-center space-y-2">
+          <AlertTriangle className="h-6 w-6 text-amber-500 mx-auto" />
+          <p className="text-sm font-semibold">You're offline</p>
+          <p className="text-xs text-muted-foreground">Go online from the dashboard to receive ride requests</p>
+        </div>
+      )}
+
+      {!activeRide && !!profile?.is_available && (
         <>
           {pendingMarkers.length > 0 && (
             <div className="rounded-2xl overflow-hidden ring-1 ring-border/50">
