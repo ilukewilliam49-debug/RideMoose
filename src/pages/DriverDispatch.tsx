@@ -48,7 +48,7 @@ const DriverDispatch = () => {
 
   // ─── Pending rides ───
   const { data: pendingRides, isError: pendingError, refetch: refetchPending } = useQuery({
-    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier, profile?.can_food_delivery, profile?.pet_approved, profile?.vehicle_type],
+    queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier, profile?.vehicle_type],
     queryFn: async () => {
       const serviceTypes: string[] = [];
       if (profile?.can_taxi) serviceTypes.push("taxi");
@@ -156,7 +156,7 @@ const DriverDispatch = () => {
         .select("*")
         .eq("driver_id", profile.id)
         .eq("status", "completed")
-        .in("service_type", ["large_delivery", "courier", "retail_delivery", "personal_shopper", "food_delivery", "pet_transport"] as any)
+        .in("service_type", ["large_delivery", "courier", "retail_delivery", "personal_shopper"] as any)
         .order("completed_at", { ascending: false })
         .limit(10);
       if (error) throw error;
