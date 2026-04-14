@@ -58,6 +58,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
 export function AppSidebar() {
   const { state, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
+  const isOnline = useIsOnline();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const { t } = useTranslation();
