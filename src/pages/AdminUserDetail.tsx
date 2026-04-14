@@ -114,7 +114,7 @@ export default function AdminUserDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !!id && profile?.role === "driver",
+    enabled: !!id,
   });
 
   const { data: verifications } = useQuery({
