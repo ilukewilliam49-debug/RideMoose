@@ -64,7 +64,6 @@ const RiderDashboard = () => {
     distanceKm: state.distanceKm,
     passengerCount: state.passengerCount,
     estimatedItemCostCents: state.estimatedItemCostCents,
-    petMode: state.petMode,
   });
 
   const driverETAs = useNearestDriverETAs(state.userLocation);

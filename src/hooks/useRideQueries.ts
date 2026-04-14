@@ -282,7 +282,6 @@ export const useRideQueries = ({
   return {
     savedPlaces, riderOrgMembership, servicePricing, taxiRates,
     directionsData, directionsFetching, trafficDelayMin,
-    petPricingConfig,
     currentPricing,
     estimatedPrice, allServicePrices,
     activeRide, driverProfile, activeRideDirections, activeRoutePolyline,

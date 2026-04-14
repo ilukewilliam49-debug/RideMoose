@@ -78,7 +78,6 @@ const CourierBooking = () => {
     distanceKm,
     passengerCount: 1,
     estimatedItemCostCents: 0,
-    petMode: "pet_with_owner",
   });
 
   const mapMarkers: MapMarker[] = [
