@@ -1,4 +1,5 @@
-import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList, Bell, Radio, FileText } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList, Bell, Radio, FileText, WifiOff } from "lucide-react";
+import { useIsOnline } from "@/hooks/useNetworkStatus";
 import logoImg from "@/assets/logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "@/components/NavLink";
@@ -109,7 +110,15 @@ export function AppSidebar() {
       <SidebarContent>
         <div className="flex items-center justify-between px-4 py-4">
           <img src={logoImg} alt="PickYou" className="h-7 object-contain shrink-0" />
-          {!collapsed && <NotificationBell />}
+          <div className="flex items-center gap-2">
+            {!isOnline && (
+              <div className="flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">
+                <WifiOff className="h-3 w-3" />
+                {!collapsed && <span>Offline</span>}
+              </div>
+            )}
+            {!collapsed && <NotificationBell />}
+          </div>
         </div>
 
         <SidebarGroup>
