@@ -339,11 +339,24 @@ const DashboardHome = () => {
             return (
               <button
                 key={place.id}
-                onClick={() =>
-                  navigate(
-                    withSchedule(`/rider/rides?pickup=${encodeURIComponent(place.address)}`)
-                  )
-                }
+                onClick={async () => {
+                  try {
+                    const res = await fetch(
+                      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.address)}&format=json&limit=1`
+                    );
+                    const results = await res.json();
+                    const lat = results?.[0]?.lat;
+                    const lng = results?.[0]?.lon;
+                    const coordParams = lat && lng ? `&dlat=${lat}&dlng=${lng}` : "";
+                    navigate(
+                      withSchedule(`/rider/rides?dropoff=${encodeURIComponent(place.address)}${coordParams}`)
+                    );
+                  } catch {
+                    navigate(
+                      withSchedule(`/rider/rides?dropoff=${encodeURIComponent(place.address)}`)
+                    );
+                  }
+                }}
                 className="flex w-full items-center gap-4 py-3.5 text-left hover:bg-accent/30 transition-colors -mx-1 px-1 rounded-lg"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">

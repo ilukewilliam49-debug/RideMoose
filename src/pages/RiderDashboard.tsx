@@ -323,6 +323,7 @@ const RiderDashboard = () => {
         <ActiveRideCard
           activeRide={queries.activeRide}
           driverName={queries.driverProfile?.full_name}
+          driverProfile={queries.driverProfile}
           statusColor={STATUS_COLORS}
           onCancelClick={() => state.setCancelDialogOpen(true)}
         />

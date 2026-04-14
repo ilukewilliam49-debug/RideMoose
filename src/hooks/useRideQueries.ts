@@ -196,7 +196,7 @@ export const useRideQueries = ({
     queryKey: ["driver-location", activeRide?.driver_id],
     queryFn: async () => {
       if (!activeRide?.driver_id) return null;
-      const { data, error } = await supabase.from("profiles").select("full_name, latitude, longitude").eq("id", activeRide.driver_id).single();
+      const { data, error } = await supabase.from("profiles").select("full_name, latitude, longitude, avatar_url, vehicle_make, vehicle_model, vehicle_color, vehicle_year, license_plate, average_rating, total_ratings").eq("id", activeRide.driver_id).single();
       if (error) throw error;
       return data;
     },

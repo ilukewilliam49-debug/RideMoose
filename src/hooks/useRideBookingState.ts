@@ -57,7 +57,21 @@ export const useRideBookingState = () => {
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          // Auto-fill pickup if not already set from URL params
+          if (!pickup && !searchParams.get("pickup")) {
+            setPickupCoords({ lat: latitude, lng: longitude });
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+              const geo = await res.json();
+              setPickup(geo.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+            } catch {
+              setPickup(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+            }
+          }
+        },
         () => {}
       );
     }
