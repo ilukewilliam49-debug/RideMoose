@@ -32,7 +32,7 @@ const DriverBottomTabBar = () => {
   });
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-xl md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-xl md:hidden safe-bottom">
       <div className="flex h-16 items-stretch">
         {tabs.map((tab) => {
           const isActive =
@@ -46,7 +46,7 @@ const DriverBottomTabBar = () => {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${
+              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${
                 isActive ? "text-foreground" : "text-muted-foreground"
               }`}
             >
