@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -10,6 +11,7 @@ export default function ActiveRideBanner() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const { data: activeRide } = useQuery({
     queryKey: ["rider-active-ride-banner", profile?.id],
@@ -29,6 +31,23 @@ export default function ActiveRideBanner() {
     enabled: !!profile?.id,
     refetchInterval: 10_000,
   });
+
+  // Realtime: instantly invalidate banner query on ride changes
+  useEffect(() => {
+    if (!profile?.id) return;
+    const channel = supabase
+      .channel(`banner-ride-${profile.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "rides",
+        filter: `rider_id=eq.${profile.id}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["rider-active-ride-banner"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id, queryClient]);
 
   // Fetch driver name if assigned
   const { data: driverName } = useQuery({

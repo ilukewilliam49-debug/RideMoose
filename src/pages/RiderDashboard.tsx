@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import TripCompleteSheet from "@/components/rider/TripCompleteSheet";
+import RideConfirmSheet from "@/components/rider/RideConfirmSheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,9 @@ const RiderDashboard = () => {
   const { t } = useTranslation();
   const state = useRideBookingState();
   const [matchingInProgress, setMatchingInProgress] = useState(false);
+  const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
+  const [tripCompleteRide, setTripCompleteRide] = useState<any>(null);
+  const prevActiveStatusRef = useRef<string | null>(null);
   const matchingRideIdRef = useRef<string | null>(null);
   const submittingRef = useRef(false);
   const lastSubmitTimeRef = useRef(0);
@@ -59,10 +64,31 @@ const RiderDashboard = () => {
     distanceKm: state.distanceKm,
     passengerCount: state.passengerCount,
     estimatedItemCostCents: state.estimatedItemCostCents,
-    petMode: state.petMode,
   });
 
   const driverETAs = useNearestDriverETAs(state.userLocation);
+
+  // Detect ride completion → auto-show trip summary
+  useEffect(() => {
+    const currentStatus = queries.activeRide?.status || null;
+    const prevStatus = prevActiveStatusRef.current;
+    if (prevStatus && (prevStatus === "in_progress" || prevStatus === "accepted") && !currentStatus) {
+      // Ride just completed or disappeared — fetch last completed ride
+      (async () => {
+        if (!profile?.id) return;
+        const { data } = await supabase
+          .from("rides")
+          .select("*")
+          .eq("rider_id", profile.id)
+          .eq("status", "completed")
+          .order("completed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) setTripCompleteRide(data);
+      })();
+    }
+    prevActiveStatusRef.current = currentStatus;
+  }, [queries.activeRide?.status, profile?.id]);
 
   // Auto-open rating dialog when unrated ride found (only if not previously dismissed)
   useEffect(() => {
@@ -510,7 +536,7 @@ const RiderDashboard = () => {
           )}
 
           {!state.paymentClientSecret && (
-            <Button onClick={requestRide} disabled={state.loading || !state.pickupCoords || !state.dropoffCoords} className="w-full">
+            <Button onClick={() => setConfirmSheetOpen(true)} disabled={state.loading || !state.pickupCoords || !state.dropoffCoords} className="w-full">
               {state.loading ? t("rider.requesting") : state.serviceType === "taxi" ? t("rider.requestTaxi") : state.serviceType === "private_hire" ? t("rider.requestPrivateHire") : t("rider.requestCourier")}
             </Button>
           )}
@@ -563,6 +589,37 @@ const RiderDashboard = () => {
           onCancelled={() => {
             queries.queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
             queries.queryClient.invalidateQueries({ queryKey: ["my-rides"] });
+          }}
+        />
+      )}
+
+      {/* Ride confirmation sheet */}
+      <RideConfirmSheet
+        open={confirmSheetOpen}
+        onOpenChange={setConfirmSheetOpen}
+        onConfirm={() => {
+          setConfirmSheetOpen(false);
+          requestRide();
+        }}
+        pickup={state.pickup}
+        dropoff={state.dropoff}
+        serviceType={state.serviceType}
+        estimatedPrice={queries.estimatedPrice}
+        paymentOption={state.paymentOption}
+        scheduledAt={state.searchParams.get("scheduledAt")}
+        loading={state.loading}
+      />
+
+      {/* Trip complete auto-display */}
+      {tripCompleteRide && (
+        <TripCompleteSheet
+          ride={tripCompleteRide}
+          open={!!tripCompleteRide}
+          onOpenChange={(open) => { if (!open) setTripCompleteRide(null); }}
+          onRate={() => {
+            state.setManualRateRideId(tripCompleteRide.id);
+            state.setManualRateDriverId(tripCompleteRide.driver_id);
+            state.setRatingDialogOpen(true);
           }}
         />
       )}

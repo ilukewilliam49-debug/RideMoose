@@ -17,6 +17,8 @@ interface DriverProfile {
   license_plate?: string | null;
   average_rating?: number | null;
   total_ratings?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface ActiveRideCardProps {
@@ -45,7 +47,16 @@ const ActiveRideCard = ({ activeRide, driverName, driverProfile, statusColor, on
           <p className="text-sm font-medium">{activeRide.pickup_address} → {activeRide.dropoff_address}</p>
         </div>
         <p className={`text-xs font-mono uppercase ${statusColor[activeRide.status]}`}>
-          {t(`rider.status_${activeRide.status}`)}
+          {activeRide.status === "accepted" && driverProfile?.latitude && activeRide.pickup_lat && activeRide.pickup_lng
+            ? (() => {
+                const dlat = (driverProfile.latitude! - activeRide.pickup_lat) * 111320;
+                const dlng = (driverProfile.longitude! - activeRide.pickup_lng) * 111320 * Math.cos(activeRide.pickup_lat * Math.PI / 180);
+                const dist = Math.sqrt(dlat * dlat + dlng * dlng);
+                return dist < 100
+                  ? t("rider.driverArrived", "Your driver has arrived!")
+                  : t(`rider.status_${activeRide.status}`);
+              })()
+            : t(`rider.status_${activeRide.status}`)}
         </p>
 
         {/* Driver info card */}

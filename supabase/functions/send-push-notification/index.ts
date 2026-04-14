@@ -455,12 +455,8 @@ serve(async (req) => {
 
         if (ride.service_type === "large_delivery") {
           driverQuery = driverQuery.in("vehicle_type", ["SUV", "truck", "van"]);
-        } else if (ride.service_type === "pet_transport") {
-          driverQuery = driverQuery.eq("pet_approved", true);
         } else if (["courier", "retail_delivery", "personal_shopper"].includes(ride.service_type)) {
           driverQuery = driverQuery.eq("can_courier", true);
-        } else if (ride.service_type === "food_delivery") {
-          driverQuery = driverQuery.eq("can_food_delivery", true);
         } else if (ride.service_type === "private_hire") {
           driverQuery = driverQuery.eq("can_private_hire", true);
         } else if (ride.service_type === "shuttle") {
