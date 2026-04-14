@@ -19,6 +19,17 @@ const ratingSchema = z.object({
   comment: z.string().max(500, "Comment must be under 500 characters").optional(),
 });
 
+const FEEDBACK_TAGS = [
+  { label: "Clean car", emoji: "🧼" },
+  { label: "Safe driving", emoji: "🛡️" },
+  { label: "Friendly", emoji: "😊" },
+  { label: "Great route", emoji: "🗺️" },
+  { label: "On time", emoji: "⏰" },
+  { label: "Late", emoji: "⏳" },
+  { label: "Poor route", emoji: "🔄" },
+  { label: "Uncomfortable", emoji: "😕" },
+];
+
 interface RideRatingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,7 +58,14 @@ const RideRatingDialog = ({
   const [tipCents, setTipCents] = useState(0);
   const [customTip, setCustomTip] = useState("");
   const [showCustomTip, setShowCustomTip] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { t } = useTranslation();
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
 
   const handleSubmit = async () => {
     const result = ratingSchema.safeParse({ rating, comment: comment || undefined });
@@ -58,14 +76,14 @@ const RideRatingDialog = ({
 
     setSubmitting(true);
     try {
-      // Submit rating
       const { error } = await supabase.from("ride_ratings").insert({
         ride_id: rideId,
         rated_by: ratedBy,
         rated_user: driverId,
         rating,
         comment: comment.trim() || null,
-      });
+        feedback_tags: selectedTags.length > 0 ? selectedTags : [],
+      } as any);
       if (error) {
         if (error.code === "23505") {
           toast.info(t("rating.alreadyRated"));
@@ -92,6 +110,7 @@ const RideRatingDialog = ({
       setTipCents(0);
       setCustomTip("");
       setShowCustomTip(false);
+      setSelectedTags([]);
       onRated?.();
     } catch (err: any) {
       toast.error(err.message);
@@ -102,6 +121,15 @@ const RideRatingDialog = ({
 
   const displayRating = hoveredStar || rating;
   const ratingLabels = ["", t("rating.poor"), t("rating.fair"), t("rating.good"), t("rating.great"), t("rating.excellent")];
+
+  // Show positive tags for 4-5 stars, negative for 1-2, all for 3
+  const visibleTags = rating === 0
+    ? FEEDBACK_TAGS
+    : rating >= 4
+      ? FEEDBACK_TAGS.filter((t) => !["Late", "Poor route", "Uncomfortable"].includes(t.label))
+      : rating <= 2
+        ? FEEDBACK_TAGS.filter((t) => !["Clean car", "Safe driving", "Friendly", "Great route", "On time"].includes(t.label))
+        : FEEDBACK_TAGS;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -144,6 +172,29 @@ const RideRatingDialog = ({
               </span>
             )}
           </div>
+
+          {/* Feedback Tags */}
+          {rating > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Quick feedback</p>
+              <div className="flex flex-wrap gap-2">
+                {visibleTags.map((tag) => (
+                  <button
+                    key={tag.label}
+                    type="button"
+                    onClick={() => toggleTag(tag.label)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      selectedTags.includes(tag.label)
+                        ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                        : "bg-secondary text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {tag.emoji} {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Tip section */}
           <div className="space-y-2">

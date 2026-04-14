@@ -164,21 +164,11 @@ const DriverDashboard = () => {
   });
 
   // ─── Driver rating + acceptance rate ───
-  const { data: ratingData } = useQuery({
-    queryKey: ["driver-rating", profile?.id],
-    queryFn: async () => {
-      if (!profile?.id) return null;
-      const { data, error } = await supabase
-        .from("ride_ratings")
-        .select("rating")
-        .eq("rated_user", profile.id);
-      if (error || !data || data.length === 0) return null;
-      const avg = data.reduce((s, r) => s + r.rating, 0) / data.length;
-      return { average: Math.round(avg * 10) / 10, count: data.length };
-    },
-    enabled: !!profile?.id,
-    staleTime: 60_000,
-  });
+  // Use cached average_rating from profile instead of computing client-side
+  const profileAny = profile as any;
+  const ratingData = profileAny?.average_rating != null
+    ? { average: Number(profileAny.average_rating), count: profileAny.total_ratings ?? 0 }
+    : null;
 
   const { data: acceptanceRate } = useQuery({
     queryKey: ["driver-acceptance-rate", profile?.id],
