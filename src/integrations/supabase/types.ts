@@ -1791,6 +1791,7 @@ export type Database = {
         | "requested"
         | "dispatched"
         | "accepted"
+        | "arrived"
         | "in_progress"
         | "completed"
         | "cancelled"
@@ -1937,6 +1938,7 @@ export const Constants = {
         "requested",
         "dispatched",
         "accepted",
+        "arrived",
         "in_progress",
         "completed",
         "cancelled",
