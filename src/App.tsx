@@ -89,6 +89,7 @@ const AppContent = () => {
           
           <Route path="simulator" element={<AdminSimulator />} />
           <Route path="notifications" element={<AdminNotificationLogs />} />
+          <Route path="live-map" element={<AdminLiveMap />} />
         </Route>
 
         <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
