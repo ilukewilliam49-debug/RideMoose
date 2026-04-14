@@ -101,6 +101,22 @@ export default function AdminUserDetail() {
     enabled: !!id,
   });
 
+  // Driver ratings query
+  const { data: driverRatings } = useQuery({
+    queryKey: ["admin-driver-ratings", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ride_ratings")
+        .select("id, rating, comment, feedback_tags, created_at, ride_id")
+        .eq("rated_user", id!)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && profile?.role === "driver",
+  });
+
   const { data: verifications } = useQuery({
     queryKey: ["admin-user-verifications", id],
     queryFn: async () => {
