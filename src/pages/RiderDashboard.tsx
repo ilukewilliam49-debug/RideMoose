@@ -537,7 +537,7 @@ const RiderDashboard = () => {
           )}
 
           {!state.paymentClientSecret && (
-            <Button onClick={requestRide} disabled={state.loading || !state.pickupCoords || !state.dropoffCoords} className="w-full">
+            <Button onClick={() => setConfirmSheetOpen(true)} disabled={state.loading || !state.pickupCoords || !state.dropoffCoords} className="w-full">
               {state.loading ? t("rider.requesting") : state.serviceType === "taxi" ? t("rider.requestTaxi") : state.serviceType === "private_hire" ? t("rider.requestPrivateHire") : t("rider.requestCourier")}
             </Button>
           )}
@@ -590,6 +590,37 @@ const RiderDashboard = () => {
           onCancelled={() => {
             queries.queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
             queries.queryClient.invalidateQueries({ queryKey: ["my-rides"] });
+          }}
+        />
+      )}
+
+      {/* Ride confirmation sheet */}
+      <RideConfirmSheet
+        open={confirmSheetOpen}
+        onOpenChange={setConfirmSheetOpen}
+        onConfirm={() => {
+          setConfirmSheetOpen(false);
+          requestRide();
+        }}
+        pickup={state.pickup}
+        dropoff={state.dropoff}
+        serviceType={state.serviceType}
+        estimatedPrice={queries.estimatedPrice}
+        paymentOption={state.paymentOption}
+        scheduledAt={state.searchParams.get("scheduledAt")}
+        loading={state.loading}
+      />
+
+      {/* Trip complete auto-display */}
+      {tripCompleteRide && (
+        <TripCompleteSheet
+          ride={tripCompleteRide}
+          open={!!tripCompleteRide}
+          onOpenChange={(open) => { if (!open) setTripCompleteRide(null); }}
+          onRate={() => {
+            state.setManualRateRideId(tripCompleteRide.id);
+            state.setManualRateDriverId(tripCompleteRide.driver_id);
+            state.setRatingDialogOpen(true);
           }}
         />
       )}

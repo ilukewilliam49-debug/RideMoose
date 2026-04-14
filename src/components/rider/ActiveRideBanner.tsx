@@ -1,15 +1,18 @@
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Car, ChevronRight, MapPin } from "lucide-react";
+import { motion } from "framer-motion";
 import { motion } from "framer-motion";
 
 export default function ActiveRideBanner() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const { data: activeRide } = useQuery({
     queryKey: ["rider-active-ride-banner", profile?.id],
