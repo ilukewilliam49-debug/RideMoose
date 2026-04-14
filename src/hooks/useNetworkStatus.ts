@@ -1,20 +1,36 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+function subscribe(cb: () => void) {
+  window.addEventListener("online", cb);
+  window.addEventListener("offline", cb);
+  return () => {
+    window.removeEventListener("online", cb);
+    window.removeEventListener("offline", cb);
+  };
+}
+
+function getSnapshot() {
+  return navigator.onLine;
+}
+
+export function useIsOnline() {
+  return useSyncExternalStore(subscribe, getSnapshot, () => true);
+}
+
 export function useNetworkStatus() {
+  const isOnline = useIsOnline();
   const wasOffline = useRef(false);
 
   useEffect(() => {
-    const handleOffline = () => {
+    if (!isOnline) {
       wasOffline.current = true;
       toast.error("You're offline", {
         description: "Check your internet connection",
         duration: Infinity,
         id: "network-status",
       });
-    };
-
-    const handleOnline = () => {
+    } else {
       toast.dismiss("network-status");
       if (wasOffline.current) {
         wasOffline.current = false;
@@ -23,18 +39,8 @@ export function useNetworkStatus() {
           duration: 3000,
         });
       }
-    };
-
-    // Set initial state
-    if (!navigator.onLine) {
-      handleOffline();
     }
+  }, [isOnline]);
 
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener("online", handleOnline);
-    return () => {
-      window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("online", handleOnline);
-    };
-  }, []);
+  return isOnline;
 }

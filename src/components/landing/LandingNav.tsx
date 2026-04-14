@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import OfflineIndicator from "@/components/OfflineIndicator";
 import { ChevronDown } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
@@ -45,6 +46,7 @@ const LandingNav = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <OfflineIndicator />
           <LanguageSwitcher />
           <Button
             variant="ghost"

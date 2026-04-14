@@ -1,6 +1,8 @@
 import { Home, Grid3X3, ClipboardList, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useIsOnline } from "@/hooks/useNetworkStatus";
+import { WifiOff } from "lucide-react";
 
 const tabs = [
   { icon: Home, labelKey: "bottomNav.home", path: "/rider" },
@@ -13,9 +15,15 @@ const BottomTabBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const isOnline = useIsOnline();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-xl md:hidden safe-bottom">
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-1.5 bg-destructive/15 py-1 text-xs font-medium text-destructive">
+          <WifiOff className="h-3 w-3" /> Offline
+        </div>
+      )}
       <div className="flex h-16 items-stretch">
         {tabs.map((tab) => {
           const isActive =

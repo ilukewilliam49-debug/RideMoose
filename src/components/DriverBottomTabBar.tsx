@@ -1,8 +1,9 @@
-import { Home, Radio, DollarSign, User } from "lucide-react";
+import { Home, Radio, DollarSign, User, WifiOff } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsOnline } from "@/hooks/useNetworkStatus";
 
 const tabs = [
   { icon: Home, label: "Home", path: "/driver" },
@@ -15,6 +16,7 @@ const DriverBottomTabBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const isOnline = useIsOnline();
 
   // Pending request count for dispatch badge
   const { data: pendingCount } = useQuery({
@@ -33,6 +35,11 @@ const DriverBottomTabBar = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-xl md:hidden safe-bottom">
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-1.5 bg-destructive/15 py-1 text-xs font-medium text-destructive">
+          <WifiOff className="h-3 w-3" /> Offline
+        </div>
+      )}
       <div className="flex h-16 items-stretch">
         {tabs.map((tab) => {
           const isActive =
