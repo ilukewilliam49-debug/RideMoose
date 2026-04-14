@@ -104,7 +104,6 @@ const AdminUsers = () => {
     if (capabilityFilter !== "all") {
       result = result.filter((p) => {
         if (capabilityFilter === "courier") return p.can_courier;
-        if (capabilityFilter === "pet") return p.pet_approved;
         return true;
       });
     }
@@ -266,7 +265,6 @@ const AdminUsers = () => {
           <SelectContent>
             <SelectItem value="all">All capabilities</SelectItem>
             <SelectItem value="courier">Courier</SelectItem>
-            <SelectItem value="pet">Pet Approved</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -325,7 +323,7 @@ const AdminUsers = () => {
                   <TableHead>Role</TableHead>
                   <TableHead>Vehicle</TableHead>
                   <TableHead>Courier</TableHead>
-                  <TableHead>Pet</TableHead>
+                  
                   <TableHead>Active</TableHead>
                   <TableHead>Joined</TableHead>
                 </TableRow>
@@ -382,17 +380,6 @@ const AdminUsers = () => {
                         <Switch
                           checked={p.can_courier}
                           onCheckedChange={(checked) => handleUpdate(p.id, "can_courier", checked)}
-                          disabled={saving === p.id}
-                        />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      {p.role === "driver" ? (
-                        <Switch
-                          checked={p.pet_approved}
-                          onCheckedChange={(checked) => handleUpdate(p.id, "pet_approved", checked)}
                           disabled={saving === p.id}
                         />
                       ) : (
