@@ -298,10 +298,6 @@ const AdminUsers = () => {
                 onClick={() => handleBulkAction("can_courier", true, "courier → enabled")}>
                 Enable Courier
               </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={bulkSaving}
-                onClick={() => handleBulkAction("pet_approved", true, "pet approved → enabled")}>
-                Enable Pet
-              </Button>
               <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={() => setSelected(new Set())}>
                 <X className="h-3 w-3 mr-1" /> Clear
               </Button>
