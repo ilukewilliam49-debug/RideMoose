@@ -335,7 +335,7 @@ const RiderDashboard = () => {
 
 
       {/* Active ride map */}
-      {showActiveMap && (
+      {showActiveMap && !state.paymentClientSecret && (
         <ActiveRideMap
           markers={activeMarkers}
           polyline={queries.activeRoutePolyline}
@@ -347,7 +347,7 @@ const RiderDashboard = () => {
       )}
 
       {/* Active ride card */}
-      {queries.activeRide && (
+      {queries.activeRide && !state.paymentClientSecret && (
         <ActiveRideCard
           activeRide={queries.activeRide}
           driverName={queries.driverProfile?.full_name}
