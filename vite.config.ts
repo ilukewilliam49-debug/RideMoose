@@ -22,9 +22,19 @@ export default defineConfig(({ mode }) => ({
         enabled: false,
       },
       workbox: {
+        navigateFallback: "/offline.html",
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: "NetworkFirst",
+            options: { cacheName: "supabase-api", expiration: { maxEntries: 50, maxAgeSeconds: 300 } },
+          },
+        ],
+        offlineGoogleAnalytics: false,
       },
+      injectManifest: undefined,
       manifest: false, // Use existing public/manifest.json
     }),
   ].filter(Boolean),
