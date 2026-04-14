@@ -44,8 +44,6 @@ const DriverDispatch = () => {
   const prevPendingCountRef = useRef(0);
   const prevDispatchedIdsRef = useRef<Set<string>>(new Set());
 
-  useDriverLocation(profile?.id, !!profile?.is_available, 10000, !!activeRide);
-
   // ─── Pending rides ───
   const { data: pendingRides, isError: pendingError, refetch: refetchPending } = useQuery({
     queryKey: ["dispatch-rides", profile?.can_taxi, profile?.can_private_hire, profile?.can_shuttle, profile?.can_courier, profile?.vehicle_type],
@@ -68,7 +66,7 @@ const DriverDispatch = () => {
       if (error) throw error;
       return data as Ride[];
     },
-    enabled: !!profile,
+    enabled: !!profile && !!profile.is_available,
     refetchInterval: 5000,
   });
 
@@ -81,13 +79,15 @@ const DriverDispatch = () => {
         .from("rides")
         .select("*")
         .eq("driver_id", profile.id)
-        .in("status", ["accepted", "in_progress"])
+        .in("status", ["accepted", "arrived", "in_progress"])
         .single();
       if (error && error.code !== "PGRST116") throw error;
       return (data as Ride) || null;
     },
     enabled: !!profile?.id,
   });
+
+  useDriverLocation(profile?.id, !!profile?.is_available, 10000, !!activeRide);
 
   // ─── Rider profile ───
   const { data: riderProfile } = useQuery({
