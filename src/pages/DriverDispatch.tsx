@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Car } from "lucide-react";
+import { Car, AlertTriangle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import { useDriverLocation } from "@/hooks/useDriverLocation";
