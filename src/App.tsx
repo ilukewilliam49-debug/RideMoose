@@ -22,6 +22,7 @@ import AdminBookings from "./pages/AdminBookings";
 import AdminRideDetail from "./pages/AdminRideDetail";
 import AdminSimulator from "./pages/AdminSimulator";
 import AdminNotificationLogs from "./pages/AdminNotificationLogs";
+import AdminLiveMap from "./pages/AdminLiveMap";
 import DriverDashboard from "./pages/DriverDashboard";
 import DriverDispatch from "./pages/DriverDispatch";
 import DriverEarnings from "./pages/DriverEarnings";
@@ -88,6 +89,7 @@ const AppContent = () => {
           
           <Route path="simulator" element={<AdminSimulator />} />
           <Route path="notifications" element={<AdminNotificationLogs />} />
+          <Route path="live-map" element={<AdminLiveMap />} />
         </Route>
 
         <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
