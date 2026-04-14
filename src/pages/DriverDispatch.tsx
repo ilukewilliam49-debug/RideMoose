@@ -242,6 +242,22 @@ const DriverDispatch = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient, profile?.id]);
 
+  // ─── AudioContext warm-up on first interaction (browser autoplay policy) ───
+  const audioResumedRef = useRef(false);
+  useEffect(() => {
+    if (audioResumedRef.current) return;
+    const warmUp = () => {
+      try {
+        const ctx = new AudioContext();
+        ctx.resume().then(() => ctx.close());
+        audioResumedRef.current = true;
+      } catch { /* not available */ }
+      document.removeEventListener("pointerdown", warmUp);
+    };
+    document.addEventListener("pointerdown", warmUp, { once: true });
+    return () => document.removeEventListener("pointerdown", warmUp);
+  }, []);
+
   // ─── Sound + vibration on new requests ───
   useEffect(() => {
     const currentCount = visiblePendingRides.length;
