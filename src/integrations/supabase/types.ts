@@ -610,7 +610,6 @@ export type Database = {
           avatar_url: string | null
           average_rating: number | null
           can_courier: boolean
-          can_food_delivery: boolean
           can_private_hire: boolean
           can_shuttle: boolean
           can_taxi: boolean
@@ -626,7 +625,6 @@ export type Database = {
           longitude: number | null
           onesignal_player_id: string | null
           organization_id: string | null
-          pet_approved: boolean
           phone: string | null
           phone_verified: boolean
           promo_commission_rate: number
@@ -652,7 +650,6 @@ export type Database = {
           avatar_url?: string | null
           average_rating?: number | null
           can_courier?: boolean
-          can_food_delivery?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
@@ -668,7 +665,6 @@ export type Database = {
           longitude?: number | null
           onesignal_player_id?: string | null
           organization_id?: string | null
-          pet_approved?: boolean
           phone?: string | null
           phone_verified?: boolean
           promo_commission_rate?: number
@@ -694,7 +690,6 @@ export type Database = {
           avatar_url?: string | null
           average_rating?: number | null
           can_courier?: boolean
-          can_food_delivery?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
           can_taxi?: boolean
@@ -710,7 +705,6 @@ export type Database = {
           longitude?: number | null
           onesignal_player_id?: string | null
           organization_id?: string | null
-          pet_approved?: boolean
           phone?: string | null
           phone_verified?: boolean
           promo_commission_rate?: number

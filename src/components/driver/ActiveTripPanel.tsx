@@ -207,8 +207,9 @@ export default function ActiveTripPanel({
   const handleArrivedAtPickup = async (rideId: string) => {
     setTransitioning(true);
     try {
-      const { error } = await supabase.from("rides").update({ status: "arrived" as any }).eq("id", rideId);
-      if (error) { toast.error(error.message); return; }
+      const { data, error } = await supabase.functions.invoke("arrive-ride", { body: { ride_id: rideId } });
+      if (error) { toast.error("Failed to mark arrival"); return; }
+      if (data?.error) { toast.error(data.error); return; }
       toast.success("Marked as arrived at pickup");
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     } finally { setTransitioning(false); }

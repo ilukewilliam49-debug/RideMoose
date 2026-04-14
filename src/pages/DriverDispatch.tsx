@@ -237,9 +237,9 @@ const DriverDispatch = () => {
         event: "UPDATE",
         schema: "public",
         table: "rides",
-        filter: `status=eq.requested`,
       }, () => {
         queryClient.invalidateQueries({ queryKey: ["dispatch-rides"] });
+        queryClient.invalidateQueries({ queryKey: ["recent-completed-rides"] });
       })
       .on("postgres_changes", {
         event: "INSERT",
@@ -514,6 +514,9 @@ const DriverDispatch = () => {
                   acceptingId={acceptingId}
                   existingBid={bidsByRide.get(ride.id) || null}
                   driverId={profile?.id || ""}
+                  driverLat={profile?.latitude}
+                  driverLng={profile?.longitude}
+                  driverCommissionRate={profile?.commission_rate ?? 0.049}
                   onAccept={acceptRide}
                   onDecline={declineRide}
                   onBidChanged={() => queryClient.invalidateQueries({ queryKey: ["my-delivery-bids"] })}
