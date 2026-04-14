@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import InstallAppPrompt from "@/components/InstallAppPrompt";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -229,6 +230,7 @@ const DriverDashboard = () => {
 
   return (
     <div className="space-y-4 pb-6">
+      <InstallAppPrompt />
       {/* ── Status header ── */}
       <div className="flex items-center justify-between">
         <div>
