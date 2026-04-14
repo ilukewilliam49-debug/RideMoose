@@ -4,4 +4,4 @@ Disallow: /rider/
 Disallow: /driver/
 Disallow: /admin/
 
-Sitemap: https://pickyou.lovable.app/sitemap.xml
+Sitemap: https://pickyou.ca/sitemap.xml
