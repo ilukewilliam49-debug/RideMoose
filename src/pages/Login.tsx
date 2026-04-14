@@ -188,7 +188,7 @@ const Login = () => {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading}>
               {loading ? t("auth.loading") : isLogin ? t("auth.signIn") : t("auth.signUp")}
             </Button>
           </form>
