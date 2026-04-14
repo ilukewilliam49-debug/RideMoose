@@ -545,6 +545,28 @@ const RiderDashboard = () => {
         </motion.div>
       )}
 
+      {/* Payment confirmation – rendered outside active ride check so it persists */}
+      {state.paymentClientSecret && !queries.activeRide && (
+        <div className="glass-surface rounded-lg p-6">
+          <PaymentConfirmation
+            clientSecret={state.paymentClientSecret}
+            amountCents={state.authorizedAmountCents}
+            onSuccess={handlePaymentSuccess}
+            onFailure={async () => {
+              if (state.pendingRideId) {
+                await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", state.pendingRideId);
+              }
+              state.setPaymentClientSecret(null);
+              state.setPendingRideId(null);
+              state.setAuthorizedAmountCents(0);
+              toast.error(t("rider.paymentFailed"));
+              queries.refetch();
+            }}
+            label={t("rider.authorizeRidePayment")}
+          />
+        </div>
+      )}
+
       {/* Ride history */}
       <RideHistory
         rides={queries.rides}
