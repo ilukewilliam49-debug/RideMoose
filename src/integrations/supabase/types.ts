@@ -755,6 +755,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          average_rating: number | null
           can_courier: boolean
           can_food_delivery: boolean
           can_private_hire: boolean
@@ -782,6 +783,7 @@ export type Database = {
           seat_capacity: number | null
           sms_notifications_enabled: boolean
           standard_commission_rate: number
+          total_ratings: number | null
           updated_at: string
           user_id: string
           vehicle_color: string | null
@@ -793,6 +795,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          average_rating?: number | null
           can_courier?: boolean
           can_food_delivery?: boolean
           can_private_hire?: boolean
@@ -820,6 +823,7 @@ export type Database = {
           seat_capacity?: number | null
           sms_notifications_enabled?: boolean
           standard_commission_rate?: number
+          total_ratings?: number | null
           updated_at?: string
           user_id: string
           vehicle_color?: string | null
@@ -831,6 +835,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          average_rating?: number | null
           can_courier?: boolean
           can_food_delivery?: boolean
           can_private_hire?: boolean
@@ -858,6 +863,7 @@ export type Database = {
           seat_capacity?: number | null
           sms_notifications_enabled?: boolean
           standard_commission_rate?: number
+          total_ratings?: number | null
           updated_at?: string
           user_id?: string
           vehicle_color?: string | null
@@ -1113,6 +1119,7 @@ export type Database = {
         Row: {
           comment: string | null
           created_at: string
+          feedback_tags: string[] | null
           id: string
           rated_by: string
           rated_user: string
@@ -1122,6 +1129,7 @@ export type Database = {
         Insert: {
           comment?: string | null
           created_at?: string
+          feedback_tags?: string[] | null
           id?: string
           rated_by: string
           rated_user: string
@@ -1131,6 +1139,7 @@ export type Database = {
         Update: {
           comment?: string | null
           created_at?: string
+          feedback_tags?: string[] | null
           id?: string
           rated_by?: string
           rated_user?: string
