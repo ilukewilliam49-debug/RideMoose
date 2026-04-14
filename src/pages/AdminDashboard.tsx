@@ -282,6 +282,7 @@ const AdminDashboard = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={() => navigate("/admin/live-map")}>Live Map</Button>
             <Button variant="outline" onClick={() => navigate("/admin/bookings")}>Bookings</Button>
             <Button variant="outline" onClick={() => navigate("/admin/pricing")}>Pricing</Button>
             <Button variant="outline" onClick={() => navigate("/admin/zones")}>Hire Zones</Button>
