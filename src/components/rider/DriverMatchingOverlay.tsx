@@ -9,7 +9,7 @@ interface DriverMatchingOverlayProps {
   timeoutSeconds?: number;
 }
 
-const DriverMatchingOverlay = ({ visible, onCancel, timeoutSeconds = 60 }: DriverMatchingOverlayProps) => {
+const DriverMatchingOverlay = ({ visible, onCancel, timeoutSeconds = 180 }: DriverMatchingOverlayProps) => {
   const [elapsed, setElapsed] = useState(0);
   const timedOut = elapsed >= timeoutSeconds;
 
