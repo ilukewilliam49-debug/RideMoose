@@ -16,7 +16,7 @@ const TermsOfService = () => {
     setMeta("description", "Read the PickYou Terms of Service covering account usage, payments, cancellations, and liability.");
     let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
-    link.href = "https://pickyou.lovable.app/terms";
+    link.href = "https://pickyou.ca/terms";
   }, []);
 
   return (
