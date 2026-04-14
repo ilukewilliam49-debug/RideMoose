@@ -1,89 +1,114 @@
 
 
-# Rider Flow Fixes — Implementation Plan
+# Driver Experience Audit — PickYou
 
-## What's Already Done
-- Saved places → dropoff (fixed)
-- Matching timeout 180s (fixed)
-- Pickup auto-fill from geolocation (fixed)
-- Driver info card with photo/vehicle/rating on ActiveRideCard (fixed)
-- Stripe idempotency, overage payment, decline persistence, AudioContext, admin force-cancel (fixed)
-- Rating system, receipt component, cancel dialog, offline banner (all exist)
+## What's Working Well
+- **Online/offline toggle**: Clear, prominent power button with green visual state, live-ticking duration timer, and shift summary on toggle-off.
+- **Dispatch system**: Realtime subscriptions, audio/haptic alerts for broadcast vs dispatched rides, visual flash for urgent requests, 30s/15s countdown timers.
+- **Acceptance flow**: Atomic `accept_ride` DB function prevents double-acceptance. Instant feedback with loading spinner and toast.
+- **Active trip panel**: Trip stepper, live ETA, Google Maps/Waze deep-links, turn-by-turn nav, rider chat + phone, taxi meter, delivery proof uploads.
+- **Earnings**: Detailed breakdown with commission ramp visibility, weekly chart, payout requests, service-type labels.
+- **Trip summary + rider rating**: Appears post-trip with fare breakdown, feedback tags, and skip option.
 
-## Remaining Issues — 8 Items, Priority Order
+---
 
-### 1. Post-Trip Receipt Auto-Display (High Impact, Fast)
-**Problem**: After trip completion, rider sees nothing — receipt only accessible by drilling into ride history detail sheet.
-**Fix**: When `activeRide` transitions from `in_progress` to `completed`, automatically show a trip summary dialog with fare breakdown, driver info, and the existing `RideReceipt` component. Add a `useEffect` in `RiderDashboard.tsx` that detects a newly completed ride (track previous status) and opens a `TripCompleteSheet`.
-- Create `src/components/rider/TripCompleteSheet.tsx` — sheet with fare, route summary, receipt download, and rate button
-- Wire into `RiderDashboard.tsx`
+## Top 10 Issues (Priority Order)
 
-### 2. Ride Confirmation Step (High Impact, Medium)
-**Problem**: Tapping "Request Ride" submits instantly with no review. Riders can't verify details before committing.
-**Fix**: Add a confirmation bottom sheet before `requestRide()` executes, showing:
-- Pickup → Dropoff addresses
-- Service type, estimated price
-- Payment method
-- "Confirm" and "Edit" buttons
-- Create `src/components/rider/RideConfirmSheet.tsx`
-- Wire into `RiderDashboard.tsx` — button opens sheet, sheet's confirm triggers `requestRide()`
+### 1. Trip completion uses client-side status update (CRITICAL)
+**Problem**: `ActiveTripPanel.handleNextAction()` calls `supabase.from("rides").update({ status: "completed" })` directly from the client for non-taxi services, bypassing the `complete-ride` edge function. This skips server-side earnings calculation, commission deduction, and payment capture for standard rides.
+**Fix**: Always route completion through `complete-ride` edge function. Only the edge function should set `status = completed`.
 
-### 3. Server-Side Duplicate Ride Prevention (Critical Safety)
-**Problem**: Nothing stops a rider from having multiple active rides simultaneously.
-**Fix**: Add a database trigger on `rides` INSERT that checks for existing active rides (`requested`, `accepted`, `in_progress`) for the same `rider_id` and raises an exception if found.
-- DB migration with a validation trigger
+### 2. "Start trip" skips `start-ride` edge function (CRITICAL)
+**Problem**: `handleNextAction` also sets `status: "in_progress"` via direct client update instead of calling the `start-ride` edge function. This bypasses server-side validation and audit logging.
+**Fix**: Route "I've arrived" → call a server function or at minimum validate server-side. Route "Start trip" through `start-ride` edge function.
 
-### 4. Dead Code Cleanup — pet_transport/food_delivery Remnants (Medium, Fast)
-**Problem**: Previous cleanup missed references in `useRideQueries.ts` (pet_transport price calc), `DriverDispatch.tsx` (food_delivery/pet query keys), `driver-constants.ts`, `send-push-notification`, `capture-payment`, and `pet-arrival-notify` edge function.
-**Fix**:
-- Remove pet_transport pricing block from `useRideQueries.ts`
-- Remove `can_food_delivery`/`pet_approved` from dispatch query key in `DriverDispatch.tsx`
-- Clean `driver-constants.ts` labels/icons
-- Remove pet/food branches from `send-push-notification/index.ts` and `capture-payment/index.ts`
-- Note: `pet-arrival-notify` edge function is fully dead — delete it
-- Clean `driver_can_serve` DB function of food/pet branches
+### 3. No "Arrived" status persisted in database
+**Problem**: The stepper UI has an "At pickup" step but `handleNextAction` skips directly from `accepted` to `in_progress`. There's no actual `arrived` status in the `ride_status` enum. The rider never gets an "arrived" notification from the DB trigger.
+**Fix**: Add `arrived` to the `ride_status` enum. Update `handleNextAction` to transition: accepted → arrived → in_progress. Update `notify_ride_status_change` trigger to handle the new status.
 
-### 5. Realtime for Active Ride Banner on Home Screen (Medium Impact)
-**Problem**: `ActiveRideBanner.tsx` polls every 10s. Rider on home screen doesn't see status changes (driver assigned, ride started) for up to 10s.
-**Fix**: Add a scoped Realtime subscription in `ActiveRideBanner.tsx` that invalidates the banner query on ride changes, reducing perceived latency to near-instant.
+### 4. Dispatch page shows requests even when driver is offline
+**Problem**: `DriverDispatch` fetches pending rides regardless of `profile.is_available`. An offline driver sees requests they shouldn't act on, causing confusion.
+**Fix**: Only fetch and show incoming requests when `profile?.is_available === true`. Show a "Go online to receive requests" prompt when offline.
 
-### 6. "Driver Arrived" Distinct State (UX Polish)
-**Problem**: No visual distinction between "driver en route" and "driver has arrived at pickup."
-**Fix**: Since there's no `arrived` DB status, use proximity detection — when driver location is within ~100m of pickup coords, show "Your driver has arrived" in `ActiveRideCard.tsx` instead of the generic "accepted" status. Use `driverProfile.latitude/longitude` vs `activeRide.pickup_lat/pickup_lng`.
+### 5. No server-side validation that driver is online before accepting
+**Problem**: The `accept_ride` DB function doesn't check if the driver's `is_available` flag is true. An offline driver could theoretically accept a ride.
+**Fix**: Add `is_available` check to `accept_ride` function.
 
-### 7. Pickup Address Auto-Fill on Home Screen (Quick Win)
-**Problem**: `DashboardHome.tsx` detects user location for the map but doesn't auto-fill the pickup input.
-**Fix**: After geolocation succeeds in the `useEffect`, reverse-geocode and set `pickupAddress` automatically (same pattern already used in `RiderDashboard.tsx`).
+### 6. Trip summary only shows for delivery-type rides
+**Problem**: `TripSummaryCard` is rendered from `recentDeliveries` (filtered to delivery service types only). Standard taxi/private_hire/shuttle completions never show a post-trip summary with earnings breakdown and rider rating prompt.
+**Fix**: Fetch the most recent completed ride regardless of service type, and show `TripSummaryCard` for all types.
 
-### 8. Outstanding Balance Visibility on Home Screen (Quick Win)
-**Problem**: Outstanding balance warning only shows on the booking page, not the home screen. Riders may not realize they owe money.
-**Fix**: Add a compact "You have an outstanding balance" banner on `DashboardHome.tsx` that links to the booking page.
+### 7. Dashboard stats poll at 8s with no Realtime
+**Problem**: `DriverDashboard` uses `refetchInterval: 8000` for stats. This means earnings and trip counts are always 0-8s stale. Combined with dispatch polling at 5s, this creates unnecessary network load.
+**Fix**: Add Realtime subscription on driver's rides to invalidate stats queries instantly.
+
+### 8. Taxi service has no "Complete trip" button
+**Problem**: `ActiveTripPanel` line 517: `{activeRide.service_type !== "taxi" && (...action buttons)}`. Taxi drivers have NO way to complete a trip from the UI — they rely solely on the taxi meter's "End Meter" flow, but that only updates meter fields, not ride status.
+**Fix**: Show a "Complete trip" button for taxi rides that calls `complete-ride` edge function after the meter is stopped.
+
+### 9. Driver location tracking stops updating profile after going offline
+**Problem**: `useDriverLocation` stops tracking when `isActive` is false. However, when a driver goes offline mid-trip (toggle off accidentally), location updates stop and the rider loses tracking. The hook should remain active while there's an active ride.
+**Fix**: Track location when `isActive || hasActiveRide`.
+
+### 10. No earnings notification after trip completion
+**Problem**: After completing a trip, the driver only sees a toast. If they navigate away before the `TripSummaryCard` renders, they miss their earnings. No push notification is sent to the driver with their earnings for the completed trip.
+**Fix**: Send a push notification to the driver with earnings amount after trip completion in `complete-ride` edge function.
+
+---
+
+## Must-Fix Before Launch (Items 1-3, 5, 6, 8)
+
+### Fix 1: Route all status transitions through edge functions
+- `accepted → arrived`: New transition (requires enum update)
+- `arrived → in_progress`: Call `start-ride` edge function
+- `in_progress → completed`: Call `complete-ride` edge function
+- Remove direct `supabase.from("rides").update({ status })` from `ActiveTripPanel`
+
+### Fix 2: Add `arrived` to ride_status enum
+- DB migration: `ALTER TYPE ride_status ADD VALUE 'arrived' AFTER 'accepted';`
+- Update `notify_ride_status_change` trigger to handle `arrived`
+- Update `log_ride_event` trigger
+- Update ActiveTripPanel stepper logic
+
+### Fix 3: Gate dispatch on online status
+- Only show incoming requests when `is_available === true`
+- Add `is_available` check to `accept_ride` DB function
+
+### Fix 4: Show TripSummaryCard for ALL service types
+- Fetch most recent completed ride (any type) instead of filtering to deliveries only
+
+### Fix 5: Add "Complete trip" button for taxi rides
+- After meter is stopped, show complete button that calls `complete-ride`
+
+---
+
+## Quick Wins
+
+1. **Gate dispatch requests on online status** — 5-line conditional in `DriverDispatch.tsx`
+2. **Fix TripSummaryCard visibility** — change the query filter to include all service types
+3. **Add Realtime to DriverDashboard** — copy the pattern from `DriverDispatch.tsx`
+4. **Add active ride check to useDriverLocation** — pass `hasActiveRide` as additional condition
 
 ---
 
 ## Technical Details
 
-**New files:**
-- `src/components/rider/TripCompleteSheet.tsx`
-- `src/components/rider/RideConfirmSheet.tsx`
+**Files to modify:**
+- `src/components/driver/ActiveTripPanel.tsx` — replace direct status updates with edge function calls; add taxi complete button
+- `src/pages/DriverDispatch.tsx` — gate requests on online status; fix recentDeliveries → recentCompletedRides
+- `src/pages/DriverDashboard.tsx` — add Realtime subscription
+- `src/hooks/useDriverLocation.ts` — accept `hasActiveRide` param
+- `supabase/functions/complete-ride/index.ts` — add driver earnings push notification
 
-**Modified files:**
-- `src/pages/RiderDashboard.tsx` — trip complete detection, confirm sheet integration
-- `src/pages/DashboardHome.tsx` — pickup auto-fill, outstanding balance banner
-- `src/components/rider/ActiveRideBanner.tsx` — Realtime subscription
-- `src/components/rider/ActiveRideCard.tsx` — driver arrived proximity check
-- `src/hooks/useRideQueries.ts` — remove pet_transport pricing
-- `src/pages/DriverDispatch.tsx` — remove food/pet query key refs
-- `src/lib/driver-constants.ts` — remove food/pet labels
-- `supabase/functions/send-push-notification/index.ts` — remove food/pet branches
-- `supabase/functions/capture-payment/index.ts` — remove pet commission branch
+**DB migrations:**
+- Add `arrived` value to `ride_status` enum
+- Update `accept_ride` function to check `is_available`
+- Update `notify_ride_status_change` to handle `arrived` event
+- Update `log_ride_event` to handle `arrived` transitions
 
-**Deleted:**
-- `supabase/functions/pet-arrival-notify/` — dead edge function
+**Edge function changes:**
+- `start-ride/index.ts` — accept transition from `arrived` status
+- `complete-ride/index.ts` — send earnings push notification to driver
 
-**DB migration:**
-- Trigger to prevent duplicate active rides per rider
-- Clean `driver_can_serve` function
-
-**Priority**: 1 → 3 → 2 → 7 → 5 → 6 → 8 → 4
+**Priority**: Fix 1 (server-side transitions) → Fix 2 (arrived status) → Fix 3 (online gating) → Fix 5 (taxi complete) → Fix 4 (summary visibility) → Quick wins
 
