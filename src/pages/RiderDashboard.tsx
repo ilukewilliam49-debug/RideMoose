@@ -528,7 +528,7 @@ const RiderDashboard = () => {
       )}
 
       {/* Payment confirmation – rendered outside active ride check so it persists */}
-      {state.paymentClientSecret && !queries.activeRide && (
+      {state.paymentClientSecret && (
         <div className="glass-surface rounded-lg p-6">
           <PaymentConfirmation
             clientSecret={state.paymentClientSecret}
