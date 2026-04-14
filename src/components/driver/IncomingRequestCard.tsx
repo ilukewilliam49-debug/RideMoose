@@ -220,6 +220,11 @@ export default function IncomingRequestCard({
             <span className="text-base font-bold text-primary tabular-nums">
               {fmt(Number(ride.estimated_price || 0) * 100)}
             </span>
+            {ride.estimated_price && (
+              <p className="text-[10px] font-semibold tabular-nums text-green-600">
+                You earn {fmt(Math.round(Number(ride.estimated_price) * 100 * (1 - driverCommissionRate)))}
+              </p>
+            )}
             {ride.distance_km && (
               <p className="text-[10px] text-muted-foreground tabular-nums">{Number(ride.distance_km).toFixed(1)} km</p>
             )}
@@ -253,21 +258,24 @@ export default function IncomingRequestCard({
         </div>
       </div>
 
-      {/* Payment & context chips */}
-      {(ride.payment_option === "pay_driver" || ride.billed_to === "organization") && (
-        <div className="px-4 pb-1 flex flex-wrap items-center gap-1.5">
-          {ride.payment_option === "pay_driver" && (
-            <span className="flex items-center gap-1 text-[10px] font-medium bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full">
-              <Banknote className="h-3 w-3" /> Cash
-            </span>
-          )}
-          {ride.billed_to === "organization" && (
-            <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
-              Corporate
-            </span>
-          )}
-        </div>
-      )}
+      {/* Distance to pickup & payment chips */}
+      <div className="px-4 pb-1 flex flex-wrap items-center gap-1.5">
+        {driverLat != null && driverLng != null && ride.pickup_lat && ride.pickup_lng && (
+          <span className="text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full tabular-nums">
+            📍 {haversineKm(driverLat, driverLng, ride.pickup_lat, ride.pickup_lng).toFixed(1)} km away
+          </span>
+        )}
+        {ride.payment_option === "pay_driver" && (
+          <span className="flex items-center gap-1 text-[10px] font-medium bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full">
+            <Banknote className="h-3 w-3" /> Cash
+          </span>
+        )}
+        {ride.billed_to === "organization" && (
+          <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+            Corporate
+          </span>
+        )}
+      </div>
 
       {/* Extra details */}
       <RequestDetails ride={ride} />
