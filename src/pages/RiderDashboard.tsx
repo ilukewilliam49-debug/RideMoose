@@ -69,6 +69,28 @@ const RiderDashboard = () => {
 
   const driverETAs = useNearestDriverETAs(state.userLocation);
 
+  // Detect ride completion → auto-show trip summary
+  useEffect(() => {
+    const currentStatus = queries.activeRide?.status || null;
+    const prevStatus = prevActiveStatusRef.current;
+    if (prevStatus && (prevStatus === "in_progress" || prevStatus === "accepted") && !currentStatus) {
+      // Ride just completed or disappeared — fetch last completed ride
+      (async () => {
+        if (!profile?.id) return;
+        const { data } = await supabase
+          .from("rides")
+          .select("*")
+          .eq("rider_id", profile.id)
+          .eq("status", "completed")
+          .order("completed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) setTripCompleteRide(data);
+      })();
+    }
+    prevActiveStatusRef.current = currentStatus;
+  }, [queries.activeRide?.status, profile?.id]);
+
   // Auto-open rating dialog when unrated ride found (only if not previously dismissed)
   useEffect(() => {
     if (queries.unratedRide && !state.manualRateRideId) {
