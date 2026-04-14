@@ -204,13 +204,23 @@ export const useRideQueries = ({
     refetchInterval: 5000,
   });
 
+  // Scoped Realtime: only listen for changes to rider's own rides
   useEffect(() => {
-    const channel = supabase.channel("rider-rides").on("postgres_changes", { event: "*", schema: "public", table: "rides" }, () => {
-      queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
-      queryClient.invalidateQueries({ queryKey: ["my-rides"] });
-    }).subscribe();
+    if (!profileId) return;
+    const channel = supabase
+      .channel(`rider-rides-${profileId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "rides",
+        filter: `rider_id=eq.${profileId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["rider-active-ride"] });
+        queryClient.invalidateQueries({ queryKey: ["my-rides"] });
+      })
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
+  }, [queryClient, profileId]);
 
   // Active ride directions
   const { data: activeRideDirections } = useQuery({

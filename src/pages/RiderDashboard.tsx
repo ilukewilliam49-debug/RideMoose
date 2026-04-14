@@ -47,6 +47,7 @@ const RiderDashboard = () => {
   const [matchingInProgress, setMatchingInProgress] = useState(false);
   const matchingRideIdRef = useRef<string | null>(null);
   const submittingRef = useRef(false);
+  const lastSubmitTimeRef = useRef(0);
   const queries = useRideQueries({
     profileId: profile?.id,
     userId: profile?.user_id,
@@ -63,10 +64,13 @@ const RiderDashboard = () => {
 
   const driverETAs = useNearestDriverETAs(state.userLocation);
 
-  // Auto-open rating dialog when unrated ride found
+  // Auto-open rating dialog when unrated ride found (only if not previously dismissed)
   useEffect(() => {
     if (queries.unratedRide && !state.manualRateRideId) {
-      state.setRatingDialogOpen(true);
+      const dismissedKey = `rating_dismissed_${queries.unratedRide.id}`;
+      if (!sessionStorage.getItem(dismissedKey)) {
+        state.setRatingDialogOpen(true);
+      }
     }
   }, [queries.unratedRide, state.manualRateRideId]);
 
@@ -95,6 +99,10 @@ const RiderDashboard = () => {
 
   const requestRide = async () => {
     if (submittingRef.current) return;
+    // Debounce: prevent rapid duplicate submissions within 3 seconds
+    const now = Date.now();
+    if (now - lastSubmitTimeRef.current < 3000) return;
+    lastSubmitTimeRef.current = now;
     if (!profile?.id || !state.pickup || !state.dropoff || !state.pickupCoords || !state.dropoffCoords) return;
     if (state.serviceType === "retail_delivery" && !queries.riderOrgMembership) {
       toast.error(t("rider.businessAccountRequired"));
@@ -497,7 +505,17 @@ const RiderDashboard = () => {
       {currentRatingRideId && currentRatingDriverId && profile?.id && (
         <RideRatingDialog
           open={state.ratingDialogOpen}
-          onOpenChange={(open) => { state.setRatingDialogOpen(open); if (!open) { state.setManualRateRideId(null); state.setManualRateDriverId(null); } }}
+          onOpenChange={(open) => {
+            state.setRatingDialogOpen(open);
+            if (!open) {
+              // Persist dismissal so dialog doesn't reappear on reload
+              if (currentRatingRideId && !state.manualRateRideId) {
+                sessionStorage.setItem(`rating_dismissed_${currentRatingRideId}`, "1");
+              }
+              state.setManualRateRideId(null);
+              state.setManualRateDriverId(null);
+            }
+          }}
           rideId={currentRatingRideId}
           driverId={currentRatingDriverId}
           ratedBy={profile.id}
