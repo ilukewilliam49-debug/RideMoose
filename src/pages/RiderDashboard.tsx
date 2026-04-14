@@ -293,6 +293,7 @@ const RiderDashboard = () => {
 
   return (
     <div className="space-y-6 pt-4">
+      <InstallAppPrompt />
       <DriverMatchingOverlay
         visible={matchingInProgress}
         onCancel={async () => {
