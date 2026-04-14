@@ -8,6 +8,7 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Radio, Car, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -42,6 +43,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function AdminLiveMap() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -120,9 +122,15 @@ export default function AdminLiveMap() {
     (drivers || []).forEach((d: any) => {
       if (d.latitude && d.longitude) {
         const vehicle = [d.vehicle_make, d.vehicle_model, d.license_plate].filter(Boolean).join(" ");
-        L.marker([d.latitude, d.longitude], { icon: driverIcon })
-          .bindPopup(`<b>${d.full_name || "Driver"}</b><br/>${vehicle || "No vehicle"}<br/><span style="color:green">● Online</span>`)
+        const marker = L.marker([d.latitude, d.longitude], { icon: driverIcon })
+          .bindPopup(`<b>${d.full_name || "Driver"}</b><br/>${vehicle || "No vehicle"}<br/><span style="color:green">● Online</span><br/><a href="#" class="live-map-link" data-driver="${d.id}" style="color:hsl(221,83%,53%);font-size:12px;font-weight:600;">View profile →</a>`)
           .addTo(layer);
+        marker.on("popupopen", () => {
+          setTimeout(() => {
+            const el = document.querySelector(`a[data-driver="${d.id}"]`);
+            if (el) el.addEventListener("click", (e) => { e.preventDefault(); navigate(`/admin/users/${d.id}`); });
+          }, 0);
+        });
       }
     });
   }, [drivers]);
@@ -135,14 +143,31 @@ export default function AdminLiveMap() {
 
     (rides || []).forEach((r: any) => {
       if (r.pickup_lat && r.pickup_lng) {
-        L.marker([r.pickup_lat, r.pickup_lng], { icon: pickupIcon })
-          .bindPopup(`<b>Pickup</b> — ${statusLabel[r.status] || r.status}<br/>${r.pickup_address}<br/>Rider: ${r.rider?.full_name || "—"}<br/>Driver: ${r.driver?.full_name || "Unassigned"}`)
+        const marker = L.marker([r.pickup_lat, r.pickup_lng], { icon: pickupIcon })
+          .bindPopup(`<b>Pickup</b> — ${statusLabel[r.status] || r.status}<br/>${r.pickup_address}<br/>Rider: ${r.rider?.full_name || "—"}<br/>Driver: ${r.driver?.full_name || "Unassigned"}<br/><a href="#" class="live-map-link" data-ride="${r.id}" style="color:hsl(221,83%,53%);font-size:12px;font-weight:600;">View ride →</a>`)
           .addTo(layer);
+        marker.on("popupopen", () => {
+          setTimeout(() => {
+            const el = document.querySelector(`a[data-ride="${r.id}"]`);
+            if (el) el.addEventListener("click", (e) => { e.preventDefault(); navigate(`/admin/rides/${r.id}`); });
+          }, 0);
+        });
       }
       if (r.dropoff_lat && r.dropoff_lng && r.status === "in_progress") {
         L.marker([r.dropoff_lat, r.dropoff_lng], { icon: dropoffIcon })
-          .bindPopup(`<b>Dropoff</b><br/>${r.dropoff_address}`)
+          .bindPopup(`<b>Dropoff</b><br/>${r.dropoff_address}<br/><a href="#" class="live-map-link" data-ride-drop="${r.id}" style="color:hsl(221,83%,53%);font-size:12px;font-weight:600;">View ride →</a>`)
           .addTo(layer);
+        // Attach click handler for dropoff popup too
+        layer.eachLayer((l: any) => {
+          if (l._popup?.getContent()?.includes(`data-ride-drop="${r.id}"`)) {
+            l.on("popupopen", () => {
+              setTimeout(() => {
+                const el = document.querySelector(`a[data-ride-drop="${r.id}"]`);
+                if (el) el.addEventListener("click", (e) => { e.preventDefault(); navigate(`/admin/rides/${r.id}`); });
+              }, 0);
+            });
+          }
+        });
       }
     });
   }, [rides]);
