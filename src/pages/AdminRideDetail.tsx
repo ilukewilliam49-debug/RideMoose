@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { logAdminAction } from "@/lib/audit-log";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -109,6 +110,7 @@ export default function AdminRideDetail() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      await logAdminAction("force_complete", "ride", id!, { previous_status: ride?.status });
       toast.success("Ride force-completed");
       refetch();
     } catch (err: any) {
@@ -328,6 +330,7 @@ export default function AdminRideDetail() {
                     } as any)
                     .eq("id", id!);
                   if (error) throw error;
+                  await logAdminAction("force_cancel", "ride", id!, { previous_status: ride?.status });
                   toast.success("Ride force-cancelled");
                   refetch();
                 } catch (err: any) {
@@ -419,6 +422,7 @@ export default function AdminRideDetail() {
                     } as any)
                     .eq("id", id!);
                   if (error) throw error;
+                  await logAdminAction("reassign_driver", "ride", id!, { new_driver_id: selectedDriverId, previous_driver_id: ride?.driver_id });
                   toast.success("Driver reassigned");
                   setSelectedDriverId("");
                   setDriverSearch("");
