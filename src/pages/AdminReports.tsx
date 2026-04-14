@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,45 +54,69 @@ const AdminReports = () => {
     setPage(0);
   };
 
-  const { data: rides, isLoading, isError, refetch } = useQuery({
-    queryKey: ["admin-all-rides"],
+  // Server-side aggregated stats via RPC
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["admin-ride-stats", dateFrom, dateTo, statusFilter, serviceFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rides")
-        .select("*, rider:rider_id(full_name), driver:driver_id(full_name)")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.rpc("get_ride_stats", {
+        _date_from: dateFrom || null,
+        _date_to: dateTo || null,
+        _status: statusFilter === "all" ? null : statusFilter,
+        _service_type: serviceFilter === "all" ? null : serviceFilter,
+      });
       if (error) throw error;
-      return data;
+      return data as any;
     },
   });
 
-  const filtered = useMemo(() => {
-    let result = rides || [];
-    if (statusFilter !== "all") result = result.filter((r: any) => r.status === statusFilter);
-    if (serviceFilter !== "all") result = result.filter((r: any) => r.service_type === serviceFilter);
-    if (dateFrom) result = result.filter((r: any) => r.created_at >= dateFrom);
-    if (dateTo) result = result.filter((r: any) => r.created_at.slice(0, 10) <= dateTo);
-    if (scheduledFilter === "scheduled") result = result.filter((r: any) => r.scheduled_at);
-    if (scheduledFilter === "now") result = result.filter((r: any) => !r.scheduled_at);
-    return result;
-  }, [rides, statusFilter, serviceFilter, dateFrom, dateTo, scheduledFilter]);
+  // Server-side paginated ride list
+  const { data: ridesData, isLoading: ridesLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-rides-page", page, statusFilter, serviceFilter, scheduledFilter, dateFrom, dateTo],
+    queryFn: async () => {
+      let query = supabase
+        .from("rides")
+        .select("*, rider:rider_id(full_name), driver:driver_id(full_name)", { count: "exact" })
+        .order("created_at", { ascending: false });
 
-  const stats = useMemo(() => {
-    const completed = filtered.filter((r: any) => r.status === "completed");
-    const totalRevenue = completed.reduce((s: number, r: any) => s + Number(r.final_price || r.estimated_price || 0), 0);
-    const avgFare = completed.length ? totalRevenue / completed.length : 0;
-    const completionRate = filtered.length ? (completed.length / filtered.length) * 100 : 0;
-    const scheduledCount = filtered.filter((r: any) => r.scheduled_at).length;
-    return { totalRevenue, avgFare, completionRate, completedCount: completed.length, scheduledCount };
-  }, [filtered]);
+      if (statusFilter !== "all") query = query.eq("status", statusFilter as any);
+      if (serviceFilter !== "all") query = query.eq("service_type", serviceFilter as any);
+      if (dateFrom) query = query.gte("created_at", dateFrom);
+      if (dateTo) query = query.lte("created_at", dateTo + "T23:59:59.999Z");
+      if (scheduledFilter === "scheduled") query = query.not("scheduled_at", "is", null);
+      if (scheduledFilter === "now") query = query.is("scheduled_at", null);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+      const from = page * PAGE_SIZE;
+      query = query.range(from, from + PAGE_SIZE - 1);
 
-  const exportCSV = () => {
-    if (!filtered.length) { toast.error("No data to export"); return; }
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { rides: data || [], totalCount: count || 0 };
+    },
+  });
+
+  const rides = ridesData?.rides || [];
+  const totalCount = ridesData?.totalCount || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const isLoading = statsLoading || ridesLoading;
+
+  const exportCSV = async () => {
+    // Fetch all matching rides for export (up to 10k)
+    let query = supabase
+      .from("rides")
+      .select("id, pickup_address, dropoff_address, status, service_type, estimated_price, final_price, scheduled_at, created_at, rider:rider_id(full_name), driver:driver_id(full_name)")
+      .order("created_at", { ascending: false })
+      .limit(10000);
+
+    if (statusFilter !== "all") query = query.eq("status", statusFilter as any);
+    if (serviceFilter !== "all") query = query.eq("service_type", serviceFilter as any);
+    if (dateFrom) query = query.gte("created_at", dateFrom);
+    if (dateTo) query = query.lte("created_at", dateTo + "T23:59:59.999Z");
+
+    const { data, error } = await query;
+    if (error || !data?.length) { toast.error("No data to export"); return; }
+
     const headers = ["ID", "Rider", "Driver", "Service", "Status", "Pickup", "Dropoff", "Est. Price", "Final Price", "Scheduled At", "Created"];
-    const rows = filtered.map((r: any) => [
+    const rows = data.map((r: any) => [
       r.id, r.rider?.full_name || "", r.driver?.full_name || "", r.service_type, r.status,
       r.pickup_address, r.dropoff_address, r.estimated_price || "", r.final_price || "",
       r.scheduled_at ? format(new Date(r.scheduled_at), "yyyy-MM-dd HH:mm") : "", r.created_at,
@@ -118,11 +142,11 @@ const AdminReports = () => {
   };
 
   const statCards = [
-    { label: "Total Revenue", value: `$${stats.totalRevenue.toFixed(2)}`, icon: DollarSign },
-    { label: "Avg Fare", value: `$${stats.avgFare.toFixed(2)}`, icon: TrendingUp },
-    { label: "Completed", value: stats.completedCount, icon: CheckCircle },
-    { label: "Completion Rate", value: `${stats.completionRate.toFixed(1)}%`, icon: BarChart3 },
-    { label: "Scheduled", value: stats.scheduledCount, icon: Clock },
+    { label: "Total Revenue", value: stats ? `$${Number(stats.total_revenue).toFixed(2)}` : "—", icon: DollarSign },
+    { label: "Avg Fare", value: stats ? `$${Number(stats.avg_fare).toFixed(2)}` : "—", icon: TrendingUp },
+    { label: "Completed", value: stats?.completed_rides ?? "—", icon: CheckCircle },
+    { label: "Completion Rate", value: stats ? `${stats.completion_rate}%` : "—", icon: BarChart3 },
+    { label: "Scheduled", value: stats?.scheduled_count ?? "—", icon: Clock },
   ];
 
   return (
@@ -137,8 +161,8 @@ const AdminReports = () => {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {isLoading
-          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
+        {statsLoading
+          ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
           : statCards.map((s) => (
               <div key={s.label} className="rounded-xl border border-border/50 bg-card/70 p-4">
                 <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -193,19 +217,20 @@ const AdminReports = () => {
         <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setDatePreset("custom"); setPage(0); }} className="w-[150px]" placeholder="To" />
       </div>
 
-      {!isLoading && !isError && (
+      {/* Charts use the paginated rides for the current view */}
+      {!ridesLoading && !isError && rides.length > 0 && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <RideTrendsChart rides={filtered} />
-            <RevenueChart rides={filtered} />
+            <RideTrendsChart rides={rides} />
+            <RevenueChart rides={rides} />
           </div>
-          <ServiceBreakdownChart rides={filtered} />
+          <ServiceBreakdownChart rides={rides} />
         </>
       )}
 
       {isError ? (
         <ErrorRetry message="Failed to load ride data" onRetry={() => refetch()} />
-      ) : isLoading ? (
+      ) : ridesLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded" />)}
         </div>
@@ -219,49 +244,49 @@ const AdminReports = () => {
                   <th className="py-3 px-2">Driver</th>
                   <th className="py-3 px-2">Service</th>
                   <th className="py-3 px-2">Route</th>
-                   <th className="py-3 px-2">Status</th>
-                   <th className="py-3 px-2">Scheduled</th>
-                   <th className="py-3 px-2 text-right">Price</th>
-                   <th className="py-3 px-2">Date</th>
+                  <th className="py-3 px-2">Status</th>
+                  <th className="py-3 px-2">Scheduled</th>
+                  <th className="py-3 px-2 text-right">Price</th>
+                  <th className="py-3 px-2">Date</th>
                 </tr>
               </thead>
               <tbody>
-                {paginated.length === 0 && (
+                {rides.length === 0 && (
                   <tr>
-                     <td colSpan={8} className="py-8 text-center text-muted-foreground">No trip data found.</td>
-                   </tr>
-                 )}
-                 {paginated.map((ride: any) => (
-                   <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => navigate(`/admin/rides/${ride.id}`)}>
-                     <td className="py-3 px-2">{ride.rider?.full_name || "—"}</td>
-                     <td className="py-3 px-2">{ride.driver?.full_name || "—"}</td>
-                     <td className="py-3 px-2 capitalize text-xs">{ride.service_type.replace("_", " ")}</td>
-                     <td className="py-3 px-2 max-w-[200px] truncate">{ride.pickup_address} → {ride.dropoff_address}</td>
-                     <td className="py-3 px-2">
-                       <span className={`font-mono text-xs uppercase ${statusColor[ride.status] || ""}`}>
-                         {ride.status.replace("_", " ")}
-                       </span>
-                     </td>
-                     <td className="py-3 px-2">
-                       {ride.scheduled_at ? (
-                         <Badge variant="outline" className="gap-1 text-xs font-normal">
-                           <Clock className="h-3 w-3" />
-                           {format(new Date(ride.scheduled_at), "MMM d, HH:mm")}
-                         </Badge>
-                       ) : (
-                         <span className="text-muted-foreground text-xs">Now</span>
-                       )}
-                     </td>
-                     <td className="py-3 px-2 text-right font-mono">${Number(ride.final_price || ride.estimated_price || 0).toFixed(2)}</td>
-                     <td className="py-3 px-2 text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()}</td>
-                   </motion.tr>
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground">No trip data found.</td>
+                  </tr>
+                )}
+                {rides.map((ride: any) => (
+                  <motion.tr key={ride.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-border/50 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => navigate(`/admin/rides/${ride.id}`)}>
+                    <td className="py-3 px-2">{ride.rider?.full_name || "—"}</td>
+                    <td className="py-3 px-2">{ride.driver?.full_name || "—"}</td>
+                    <td className="py-3 px-2 capitalize text-xs">{ride.service_type.replace("_", " ")}</td>
+                    <td className="py-3 px-2 max-w-[200px] truncate">{ride.pickup_address} → {ride.dropoff_address}</td>
+                    <td className="py-3 px-2">
+                      <span className={`font-mono text-xs uppercase ${statusColor[ride.status] || ""}`}>
+                        {ride.status.replace("_", " ")}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2">
+                      {ride.scheduled_at ? (
+                        <Badge variant="outline" className="gap-1 text-xs font-normal">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(ride.scheduled_at), "MMM d, HH:mm")}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Now</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-2 text-right font-mono">${Number(ride.final_price || ride.estimated_price || 0).toFixed(2)}</td>
+                    <td className="py-3 px-2 text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()}</td>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
 
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{filtered.length} ride{filtered.length !== 1 ? "s" : ""}</span>
+            <span>{totalCount} ride{totalCount !== 1 ? "s" : ""}</span>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button>
               <span>Page {page + 1} of {totalPages}</span>

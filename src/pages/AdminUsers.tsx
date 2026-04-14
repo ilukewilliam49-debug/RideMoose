@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Search, X } from "lucide-react";
@@ -30,7 +30,6 @@ interface ProfileRow {
   role: "rider" | "driver" | "admin";
   is_available: boolean | null;
   can_courier: boolean;
-  
   vehicle_type: string | null;
   created_at: string;
 }
@@ -50,10 +49,12 @@ const AdminUsers = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [vehicleFilter, setVehicleFilter] = useState<string>("all");
   const [onlineFilter, setOnlineFilter] = useState<string>("all");
@@ -62,67 +63,63 @@ const AdminUsers = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  // Confirmation dialog state
   const [confirmAction, setConfirmAction] = useState<{
     title: string;
     description: string;
     onConfirm: () => void;
   } | null>(null);
 
-  const fetchProfiles = async () => {
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const fetchProfiles = useCallback(async () => {
     setError(false);
     setLoading(true);
-    const { data, error: err } = await supabase
+
+    let query = supabase
       .from("profiles")
-      .select("id, user_id, full_name, phone, role, is_available, can_courier, vehicle_type, created_at")
+      .select("id, user_id, full_name, phone, role, is_available, can_courier, vehicle_type, created_at", { count: "exact" })
       .order("created_at", { ascending: false });
+
+    // Server-side filters
+    if (roleFilter !== "all") query = query.eq("role", roleFilter as any);
+    if (vehicleFilter !== "all") {
+      if (vehicleFilter === "none") {
+        query = query.is("vehicle_type", null);
+      } else {
+        query = query.eq("vehicle_type", vehicleFilter);
+      }
+    }
+    if (onlineFilter === "online") query = query.eq("is_available", true);
+    if (onlineFilter === "offline") query = query.eq("is_available", false);
+    if (capabilityFilter === "courier") query = query.eq("can_courier", true);
+    if (debouncedSearch.trim()) {
+      query = query.ilike("full_name", `%${debouncedSearch.trim()}%`);
+    }
+
+    const from = page * PAGE_SIZE;
+    query = query.range(from, from + PAGE_SIZE - 1);
+
+    const { data, error: err, count } = await query;
 
     if (err) {
       setError(true);
       toast({ title: "Error loading users", description: err.message, variant: "destructive" });
     } else {
       setProfiles(data as ProfileRow[]);
+      setTotalCount(count || 0);
     }
     setLoading(false);
-  };
+  }, [roleFilter, vehicleFilter, onlineFilter, capabilityFilter, debouncedSearch, page]);
 
-  useEffect(() => { fetchProfiles(); }, []);
+  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
 
-  const filtered = useMemo(() => {
-    let result = profiles;
-    if (roleFilter !== "all") result = result.filter((p) => p.role === roleFilter);
-    if (vehicleFilter !== "all") {
-      result = result.filter((p) =>
-        vehicleFilter === "none" ? !p.vehicle_type : p.vehicle_type === vehicleFilter
-      );
-    }
-    if (onlineFilter !== "all") {
-      result = result.filter((p) =>
-        onlineFilter === "online" ? p.is_available : !p.is_available
-      );
-    }
-    if (capabilityFilter !== "all") {
-      result = result.filter((p) => {
-        if (capabilityFilter === "courier") return p.can_courier;
-        return true;
-      });
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.full_name?.toLowerCase().includes(q) ||
-          p.phone?.toLowerCase().includes(q) ||
-          p.id.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [profiles, roleFilter, vehicleFilter, onlineFilter, capabilityFilter, search]);
+  useEffect(() => { setPage(0); setSelected(new Set()); }, [debouncedSearch, roleFilter, vehicleFilter, onlineFilter, capabilityFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  useEffect(() => { setPage(0); setSelected(new Set()); }, [search, roleFilter, vehicleFilter, onlineFilter, capabilityFilter]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -133,10 +130,10 @@ const AdminUsers = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selected.size === paginated.length) {
+    if (selected.size === profiles.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(paginated.map((p) => p.id)));
+      setSelected(new Set(profiles.map((p) => p.id)));
     }
   };
 
@@ -151,9 +148,9 @@ const AdminUsers = () => {
     if (err) {
       toast({ title: `Bulk update failed`, description: err.message, variant: "destructive" });
     } else {
-      setProfiles((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, [field]: value } : p));
       toast({ title: `Updated ${ids.length} user${ids.length > 1 ? "s" : ""}` });
       setSelected(new Set());
+      fetchProfiles();
     }
     setBulkSaving(false);
   };
@@ -220,16 +217,14 @@ const AdminUsers = () => {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, phone, or ID..."
+            placeholder="Search by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[120px]">
-            <SelectValue placeholder="All roles" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[120px]"><SelectValue placeholder="All roles" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>
             {ROLES.map((r) => (
@@ -238,9 +233,7 @@ const AdminUsers = () => {
           </SelectContent>
         </Select>
         <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
-          <SelectTrigger className="w-[120px]">
-            <SelectValue placeholder="Vehicle" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[120px]"><SelectValue placeholder="Vehicle" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All vehicles</SelectItem>
             {VEHICLE_TYPES.map((vt) => (
@@ -249,9 +242,7 @@ const AdminUsers = () => {
           </SelectContent>
         </Select>
         <Select value={onlineFilter} onValueChange={setOnlineFilter}>
-          <SelectTrigger className="w-[120px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[120px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All status</SelectItem>
             <SelectItem value="online">Online</SelectItem>
@@ -259,9 +250,7 @@ const AdminUsers = () => {
           </SelectContent>
         </Select>
         <Select value={capabilityFilter} onValueChange={setCapabilityFilter}>
-          <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder="Capability" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[130px]"><SelectValue placeholder="Capability" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All capabilities</SelectItem>
             <SelectItem value="courier">Courier</SelectItem>
@@ -285,9 +274,7 @@ const AdminUsers = () => {
               <span className="text-sm font-medium">{selected.size} selected</span>
               <div className="h-4 w-px bg-border" />
               <Select onValueChange={(val) => handleBulkAction("role", val, `role → ${val}`)} disabled={bulkSaving}>
-                <SelectTrigger className="w-[130px] h-8 text-xs">
-                  <SelectValue placeholder="Set role…" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Set role…" /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
                     <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
@@ -310,7 +297,7 @@ const AdminUsers = () => {
                 <TableRow>
                   <TableHead className="w-10">
                     <Checkbox
-                      checked={paginated.length > 0 && selected.size === paginated.length}
+                      checked={profiles.length > 0 && selected.size === profiles.length}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
@@ -319,19 +306,15 @@ const AdminUsers = () => {
                   <TableHead>Role</TableHead>
                   <TableHead>Vehicle</TableHead>
                   <TableHead>Courier</TableHead>
-                  
                   <TableHead>Active</TableHead>
                   <TableHead>Joined</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginated.map((p) => (
+                {profiles.map((p) => (
                   <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${selected.has(p.id) ? "bg-muted/30" : ""}`} onClick={() => navigate(`/admin/users/${p.id}`)}>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selected.has(p.id)}
-                        onCheckedChange={() => toggleSelect(p.id)}
-                      />
+                      <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleSelect(p.id)} />
                     </TableCell>
                     <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{p.phone || "—"}</TableCell>
@@ -341,9 +324,7 @@ const AdminUsers = () => {
                         onValueChange={(val) => handleRoleChange(p.id, val)}
                         disabled={saving === p.id || p.user_id === profile?.user_id}
                       >
-                        <SelectTrigger className="w-28">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {ROLES.map((r) => (
                             <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
@@ -358,9 +339,7 @@ const AdminUsers = () => {
                           onValueChange={(val) => handleUpdate(p.id, "vehicle_type", val === "none" ? null : val)}
                           disabled={saving === p.id}
                         >
-                          <SelectTrigger className="w-24">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
+                          <SelectTrigger className="w-24"><SelectValue placeholder="—" /></SelectTrigger>
                           <SelectContent>
                             {VEHICLE_TYPES.map((vt) => (
                               <SelectItem key={vt.value} value={vt.value}>{vt.label}</SelectItem>
@@ -388,9 +367,9 @@ const AdminUsers = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {paginated.length === 0 && (
+                {profiles.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -401,7 +380,7 @@ const AdminUsers = () => {
 
           {/* Pagination */}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{filtered.length} user{filtered.length !== 1 ? "s" : ""}</span>
+            <span>{totalCount} user{totalCount !== 1 ? "s" : ""}</span>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
                 Previous
