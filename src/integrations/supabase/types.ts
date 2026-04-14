@@ -778,6 +778,8 @@ export type Database = {
           phone_verified: boolean
           promo_commission_rate: number
           promo_end_date: string | null
+          rider_average_rating: number | null
+          rider_total_ratings: number | null
           role: Database["public"]["Enums"]["user_role"]
           role_in_org: string | null
           seat_capacity: number | null
@@ -818,6 +820,8 @@ export type Database = {
           phone_verified?: boolean
           promo_commission_rate?: number
           promo_end_date?: string | null
+          rider_average_rating?: number | null
+          rider_total_ratings?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null
@@ -858,6 +862,8 @@ export type Database = {
           phone_verified?: boolean
           promo_commission_rate?: number
           promo_end_date?: string | null
+          rider_average_rating?: number | null
+          rider_total_ratings?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null

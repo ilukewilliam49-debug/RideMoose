@@ -114,7 +114,7 @@ export default function AdminUserDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !!id && profile?.role === "driver",
+    enabled: !!id,
   });
 
   const { data: verifications } = useQuery({
@@ -382,68 +382,72 @@ export default function AdminUserDetail() {
           </Card>
         )}
 
-        {/* Driver Ratings */}
-        {profile?.role === "driver" && (
+        {/* Ratings (both drivers and riders) */}
+        {driverRatings && driverRatings.length > 0 && (
           <Card className="md:col-span-2">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                <span>Driver Ratings</span>
-                {(profile as any)?.average_rating != null && (
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-base font-bold text-foreground">
-                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                      {Number((profile as any).average_rating).toFixed(1)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      ({(profile as any).total_ratings || 0} ratings)
-                    </span>
-                    {Number((profile as any).average_rating) < 3.5 && (
-                      <Badge variant="destructive" className="text-[10px] gap-1">
-                        <AlertTriangle className="h-3 w-3" /> Low rated
-                      </Badge>
-                    )}
-                  </div>
-                )}
+                <span>{profile?.role === "driver" ? "Driver Ratings" : "Rider Ratings"}</span>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const p = profile as any;
+                    const avg = profile?.role === "driver" ? p?.average_rating : p?.rider_average_rating;
+                    const count = profile?.role === "driver" ? p?.total_ratings : p?.rider_total_ratings;
+                    if (avg == null) return null;
+                    return (
+                      <>
+                        <span className="flex items-center gap-1 text-base font-bold text-foreground">
+                          <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                          {Number(avg).toFixed(1)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ({count || 0} ratings)
+                        </span>
+                        {Number(avg) < 3.5 && (
+                          <Badge variant="destructive" className="text-[10px] gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Low rated
+                          </Badge>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!driverRatings?.length ? (
-                <p className="text-sm text-muted-foreground">No ratings yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {driverRatings.map((r: any) => (
-                    <div key={r.id} className="flex items-start justify-between gap-2 text-sm border-b pb-2 last:border-0">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-3.5 w-3.5 ${
-                                i < r.rating ? "fill-amber-500 text-amber-500" : "text-muted-foreground/20"
-                              }`}
-                            />
+              <div className="space-y-3">
+                {driverRatings.map((r: any) => (
+                  <div key={r.id} className="flex items-start justify-between gap-2 text-sm border-b pb-2 last:border-0">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3.5 w-3.5 ${
+                              i < r.rating ? "fill-amber-500 text-amber-500" : "text-muted-foreground/20"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {r.comment && (
+                        <p className="text-xs text-muted-foreground italic">"{r.comment}"</p>
+                      )}
+                      {r.feedback_tags && r.feedback_tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {r.feedback_tags.map((tag: string) => (
+                            <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {tag}
+                            </Badge>
                           ))}
                         </div>
-                        {r.comment && (
-                          <p className="text-xs text-muted-foreground italic">"{r.comment}"</p>
-                        )}
-                        {r.feedback_tags && r.feedback_tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {r.feedback_tags.map((tag: string) => (
-                              <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        {format(new Date(r.created_at), "PP")}
-                      </span>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {format(new Date(r.created_at), "PP")}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
