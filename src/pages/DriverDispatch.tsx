@@ -394,6 +394,7 @@ const DriverDispatch = () => {
       {!activeRide && recentDeliveries?.[0] && recentDeliveries[0].id !== dismissedSummaryId && (
         <TripSummaryCard
           ride={recentDeliveries[0] as any}
+          driverProfileId={profile?.id}
           onDismiss={() => setDismissedSummaryId(recentDeliveries[0].id)}
         />
       )}
