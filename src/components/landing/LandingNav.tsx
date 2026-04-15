@@ -37,7 +37,7 @@ const LandingNav = () => {
               Earn
             </button>
             <button
-              onClick={() => navigate("/corporate-apply")}
+              onClick={() => navigate("/rider/corporate-apply")}
               className="px-3.5 py-2 text-sm font-medium text-foreground/80 hover:text-foreground rounded-lg transition-colors"
             >
               Business
