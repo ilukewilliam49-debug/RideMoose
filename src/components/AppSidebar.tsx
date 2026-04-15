@@ -6,6 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
@@ -61,8 +62,9 @@ export function AppSidebar() {
   const isOnline = useIsOnline();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const { activeRole, setActiveRole, canSwitch, dbRole } = useActiveRole();
   const { t } = useTranslation();
-  const role = profile?.role || "rider";
+  const role = activeRole;
 
   const navItems = navByRole(t)[role] || navByRole(t).rider;
 
@@ -220,6 +222,23 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
+        {/* Role switch button */}
+        {canSwitch && !collapsed && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5"
+            onClick={() => {
+              const newRole = activeRole === "driver" ? "rider" : "driver";
+              setActiveRole(newRole as any);
+              navigate(newRole === "rider" ? "/rider" : "/driver");
+              setOpenMobile(false);
+            }}
+          >
+            <Car className="h-4 w-4 shrink-0" />
+            {activeRole === "driver" ? "Switch to Rider" : "Switch to Driver"}
+          </Button>
+        )}
         {role === "rider" && (
           <SupportChatDialog
             trigger={
@@ -249,6 +268,7 @@ export function AppSidebar() {
             size="icon"
             className="shrink-0 h-8 w-8"
             onClick={async () => {
+              localStorage.removeItem("pickyou-active-role");
               await signOut();
               navigate("/login");
             }}

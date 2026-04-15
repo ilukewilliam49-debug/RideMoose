@@ -4,13 +4,15 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import BottomTabBar from "@/components/BottomTabBar";
 import DriverBottomTabBar from "@/components/DriverBottomTabBar";
 
 const RoleLayout = () => {
   const { profile } = useAuth();
-  const isRider = profile?.role === "rider";
-  const isDriver = profile?.role === "driver";
+  const { activeRole } = useActiveRole();
+  const isRider = activeRole === "rider";
+  const isDriver = activeRole === "driver" && profile?.role === "driver";
   const hasMobileNav = isRider || isDriver;
 
   return (
