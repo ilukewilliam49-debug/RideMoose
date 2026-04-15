@@ -1,47 +1,40 @@
 
 
-# Save Card for Returning Customers
+# Email Notification for Corporate Applications
 
 ## What this does
-Returning riders won't need to re-enter card details. After their first payment, their card is saved to their Stripe customer profile and automatically used for future rides.
+When someone submits a corporate account application, an email is automatically sent to **contact@pickyou.ca** so the admin is notified immediately and no application gets missed.
 
-## How it works
+## Technical approach
 
-Stripe already creates/finds a customer per email in `create-payment-intent`. The missing piece is telling Stripe to save the payment method to that customer for reuse.
+The project has a verified email domain (`notify.aurorabusyellowknife.com`) but no transactional email infrastructure set up yet. We need to scaffold the full email pipeline first, then create the notification template and wire it into the submit flow.
 
-### Changes
+### Steps
 
-**1. Edge Function: `create-payment-intent/index.ts`**
-- Add `setup_future_usage: "off_session"` to the `paymentIntents.create()` call
-- This tells Stripe to save the card on the customer after successful confirmation
-- No new edge function needed
+1. **Set up email infrastructure** — Create the database tables, queues, and cron job needed for email sending (pgmq queues, send log, suppression list, etc.)
 
-**2. Edge Function: `authorize-bid/index.ts`**
-- Same change: add `setup_future_usage: "off_session"` to the PaymentIntent create call
+2. **Scaffold transactional email system** — Create the `send-transactional-email` Edge Function and supporting functions (unsubscribe handler, suppression handler)
 
-**3. Edge Function (new): `list-payment-methods/index.ts`**
-- Authenticated endpoint that looks up the user's Stripe customer and returns saved cards (`stripe.paymentMethods.list({ customer, type: 'card' })`)
-- Returns last4, brand, expiry for each card
+3. **Create the notification template** — A React Email component (`corporate-application-notification.tsx`) that includes:
+   - Company name
+   - Contact person name & email
+   - Billing email
+   - Requested credit limit & payment terms
+   - Submitted timestamp
+   - Branded with PickYou colors (blue #2F80ED, dark #0B0F1A accents on white background)
 
-**4. Frontend: `PaymentConfirmation.tsx`**
-- Before showing the Stripe PaymentElement, call `list-payment-methods` to check for saved cards
-- If saved cards exist, show a card selector (e.g. "Visa •••• 4242") with option to "Use a new card"
-- When a saved card is selected, pass `payment_method` to the edge function and skip the PaymentElement form
-- When "new card" is chosen, show the existing PaymentElement flow (which will also save the new card)
+4. **Register the template** in the TEMPLATES registry
 
-**5. Edge Function: `pay-with-saved-card/index.ts`**
-- Accepts `ride_id` and `payment_method_id`
-- Creates the PaymentIntent with the saved payment method and `confirm: true, off_session: true`
-- Updates the ride record with payment info
-- Returns success/failure
+5. **Create the unsubscribe page** — Required by the email system for compliance
 
-**6. Frontend: `RiderDashboard.tsx`**
-- Wire the saved card flow into the booking confirmation step
-- If a saved card is selected, call `pay-with-saved-card` directly instead of showing the Stripe form
+6. **Wire up the trigger** — In `CorporateApply.tsx`, after the successful database insert, call `send-transactional-email` with:
+   - `recipientEmail: "contact@pickyou.ca"`
+   - `templateName: "corporate-application-notification"`
+   - `templateData` containing company name, contact info, and financial details
+   - `idempotencyKey` derived from the inserted record
 
-### Technical details
-- `setup_future_usage: "off_session"` is the Stripe-recommended way to save cards during a payment
-- No database changes needed — Stripe stores the payment methods on the customer object
-- Cards are automatically attached to the existing Stripe customer (already created per user email)
-- PCI compliance is maintained since card data never touches our servers
+7. **Deploy Edge Functions** — Deploy `send-transactional-email`, `handle-email-unsubscribe`, `handle-email-suppression`, and `process-email-queue`
+
+### What the admin receives
+A clean branded email with the subject "New Corporate Application: [Company Name]" containing all the key details from the application form, so they can review and act on it without logging into the admin dashboard.
 
