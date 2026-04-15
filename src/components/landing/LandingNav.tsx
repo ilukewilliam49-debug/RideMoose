@@ -11,7 +11,7 @@ const LandingNav = () => {
   const { t } = useTranslation();
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-5 lg:px-8">
         {/* Left: logo + desktop links */}
         <div className="flex items-center gap-6 md:gap-8 min-w-0">
