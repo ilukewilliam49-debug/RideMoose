@@ -220,6 +220,7 @@ const RiderDashboard = () => {
         state.setPaymentClientSecret(piData.clientSecret);
         state.setAuthorizedAmountCents(piData.authorized_amount_cents);
         state.setPendingRideId(rideData.id);
+        setConfirmSheetOpen(false);
         state.setLoading(false);
         return;
       }
