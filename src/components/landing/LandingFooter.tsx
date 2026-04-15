@@ -28,7 +28,7 @@ const LandingFooter = () => {
               <button onClick={() => navigate("/privacy")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">
                 Privacy Policy
               </button>
-              <button onClick={() => navigate("/corporate-apply")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">
+              <button onClick={() => navigate("/rider/corporate-apply")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">
                 Business
               </button>
             </div>
