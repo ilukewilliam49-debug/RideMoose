@@ -97,6 +97,7 @@ const AppContent = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth" element={<Navigate to="/login" replace />} />
+          <Route path="/corporate-apply" element={<Navigate to="/rider/corporate-apply" replace />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
 
