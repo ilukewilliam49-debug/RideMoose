@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://pickyou.lovable.app/</loc>
+    <loc>https://pickyou.ca/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://pickyou.lovable.app/login</loc>
+    <loc>https://pickyou.ca/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pickyou.lovable.app/terms</loc>
+    <loc>https://pickyou.ca/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://pickyou.lovable.app/privacy</loc>
+    <loc>https://pickyou.ca/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://pickyou.lovable.app/corporate-apply</loc>
+    <loc>https://pickyou.ca/corporate-apply</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pickyou.lovable.app/reset-password</loc>
+    <loc>https://pickyou.ca/reset-password</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
