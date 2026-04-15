@@ -12,11 +12,12 @@ const LandingNav = () => {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
-        <div className="flex items-center gap-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-5 lg:px-8">
+        {/* Left: logo + desktop links */}
+        <div className="flex items-center gap-6 md:gap-8 min-w-0">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center"
+            className="flex items-center shrink-0"
             aria-label="PickYou home"
           >
             <img src={logoImg} alt="PickYou — Yellowknife taxi and transportation" className="h-7 object-contain" />
@@ -45,20 +46,24 @@ const LandingNav = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right: actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <OfflineIndicator />
-          <LanguageSwitcher />
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
+          <LanguageSwitcher collapsed className="sm:hidden" />
           <Button
             variant="ghost"
             size="sm"
-            className="hidden sm:inline-flex text-sm font-medium"
+            className="hidden md:inline-flex text-sm font-medium"
             onClick={() => navigate("/login")}
           >
             {t("nav.signIn")}
           </Button>
           <Button
             size="sm"
-            className="rounded-full px-5 text-xs font-bold"
+            className="rounded-full px-4 sm:px-5 text-xs font-bold"
             onClick={() => navigate("/login")}
           >
             Sign up
