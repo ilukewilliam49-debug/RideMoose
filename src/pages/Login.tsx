@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Mail, Lock, User, Car, ArrowLeft } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
