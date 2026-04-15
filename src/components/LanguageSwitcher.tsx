@@ -13,32 +13,34 @@ const languages = [
   { code: "fr", label: "Français" },
 ];
 
-export function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {
+export function LanguageSwitcher({ collapsed = false, className }: { collapsed?: boolean; className?: string }) {
   const { i18n } = useTranslation();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={collapsed ? "icon" : "sm"} className="h-8 gap-1.5">
-          <Languages className="h-4 w-4 shrink-0" />
-          {!collapsed && (
-            <span className="text-xs">
-              {languages.find((l) => l.code === i18n.language)?.label || "English"}
-            </span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {languages.map((lang) => (
-          <DropdownMenuItem
-            key={lang.code}
-            onClick={() => i18n.changeLanguage(lang.code)}
-            className={i18n.language === lang.code ? "bg-accent" : ""}
-          >
-            {lang.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className={className}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size={collapsed ? "icon" : "sm"} className="h-8 gap-1.5">
+            <Languages className="h-4 w-4 shrink-0" />
+            {!collapsed && (
+              <span className="text-xs">
+                {languages.find((l) => l.code === i18n.language)?.label || "English"}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {languages.map((lang) => (
+            <DropdownMenuItem
+              key={lang.code}
+              onClick={() => i18n.changeLanguage(lang.code)}
+              className={i18n.language === lang.code ? "bg-accent" : ""}
+            >
+              {lang.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
