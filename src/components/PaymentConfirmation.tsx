@@ -367,6 +367,7 @@ export default function PaymentConfirmation({
           selectedId={null}
           onSelect={setSelectedCardId}
           onUseNew={() => setSelectedCardId(null)}
+          useNewSelected
         />
       )}
       <Elements stripe={getStripe()} options={options}>
