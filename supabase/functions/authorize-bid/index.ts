@@ -85,9 +85,10 @@ serve(async (req) => {
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
-      currency: "usd",
+      currency: "cad",
       customer: customerId,
       capture_method: "manual",
+      setup_future_usage: "off_session",
       automatic_payment_methods: { enabled: true },
       metadata: {
         ride_id,

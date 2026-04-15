@@ -534,6 +534,7 @@ const RiderDashboard = () => {
             clientSecret={state.paymentClientSecret}
             amountCents={state.authorizedAmountCents}
             onSuccess={handlePaymentSuccess}
+            onSavedCardSuccess={handlePaymentSuccess}
             onFailure={async () => {
               if (state.pendingRideId) {
                 await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", state.pendingRideId);
@@ -545,6 +546,9 @@ const RiderDashboard = () => {
               queries.refetch();
             }}
             label={t("rider.authorizeRidePayment")}
+            rideId={state.pendingRideId || undefined}
+            serviceType={state.serviceType}
+            estimatedFareCents={Math.round(parseFloat(queries.estimatedPrice || "0") * 100)}
           />
         </div>
       )}
