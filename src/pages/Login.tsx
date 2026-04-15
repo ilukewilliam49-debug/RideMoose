@@ -321,14 +321,17 @@ const Login = () => {
             )}
 
             {/* ── PHONE OTP VIEW ── */}
-            {view === "main" && otpSent && (
+            {view === "phone-otp" && (
               <motion.div
                 key="otp"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-4 mt-4"
+                className="space-y-4"
               >
+                <p className="text-sm text-muted-foreground text-center mb-2">
+                  {t("auth.codeSentTo", "We sent a code to")} <strong>{formatPhone(phoneNumber)}</strong>
+                </p>
                 <Label>{t("auth.enterOtp", "Enter verification code")}</Label>
                 <Input
                   type="text"
@@ -338,6 +341,7 @@ const Login = () => {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                   className="text-center text-2xl tracking-[0.5em] bg-secondary border-input"
+                  autoFocus
                 />
                 <Button
                   className="w-full h-12 rounded-xl text-base font-semibold"
@@ -346,6 +350,14 @@ const Login = () => {
                 >
                   {loading ? t("auth.loading") : t("auth.verify", "Verify")}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { setOtpSent(false); setOtpCode(""); handlePhoneContinue(); }}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors w-full text-center"
+                  disabled={loading}
+                >
+                  {t("auth.resendCode", "Resend code")}
+                </button>
               </motion.div>
             )}
 
