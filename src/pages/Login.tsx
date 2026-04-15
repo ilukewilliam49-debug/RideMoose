@@ -48,15 +48,24 @@ const Login = () => {
     }
   }, [user, profile, authLoading, navigate]);
 
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    return digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
+  };
+
   const handlePhoneContinue = async () => {
     if (!phoneNumber.trim()) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber.startsWith("+1") ? phoneNumber : `+1${phoneNumber.replace(/\D/g, "")}`,
+      const phone = formatPhone(phoneNumber);
+      const res = await supabase.functions.invoke("send-login-otp", {
+        body: { phone },
       });
-      if (error) throw error;
+      if (res.error) throw new Error(res.error.message || "Failed to send code");
+      const data = res.data as any;
+      if (data?.error) throw new Error(data.error);
       setOtpSent(true);
+      setView("main"); // stay on main but show OTP input
       toast.success(t("auth.otpSent", "Verification code sent!"));
     } catch (error: any) {
       toast.error(error.message);
@@ -69,10 +78,20 @@ const Login = () => {
     if (!otpCode.trim()) return;
     setLoading(true);
     try {
-      const phone = phoneNumber.startsWith("+1") ? phoneNumber : `+1${phoneNumber.replace(/\D/g, "")}`;
-      const { error } = await supabase.auth.verifyOtp({ phone, token: otpCode, type: "sms" });
-      if (error) throw error;
-      toast.success(t("auth.welcomeBack"));
+      const phone = formatPhone(phoneNumber);
+      const res = await supabase.functions.invoke("verify-login-otp", {
+        body: { phone, otp: otpCode },
+      });
+      if (res.error) throw new Error(res.error.message || "Verification failed");
+      const data = res.data as any;
+      if (data?.error) throw new Error(data.error);
+      if (data?.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        toast.success(t("auth.welcomeBack"));
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
