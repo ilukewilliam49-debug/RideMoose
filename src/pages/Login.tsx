@@ -190,7 +190,27 @@ const Login = () => {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading}>
+            {!isLogin && (
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="terms"
+                  checked={agreedToTerms}
+                  onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                  {t("auth.agreeToTerms", "I agree to the")}{" "}
+                  <a href="/terms" target="_blank" className="text-primary hover:underline">
+                    {t("auth.termsOfService", "Terms of Service")}
+                  </a>{" "}
+                  {t("common.and", "and")}{" "}
+                  <a href="/privacy" target="_blank" className="text-primary hover:underline">
+                    {t("auth.privacyPolicy", "Privacy Policy")}
+                  </a>
+                </label>
+              </div>
+            )}
+            <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading || (!isLogin && !agreedToTerms)}>
               {loading ? t("auth.loading") : isLogin ? t("auth.signIn") : t("auth.signUp")}
             </Button>
           </form>
