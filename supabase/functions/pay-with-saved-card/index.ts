@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PICKYOU_SURCHARGE_CENTS = 120; // $1.20
+const PICKYOU_SURCHARGE_CENTS = 120;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,19 +21,20 @@ serve(async (req) => {
   );
 
   try {
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Missing authorization header");
+
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !userData.user) throw new Error("Unauthorized");
     const user = userData.user;
 
-    const { ride_id, estimated_fare_cents, service_type } = await req.json();
-    if (!ride_id || !estimated_fare_cents) throw new Error("ride_id and estimated_fare_cents required");
+    const { ride_id, payment_method_id, estimated_fare_cents, service_type } = await req.json();
+    if (!ride_id || !payment_method_id || !estimated_fare_cents) {
+      throw new Error("ride_id, payment_method_id, and estimated_fare_cents required");
+    }
 
     const isPrivateHire = service_type === "private_hire";
-
-    // Taxi: no GST, no surcharge
-    // Private Hire: $1.20 surcharge + 5% GST on (fare + surcharge)
     let fareWithExtras = estimated_fare_cents;
     if (isPrivateHire) {
       const subtotal = estimated_fare_cents + PICKYOU_SURCHARGE_CENTS;
@@ -41,32 +42,31 @@ serve(async (req) => {
       fareWithExtras = subtotal + taxCents;
     }
 
-    // Calculate authorized amount: 125% of estimate (including tax if applicable), minimum $20
     const authorized_amount_cents = Math.min(Math.max(Math.round(fareWithExtras * 1.25), 2000), 50000);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Find or create Stripe customer
+    // Find Stripe customer
     let customerId: string | undefined;
     if (user.email) {
       const customers = await stripe.customers.list({ email: user.email, limit: 1 });
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
-      } else {
-        const customer = await stripe.customers.create({ email: user.email });
-        customerId = customer.id;
       }
     }
+    if (!customerId) throw new Error("No Stripe customer found. Please use a new card first.");
 
-    // Create PaymentIntent with manual capture
+    // Create and confirm PaymentIntent with saved card
     const paymentIntent = await stripe.paymentIntents.create({
       amount: authorized_amount_cents,
       currency: "cad",
       customer: customerId,
+      payment_method: payment_method_id,
       capture_method: "manual",
-      setup_future_usage: "off_session",
+      confirm: true,
+      off_session: true,
       metadata: { ride_id, service_type: service_type || "taxi" },
     });
 
@@ -86,7 +86,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        clientSecret: paymentIntent.client_secret,
+        success: true,
         authorized_amount_cents,
         payment_intent_id: paymentIntent.id,
       }),
@@ -94,7 +94,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
-    console.error("create-payment-intent error:", msg);
+    console.error("pay-with-saved-card error:", msg);
     return new Response(JSON.stringify({ error: msg }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
