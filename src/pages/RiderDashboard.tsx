@@ -608,7 +608,6 @@ const RiderDashboard = () => {
         open={confirmSheetOpen}
         onOpenChange={setConfirmSheetOpen}
         onConfirm={() => {
-          setConfirmSheetOpen(false);
           requestRide();
         }}
         pickup={state.pickup}
