@@ -82,7 +82,7 @@ const LandingHero = () => {
             <div className="relative overflow-hidden rounded-3xl">
               <img
                 src={heroBg}
-                alt="SUV driving through Yellowknife with boreal forest and northern sky"
+                alt="Aerial view of Yellowknife, NWT at night with aurora borealis"
                 width={1280}
                 height={720}
                 className="h-[400px] w-full object-cover lg:h-[460px]"
