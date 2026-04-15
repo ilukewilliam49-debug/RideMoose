@@ -13,11 +13,11 @@ const languages = [
   { code: "fr", label: "Français" },
 ];
 
-export function LanguageSwitcher({ collapsed = false }: { collapsed?: boolean }) {
+export function LanguageSwitcher({ collapsed = false, className }: { collapsed?: boolean; className?: string }) {
   const { i18n } = useTranslation();
 
   return (
-    <DropdownMenu>
+    <DropdownMenu>{/* @ts-ignore className wrapper */}
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size={collapsed ? "icon" : "sm"} className="h-8 gap-1.5">
           <Languages className="h-4 w-4 shrink-0" />
