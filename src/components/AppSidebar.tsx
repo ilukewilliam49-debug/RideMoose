@@ -159,11 +159,21 @@ export function AppSidebar() {
                               {openTicketCount > 99 ? "99+" : openTicketCount}
                             </span>
                           )}
+                          {item.url === "/admin/corporate" && !!pendingAppCount && pendingAppCount > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                              {pendingAppCount > 99 ? "99+" : pendingAppCount}
+                            </span>
+                          )}
                         </span>
                       )}
                       {collapsed && item.url === "/admin/support" && !!openTicketCount && openTicketCount > 0 && (
                         <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
                           {openTicketCount > 99 ? "99+" : openTicketCount}
+                        </span>
+                      )}
+                      {collapsed && item.url === "/admin/corporate" && !!pendingAppCount && pendingAppCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+                          {pendingAppCount > 99 ? "99+" : pendingAppCount}
                         </span>
                       )}
                     </NavLink>
