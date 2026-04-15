@@ -117,7 +117,20 @@
     "resetRateLimited": "Password reset is temporarily limited. Try again in {{minutes}} minutes.",
     "attemptsRemaining": "{{count}} attempts remaining before temporary lockout",
     "lastAttemptWarning": "Final attempt - account will be temporarily locked after this",
-    "lastAttempt": "This was your final attempt."
+    "lastAttempt": "This was your final attempt.",
+    "getStarted": "Get started with PickYou",
+    "mobileNumber": "Mobile number",
+    "continue": "Continue",
+    "continueWithApple": "Continue with Apple",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithEmail": "Continue with Email",
+    "findMyAccount": "Find my account",
+    "byContinuing": "By continuing, you agree to the",
+    "fromPickYou": "from PickYou.",
+    "otpSent": "Verification code sent!",
+    "enterOtp": "Enter verification code",
+    "verify": "Verify",
+    "mustAgreeToTerms": "You must agree to the Terms of Service"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
