@@ -27,6 +27,7 @@ const Login = () => {
   const [role, setRole] = useState<"rider" | "driver">(preselectedRole);
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const { t } = useTranslation();
