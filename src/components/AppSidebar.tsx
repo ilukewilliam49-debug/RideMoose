@@ -80,6 +80,20 @@ export function AppSidebar() {
     refetchInterval: 30000,
   });
 
+  const { data: pendingAppCount } = useQuery({
+    queryKey: ["pending-corp-app-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("organization_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: role === "admin",
+    refetchInterval: 30000,
+  });
+
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
