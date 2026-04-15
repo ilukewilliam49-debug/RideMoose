@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Clock, AlertTriangle, CreditCard, Banknote, Building2,
   Package, ShoppingBag, MapPinned, MapPin, LocateFixed,
@@ -220,12 +220,14 @@ const RiderDashboard = () => {
         state.setPaymentClientSecret(piData.clientSecret);
         state.setAuthorizedAmountCents(piData.authorized_amount_cents);
         state.setPendingRideId(rideData.id);
+        setConfirmSheetOpen(false);
         state.setLoading(false);
         return;
       }
 
       // Trigger automated driver matching
       if (rideData) {
+        setConfirmSheetOpen(false);
         setMatchingInProgress(true);
         matchingRideIdRef.current = rideData.id;
         supabase.functions.invoke("match-driver", { body: { ride_id: rideData.id } })
@@ -249,6 +251,7 @@ const RiderDashboard = () => {
             setMatchingInProgress(false);
           });
       } else {
+        setConfirmSheetOpen(false);
         toast.success(state.billToOrg ? t("rider.rideRequestedOrg") : t("rider.rideRequested"));
       }
       state.resetBookingForm();
@@ -528,30 +531,39 @@ const RiderDashboard = () => {
       )}
 
       {/* Payment confirmation – rendered outside active ride check so it persists */}
-      {state.paymentClientSecret && (
-        <div className="glass-surface rounded-lg p-6">
-          <PaymentConfirmation
-            clientSecret={state.paymentClientSecret}
-            amountCents={state.authorizedAmountCents}
-            onSuccess={handlePaymentSuccess}
-            onSavedCardSuccess={handlePaymentSuccess}
-            onFailure={async () => {
-              if (state.pendingRideId) {
-                await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", state.pendingRideId);
-              }
-              state.setPaymentClientSecret(null);
-              state.setPendingRideId(null);
-              state.setAuthorizedAmountCents(0);
-              toast.error(t("rider.paymentFailed"));
-              queries.refetch();
-            }}
-            label={t("rider.authorizeRidePayment")}
-            rideId={state.pendingRideId || undefined}
-            serviceType={state.serviceType}
-            estimatedFareCents={Math.round(parseFloat(queries.estimatedPrice || "0") * 100)}
-          />
-        </div>
-      )}
+      <AnimatePresence>
+        {state.paymentClientSecret && (
+          <motion.div
+            key="payment-confirm"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="glass-surface rounded-lg p-6"
+          >
+            <PaymentConfirmation
+              clientSecret={state.paymentClientSecret}
+              amountCents={state.authorizedAmountCents}
+              onSuccess={handlePaymentSuccess}
+              onSavedCardSuccess={handlePaymentSuccess}
+              onFailure={async () => {
+                if (state.pendingRideId) {
+                  await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", state.pendingRideId);
+                }
+                state.setPaymentClientSecret(null);
+                state.setPendingRideId(null);
+                state.setAuthorizedAmountCents(0);
+                toast.error(t("rider.paymentFailed"));
+                queries.refetch();
+              }}
+              label={t("rider.authorizeRidePayment")}
+              rideId={state.pendingRideId || undefined}
+              serviceType={state.serviceType}
+              estimatedFareCents={Math.round(parseFloat(queries.estimatedPrice || "0") * 100)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Ride history */}
       <RideHistory
@@ -608,7 +620,6 @@ const RiderDashboard = () => {
         open={confirmSheetOpen}
         onOpenChange={setConfirmSheetOpen}
         onConfirm={() => {
-          setConfirmSheetOpen(false);
           requestRide();
         }}
         pickup={state.pickup}
