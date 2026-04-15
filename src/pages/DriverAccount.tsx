@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,7 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 
 const DriverAccount = () => {
   const { profile, signOut } = useAuth();
+  const { setActiveRole } = useActiveRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -299,6 +301,26 @@ const DriverAccount = () => {
 
   return (
     <div className="space-y-4 pb-6">
+      {/* Switch to Rider */}
+      <motion.button
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        onClick={() => {
+          setActiveRole("rider");
+          navigate("/rider");
+        }}
+        className="w-full flex items-center gap-3 rounded-2xl bg-primary/10 ring-1 ring-primary/20 p-4 text-left hover:bg-primary/15 transition-colors active:scale-[0.98]"
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+          <Car className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold">Switch to Rider</p>
+          <p className="text-[11px] text-muted-foreground">Book rides as a passenger</p>
+        </div>
+        <span className="text-muted-foreground">→</span>
+      </motion.button>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

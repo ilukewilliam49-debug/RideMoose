@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell } from "lucide-react";
+import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, Car } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import SupportChatDialog from "@/components/SupportChatDialog";
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 
 const RiderAccount = () => {
   const { profile, signOut } = useAuth();
+  const { canSwitch, setActiveRole } = useActiveRole();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -333,11 +335,25 @@ const RiderAccount = () => {
 
       {/* Settings */}
       <div className="space-y-2 pt-2">
+        {canSwitch && (
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-3 h-12 rounded-xl"
+            onClick={() => {
+              setActiveRole("driver");
+              navigate("/driver");
+            }}
+          >
+            <Car className="h-4 w-4" />
+            Switch to Driver
+          </Button>
+        )}
         <LanguageSwitcher />
         <Button
           variant="outline"
           className="w-full justify-start gap-3 h-12 rounded-xl text-destructive hover:text-destructive"
           onClick={async () => {
+            localStorage.removeItem("pickyou-active-role");
             await signOut();
             navigate("/login");
           }}

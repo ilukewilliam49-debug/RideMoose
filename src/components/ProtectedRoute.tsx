@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 interface ProtectedRouteProps {
   allowedRoles: string[];
@@ -13,6 +14,7 @@ const REQUIRED_DOC_TYPES = ["drivers_license", "vehicle_insurance", "vehicle_reg
 const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
+  const { activeRole } = useActiveRole();
 
   // Check driver onboarding status
   const { data: verifications, isLoading: verificationsLoading } = useQuery({
@@ -37,15 +39,18 @@ const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  const role = profile?.role || "rider";
+  const dbRole = profile?.role || "rider";
 
-  if (!allowedRoles.includes(role)) {
-    const roleRoute = role === "admin" ? "/admin" : role === "driver" ? "/driver" : "/rider";
+  // Use activeRole for routing decisions — allows drivers to access rider routes
+  const effectiveRole = dbRole === "driver" ? activeRole : dbRole;
+
+  if (!allowedRoles.includes(dbRole) && !allowedRoles.includes(effectiveRole)) {
+    const roleRoute = dbRole === "admin" ? "/admin" : dbRole === "driver" ? "/driver" : "/rider";
     return <Navigate to={roleRoute} replace />;
   }
 
-  // Driver onboarding gate
-  if (role === "driver" && !location.pathname.startsWith("/driver/onboarding")) {
+  // Driver onboarding gate — only when viewing as driver
+  if (dbRole === "driver" && activeRole === "driver" && !location.pathname.startsWith("/driver/onboarding")) {
     const hasVehicle = !!profile?.vehicle_type;
     const hasAllDocs = REQUIRED_DOC_TYPES.every((docType) =>
       verifications?.some((v) => v.document_type === docType)
