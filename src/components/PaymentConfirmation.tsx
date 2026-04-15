@@ -44,14 +44,50 @@ function SavedCardSelector({
   selectedId,
   onSelect,
   onUseNew,
+  useNewSelected,
 }: {
   cards: SavedCard[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onUseNew: () => void;
+  useNewSelected?: boolean;
 }) {
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
 
+  // Find the currently selected card
+  const activeCard = cards.find((c) => c.id === selectedId);
+
+  // Collapsed view: show selected card with expand toggle
+  if (!expanded && activeCard && !useNewSelected) {
+    return (
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-3 w-full p-3 rounded-lg border border-primary bg-primary/10 transition-all"
+        >
+          <CreditCard className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium flex-1 text-left">
+            {brandIcon(activeCard.brand)} •••• {activeCard.last4}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {String(activeCard.exp_month).padStart(2, "0")}/{String(activeCard.exp_year).slice(-2)}
+          </span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <button
+          type="button"
+          onClick={onUseNew}
+          className="text-xs text-primary hover:underline w-full text-center py-1"
+        >
+          {t("payment.useNewCard", "Use a new card")}
+        </button>
+      </div>
+    );
+  }
+
+  // Expanded view: show all cards + new card option
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -61,40 +97,40 @@ function SavedCardSelector({
         <button
           key={card.id}
           type="button"
-          onClick={() => onSelect(card.id)}
+          onClick={() => { onSelect(card.id); setExpanded(false); }}
           className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all ${
-            selectedId === card.id
+            selectedId === card.id && !useNewSelected
               ? "border-primary bg-primary/10"
               : "border-border bg-secondary hover:bg-accent"
           }`}
         >
-          <CreditCard className={`h-4 w-4 ${selectedId === card.id ? "text-primary" : "text-muted-foreground"}`} />
+          <CreditCard className={`h-4 w-4 ${selectedId === card.id && !useNewSelected ? "text-primary" : "text-muted-foreground"}`} />
           <span className="text-sm font-medium flex-1 text-left">
             {brandIcon(card.brand)} •••• {card.last4}
           </span>
           <span className="text-xs text-muted-foreground">
             {String(card.exp_month).padStart(2, "0")}/{String(card.exp_year).slice(-2)}
           </span>
-          <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${selectedId === card.id ? "border-primary" : "border-muted-foreground"}`}>
-            {selectedId === card.id && <div className="h-2 w-2 rounded-full bg-primary" />}
+          <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${selectedId === card.id && !useNewSelected ? "border-primary" : "border-muted-foreground"}`}>
+            {selectedId === card.id && !useNewSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
           </div>
         </button>
       ))}
       <button
         type="button"
-        onClick={onUseNew}
+        onClick={() => { onUseNew(); setExpanded(false); }}
         className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all ${
-          !selectedId
+          useNewSelected
             ? "border-primary bg-primary/10"
             : "border-border bg-secondary hover:bg-accent"
         }`}
       >
-        <CreditCard className={`h-4 w-4 ${!selectedId ? "text-primary" : "text-muted-foreground"}`} />
+        <CreditCard className={`h-4 w-4 ${useNewSelected ? "text-primary" : "text-muted-foreground"}`} />
         <span className="text-sm font-medium flex-1 text-left">
           {t("payment.useNewCard", "Use a new card")}
         </span>
-        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${!selectedId ? "border-primary" : "border-muted-foreground"}`}>
-          {!selectedId && <div className="h-2 w-2 rounded-full bg-primary" />}
+        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${useNewSelected ? "border-primary" : "border-muted-foreground"}`}>
+          {useNewSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
         </div>
       </button>
     </div>
