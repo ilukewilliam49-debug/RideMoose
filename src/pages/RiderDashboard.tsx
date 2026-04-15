@@ -227,6 +227,7 @@ const RiderDashboard = () => {
 
       // Trigger automated driver matching
       if (rideData) {
+        setConfirmSheetOpen(false);
         setMatchingInProgress(true);
         matchingRideIdRef.current = rideData.id;
         supabase.functions.invoke("match-driver", { body: { ride_id: rideData.id } })
