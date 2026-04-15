@@ -251,6 +251,7 @@ const RiderDashboard = () => {
             setMatchingInProgress(false);
           });
       } else {
+        setConfirmSheetOpen(false);
         toast.success(state.billToOrg ? t("rider.rideRequestedOrg") : t("rider.rideRequested"));
       }
       state.resetBookingForm();
