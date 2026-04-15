@@ -57,11 +57,33 @@ const CorporateApply = () => {
     }
     setSubmitting(true);
     try {
+      const id = crypto.randomUUID();
       const { error } = await supabase.from("organization_applications").insert({
+        id,
         applicant_user_id: profile.user_id,
         ...form,
       });
       if (error) throw error;
+
+      // Send email notification to admin
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "corporate-application-notification",
+          recipientEmail: "contact@pickyou.ca",
+          idempotencyKey: `corp-app-${id}`,
+          templateData: {
+            companyName: form.company_name,
+            contactName: form.contact_person_name,
+            contactEmail: form.contact_person_email,
+            billingEmail: form.billing_email,
+            creditLimit: `$${(form.requested_credit_limit_cents / 100).toFixed(2)}`,
+            paymentTerms: form.payment_terms_requested,
+            estimatedSpend: `$${(form.estimated_monthly_spend_cents / 100).toFixed(2)}`,
+            submittedAt: new Date().toLocaleString(),
+          },
+        },
+      });
+
       toast.success("Application submitted! We'll review it shortly.");
       navigate("/rider");
     } catch (err: any) {
