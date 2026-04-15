@@ -80,6 +80,20 @@ export function AppSidebar() {
     refetchInterval: 30000,
   });
 
+  const { data: pendingAppCount } = useQuery({
+    queryKey: ["pending-corp-app-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("organization_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: role === "admin",
+    refetchInterval: 30000,
+  });
+
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
@@ -145,11 +159,21 @@ export function AppSidebar() {
                               {openTicketCount > 99 ? "99+" : openTicketCount}
                             </span>
                           )}
+                          {item.url === "/admin/corporate" && !!pendingAppCount && pendingAppCount > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                              {pendingAppCount > 99 ? "99+" : pendingAppCount}
+                            </span>
+                          )}
                         </span>
                       )}
                       {collapsed && item.url === "/admin/support" && !!openTicketCount && openTicketCount > 0 && (
                         <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
                           {openTicketCount > 99 ? "99+" : openTicketCount}
+                        </span>
+                      )}
+                      {collapsed && item.url === "/admin/corporate" && !!pendingAppCount && pendingAppCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
+                          {pendingAppCount > 99 ? "99+" : pendingAppCount}
                         </span>
                       )}
                     </NavLink>
