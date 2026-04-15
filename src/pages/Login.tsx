@@ -48,15 +48,24 @@ const Login = () => {
     }
   }, [user, profile, authLoading, navigate]);
 
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    return digits.startsWith("1") ? `+${digits}` : `+1${digits}`;
+  };
+
   const handlePhoneContinue = async () => {
     if (!phoneNumber.trim()) return;
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber.startsWith("+1") ? phoneNumber : `+1${phoneNumber.replace(/\D/g, "")}`,
+      const phone = formatPhone(phoneNumber);
+      const res = await supabase.functions.invoke("send-login-otp", {
+        body: { phone },
       });
-      if (error) throw error;
+      if (res.error) throw new Error(res.error.message || "Failed to send code");
+      const data = res.data as any;
+      if (data?.error) throw new Error(data.error);
       setOtpSent(true);
+      setView("phone-otp");
       toast.success(t("auth.otpSent", "Verification code sent!"));
     } catch (error: any) {
       toast.error(error.message);
@@ -69,10 +78,20 @@ const Login = () => {
     if (!otpCode.trim()) return;
     setLoading(true);
     try {
-      const phone = phoneNumber.startsWith("+1") ? phoneNumber : `+1${phoneNumber.replace(/\D/g, "")}`;
-      const { error } = await supabase.auth.verifyOtp({ phone, token: otpCode, type: "sms" });
-      if (error) throw error;
-      toast.success(t("auth.welcomeBack"));
+      const phone = formatPhone(phoneNumber);
+      const res = await supabase.functions.invoke("verify-login-otp", {
+        body: { phone, otp: otpCode },
+      });
+      if (res.error) throw new Error(res.error.message || "Verification failed");
+      const data = res.data as any;
+      if (data?.error) throw new Error(data.error);
+      if (data?.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        toast.success(t("auth.welcomeBack"));
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -302,14 +321,17 @@ const Login = () => {
             )}
 
             {/* ── PHONE OTP VIEW ── */}
-            {view === "main" && otpSent && (
+            {view === "phone-otp" && (
               <motion.div
                 key="otp"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-4 mt-4"
+                className="space-y-4"
               >
+                <p className="text-sm text-muted-foreground text-center mb-2">
+                  {t("auth.codeSentTo", "We sent a code to")} <strong>{formatPhone(phoneNumber)}</strong>
+                </p>
                 <Label>{t("auth.enterOtp", "Enter verification code")}</Label>
                 <Input
                   type="text"
@@ -319,6 +341,7 @@ const Login = () => {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                   className="text-center text-2xl tracking-[0.5em] bg-secondary border-input"
+                  autoFocus
                 />
                 <Button
                   className="w-full h-12 rounded-xl text-base font-semibold"
@@ -327,6 +350,14 @@ const Login = () => {
                 >
                   {loading ? t("auth.loading") : t("auth.verify", "Verify")}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { setOtpSent(false); setOtpCode(""); handlePhoneContinue(); }}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors w-full text-center"
+                  disabled={loading}
+                >
+                  {t("auth.resendCode", "Resend code")}
+                </button>
               </motion.div>
             )}
 

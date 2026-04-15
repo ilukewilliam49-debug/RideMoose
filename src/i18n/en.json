@@ -130,7 +130,9 @@
     "otpSent": "Verification code sent!",
     "enterOtp": "Enter verification code",
     "verify": "Verify",
-    "mustAgreeToTerms": "You must agree to the Terms of Service"
+    "mustAgreeToTerms": "You must agree to the Terms of Service",
+    "codeSentTo": "We sent a code to",
+    "resendCode": "Resend code"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",

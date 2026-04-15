@@ -130,7 +130,9 @@
     "otpSent": "Code de vérification envoyé!",
     "enterOtp": "Entrez le code de vérification",
     "verify": "Vérifier",
-    "mustAgreeToTerms": "Vous devez accepter les conditions d'utilisation"
+    "mustAgreeToTerms": "Vous devez accepter les conditions d'utilisation",
+    "codeSentTo": "Nous avons envoyé un code au",
+    "resendCode": "Renvoyer le code"
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",
