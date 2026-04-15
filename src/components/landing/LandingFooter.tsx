@@ -1,9 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import logoImg from "@/assets/logo.png";
 
 const LandingFooter = () => {
-  const navigate = useNavigate();
   const { t } = useTranslation();
 
   return (
@@ -22,15 +21,15 @@ const LandingFooter = () => {
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Company</h4>
             <div className="flex flex-col gap-2">
-              <button onClick={() => navigate("/terms")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">
+              <Link to="/terms" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
                 Terms of Service
-              </button>
-              <button onClick={() => navigate("/privacy")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">
+              </Link>
+              <Link to="/privacy" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
                 Privacy Policy
-              </button>
-              <button onClick={() => navigate("/rider/corporate-apply")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">
+              </Link>
+              <Link to="/rider/corporate-apply" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
                 Business
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -38,9 +37,9 @@ const LandingFooter = () => {
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Products</h4>
             <div className="flex flex-col gap-2">
-              <button onClick={() => navigate("/login")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">Ride</button>
-              <button onClick={() => navigate("/login?role=driver")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">Drive</button>
-              <button onClick={() => navigate("/login")} className="text-sm text-foreground/70 hover:text-foreground text-left transition-colors">Courier</button>
+              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Ride</Link>
+              <Link to="/login?role=driver" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Drive</Link>
+              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Courier</Link>
             </div>
           </div>
 
