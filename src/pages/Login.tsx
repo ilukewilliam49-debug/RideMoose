@@ -65,7 +65,7 @@ const Login = () => {
       const data = res.data as any;
       if (data?.error) throw new Error(data.error);
       setOtpSent(true);
-      setView("main"); // stay on main but show OTP input
+      setView("phone-otp");
       toast.success(t("auth.otpSent", "Verification code sent!"));
     } catch (error: any) {
       toast.error(error.message);
