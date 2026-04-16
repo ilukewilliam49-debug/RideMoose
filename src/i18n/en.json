@@ -13,7 +13,11 @@
     "hireZones": "Hire Zones",
     "signIn": "Sign In",
     "signOut": "Sign Out",
-    "support": "Support"
+    "support": "Support",
+    "ride": "Ride",
+    "drive": "Drive",
+    "business": "Business",
+    "signUp": "Sign up"
   },
   "landing": {
     "badge": "Your Ride. Your Choice.",
