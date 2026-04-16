@@ -16,10 +16,10 @@ import logoImg from "@/assets/logo.png";
 const VEHICLE_TYPES = ["Sedan", "SUV", "Van", "Truck"] as const;
 
 const REQUIRED_DOCUMENTS = [
-  { type: "drivers_license", label: "Driver's License" },
-  { type: "chauffeurs_permit", label: "Chauffeur's Permit" },
-  { type: "vehicle_insurance", label: "Vehicle Insurance" },
-  { type: "vehicle_registration", label: "Vehicle Registration" },
+  { type: "drivers_license", label: "Driver's License", optional: false },
+  { type: "chauffeurs_permit", label: "Chauffeur's Permit", optional: true },
+  { type: "vehicle_insurance", label: "Vehicle Insurance", optional: false },
+  { type: "vehicle_registration", label: "Vehicle Registration", optional: false },
 ] as const;
 
 const DriverOnboarding = () => {
