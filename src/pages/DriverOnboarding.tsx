@@ -17,6 +17,7 @@ const VEHICLE_TYPES = ["Sedan", "SUV", "Van", "Truck"] as const;
 
 const REQUIRED_DOCUMENTS = [
   { type: "drivers_license", label: "Driver's License" },
+  { type: "chauffeurs_permit", label: "Chauffeur's Permit" },
   { type: "vehicle_insurance", label: "Vehicle Insurance" },
   { type: "vehicle_registration", label: "Vehicle Registration" },
 ] as const;
