@@ -338,7 +338,7 @@ const DriverOnboarding = () => {
               alt="PickYou"
               className="h-12 rounded-xl drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
             />
-          </button>
+          </a>
         </div>
 
         {/* Labelled progress bar */}
