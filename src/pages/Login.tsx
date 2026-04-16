@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Car, ArrowLeft, Phone, Check, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Mail, Lock, User, Car, ArrowLeft, Phone, Check, Eye, EyeOff, AlertTriangle, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/logo.png";
@@ -506,9 +506,23 @@ const Login = () => {
                         placeholder="you@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10 bg-secondary border-input"
+                        className={`pl-10 bg-secondary border-input ${email ? "pr-10" : ""}`}
                         required
                       />
+                      {email && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmail("");
+                            try { localStorage.removeItem("pickyou.last_email"); } catch { /* noop */ }
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={t("auth.clearEmail", "Clear email")}
+                          tabIndex={-1}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1.5">
