@@ -149,7 +149,8 @@
     "passwordStrengthGood": "Good",
     "passwordStrengthStrong": "Strong",
     "passwordTooWeak": "Password does not meet all requirements",
-    "capsLockOn": "Caps Lock is on"
+    "capsLockOn": "Caps Lock is on",
+    "rememberMe": "Remember me on this device"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",

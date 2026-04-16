@@ -149,7 +149,8 @@
     "passwordStrengthGood": "Bon",
     "passwordStrengthStrong": "Fort",
     "passwordTooWeak": "Le mot de passe ne respecte pas toutes les exigences",
-    "capsLockOn": "Verr. Maj. activé"
+    "capsLockOn": "Verr. Maj. activé",
+    "rememberMe": "Se souvenir de moi sur cet appareil"
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",
