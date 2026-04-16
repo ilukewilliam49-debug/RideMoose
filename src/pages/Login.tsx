@@ -25,7 +25,9 @@ const Login = () => {
 
   const [view, setView] = useState<AuthView>("main");
   const [isLogin, setIsLogin] = useState(!preselectedSignup);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    try { return localStorage.getItem("pickyou.last_email") ?? ""; } catch { return ""; }
+  });
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"rider" | "driver">(preselectedRole);
@@ -34,7 +36,12 @@ const Login = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(() => {
+    try {
+      const v = localStorage.getItem("pickyou.remember_me");
+      return v === null ? true : v === "1";
+    } catch { return true; }
+  });
 
   const handlePasswordKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (typeof e.getModifierState === "function") {
@@ -140,6 +147,10 @@ const Login = () => {
         // A pagehide listener (registered in main.tsx) will clear the
         // Supabase auth token from localStorage when the tab/window closes,
         // forcing the user to sign in again next time.
+        try {
+          localStorage.setItem("pickyou.last_email", email);
+          localStorage.setItem("pickyou.remember_me", rememberMe ? "1" : "0");
+        } catch { /* ignore storage errors */ }
         if (rememberMe) {
           localStorage.removeItem("pickyou.session_only");
         } else {
