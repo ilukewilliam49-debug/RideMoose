@@ -12,7 +12,8 @@
     "pricing": "Tarification",
     "hireZones": "Zones de location",
     "signIn": "Se connecter",
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "support": "Support"
   },
   "landing": {
     "badge": "Votre trajet. Votre choix.",
@@ -132,7 +133,11 @@
     "verify": "Vérifier",
     "mustAgreeToTerms": "Vous devez accepter les conditions d'utilisation",
     "codeSentTo": "Nous avons envoyé un code au",
-    "resendCode": "Renvoyer le code"
+    "resendCode": "Renvoyer le code",
+    "or": "ou",
+    "agreeToTerms": "J'accepte les Conditions d'utilisation et la Politique de confidentialité",
+    "privacyPolicy": "Politique de confidentialité",
+    "termsOfService": "Conditions d'utilisation"
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",
@@ -171,7 +176,11 @@
     "whereTo": "Où allez-vous ?",
     "now": "Maintenant",
     "suggestions": "Suggestions",
-    "seeAll": "Tout voir"
+    "seeAll": "Tout voir",
+    "getARide": "Obtenir un trajet",
+    "go": "Aller",
+    "recent": "Récent",
+    "supportDesc": "Obtenez de l'aide pour votre compte ou vos trajets"
   },
   "bottomNav": {
     "home": "Accueil",
@@ -180,7 +189,15 @@
     "account": "Compte"
   },
   "activity": {
-    "noRides": "Aucun trajet pour l'instant. Réservez votre premier trajet !"
+    "noRides": "Aucun trajet pour l'instant. Réservez votre premier trajet !",
+    "all": "Tous",
+    "active": "Actifs",
+    "completed": "Terminés",
+    "cancelled": "Annulés",
+    "tripDetails": "Détails du trajet",
+    "fareBreakdown": "Détail du tarif",
+    "serviceFee": "Frais de service",
+    "commission": "Commission"
   },
   "earnings": {
     "title": "Earnings Summary",
@@ -430,7 +447,46 @@
     "smsOff": "Off",
     "smsTurnedOn": "SMS notifications enabled",
     "smsTurnedOff": "SMS notifications disabled",
-    "edit": "Edit"
+    "edit": "Edit",
+    "riderScore": "Votre score passager",
+    "riderScoreHint": "Les chauffeurs vous notent après chaque trajet. Gardez-le élevé pour un meilleur service !",
+    "noRatingsYet": "Aucune évaluation pour le moment",
+    "phonePlaceholder": "+1 (867) 555-0123",
+    "phoneSaveError": "Impossible d'enregistrer le numéro de téléphone",
+    "editPhone": "Modifier le numéro de téléphone",
+    "smsNotifications": "Notifications SMS",
+    "you": "Vous",
+    "service": "Service",
+    "chooseService": "Choisissez un service",
+    "pickupAddress": "Adresse de prise en charge",
+    "pickupPlaceholder": "Saisissez l'adresse de prise en charge",
+    "dropoffAddress": "Adresse de dépôt",
+    "dropoffPlaceholder": "Où allez-vous ?",
+    "enterAddressToSeeMap": "Saisissez une adresse pour voir la carte",
+    "locationFound": "Position trouvée",
+    "locationError": "Impossible d'obtenir votre position",
+    "estimatedFare": "Tarif estimé",
+    "confirmRide": "Confirmer le trajet",
+    "confirmAndRequest": "Confirmer et demander",
+    "scheduled": "Planifié",
+    "payNow": "Payer maintenant",
+    "duePayNow": "À payer maintenant",
+    "outstandingBalance": "Solde impayé",
+    "addTip": "Ajouter un pourboire",
+    "tip": "Pourboire",
+    "rateYourTrip": "Évaluez votre trajet",
+    "tripComplete": "Trajet terminé",
+    "lookingForDriver": "Recherche d'un chauffeur…",
+    "noDriverYet": "Aucun chauffeur trouvé pour l'instant",
+    "searchCancelled": "Recherche annulée",
+    "driverFound": "Chauffeur trouvé !",
+    "driverArrived": "Votre chauffeur est arrivé",
+    "isOnTheWay": "est en route",
+    "courierSubtitle": "Envoyez un colis à travers la ville",
+    "courierPricingNote": "8 $ de base + 1,50 $/km, minimum 12 $",
+    "packageSmallDesc": "Tient dans un sac à dos (moins de 5 kg)",
+    "packageMediumDesc": "Tient sur un siège (5–15 kg)",
+    "packageLargeDesc": "Tient dans un coffre (15–30 kg)"
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
@@ -471,12 +527,16 @@
     "paymentAuthorized": "Payment authorized",
     "processing": "Processing...",
     "authorize": "Authorize",
-    "chargeNote": "You'll only be charged the final metered fare. This authorization holds a maximum amount."
+    "chargeNote": "You'll only be charged the final metered fare. This authorization holds a maximum amount.",
+    "savedCards": "Cartes enregistrées",
+    "useNewCard": "Utiliser une nouvelle carte"
   },
   "common": {
     "language": "Language",
     "english": "English",
-    "french": "French"
+    "french": "French",
+    "and": "et",
+    "back": "Retour"
   },
   "dispatch": {
     "dispatchBoard": "Dispatch Board",
@@ -570,5 +630,40 @@
     "placeOrder": "Place Order",
     "placing": "Placing...",
     "orderPlaced": "Order placed! Looking for a driver..."
+  },
+  "receipt": {
+    "tripReceipt": "Reçu du trajet",
+    "tripId": "ID du trajet",
+    "date": "Date",
+    "driver": "Chauffeur",
+    "vehicle": "Véhicule",
+    "plate": "Plaque",
+    "service": "Service",
+    "distance": "Distance",
+    "fare": "Tarif",
+    "serviceFee": "Frais de service",
+    "gst": "TPS (5%)",
+    "tip": "Pourboire",
+    "total": "Total",
+    "paidInApp": "Payé dans l'application",
+    "dueToDriver": "Dû au chauffeur",
+    "paymentMethod": "Méthode de paiement",
+    "downloadPdf": "Télécharger le PDF",
+    "downloaded": "Reçu téléchargé",
+    "share": "Partager",
+    "copiedToClipboard": "Copié dans le presse-papiers",
+    "thankYou": "Merci d'avoir voyagé avec PickYou !"
+  },
+  "tip": {
+    "addTip": "Ajouter un pourboire",
+    "thankDriver": "Remerciez votre chauffeur",
+    "thankYourDriver": "Remerciez votre chauffeur",
+    "driverThanks": "100% de votre pourboire va au chauffeur",
+    "selectAmount": "Sélectionnez le montant",
+    "custom": "Personnalisé",
+    "tipLabel": "Montant du pourboire",
+    "sendTip": "Envoyer le pourboire",
+    "sending": "Envoi…",
+    "sentSuccess": "Pourboire envoyé. Merci !"
   }
 }
