@@ -1,30 +1,25 @@
 
 
-# Fix Netlify SPA Routing + Google OAuth
+# Fix Google OAuth — Use Managed Lovable Cloud Auth
 
 ## Problem
-`pickyou.ca` is deployed on Netlify, but there's no SPA rewrite rule. Every route except `/` returns Netlify's built-in 404. This breaks:
-- The login page (`/login`)
-- The OAuth callback (`/auth/callback`)
-- Every other client-side route
+The Login page calls `supabase.auth.signInWithOAuth()` directly, which requires the Lovable Cloud Supabase callback URL (`qmkcgwgiqrmtqrxmxeam.supabase.co/auth/v1/callback`) to be registered in your Google Cloud Console. You don't have access to that project.
+
+## Solution
+Switch to Lovable Cloud's managed OAuth (`lovable.auth.signInWithOAuth("google")`), which handles all redirect URIs automatically through a proxy. No Google Cloud Console configuration needed.
 
 ## Changes
 
-### 1. Create `public/_redirects`
-Add a single Netlify rewrite rule so all routes serve `index.html`:
+### 1. Update `src/pages/Login.tsx`
+- Replace `supabase.auth.signInWithOAuth({ provider: "google", ... })` with `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })`
+- Import `lovable` from `@/integrations/lovable/index`
+- Handle the `result.redirected` and `result.error` response pattern
 
-```
-/*    /index.html   200
-```
+### 2. Update `src/pages/AuthCallback.tsx`
+- The managed OAuth flow returns tokens directly (no separate callback needed in most cases), but keep the callback page as a fallback for session hydration
 
-This file goes in `public/` so Vite copies it to the build output root.
-
-### 2. Publish
-After adding the file, publish to apply changes on `pickyou.ca`.
-
-## Technical Details
-- Netlify uses `_redirects` (or `netlify.toml`) for routing rules
-- The `200` status code means "rewrite" (serve index.html but keep the URL), not a redirect
-- This is the standard pattern for all SPAs on Netlify
-- Once this works, the Google OAuth flow (`/auth/callback`) will also work since the page will actually load
+## What This Means
+- Google sign-in will work immediately without any Google Cloud Console changes
+- Your existing Google OAuth credentials in the console (for `xucepkpwqkdvtmwwmylj`) are no longer needed for this app
+- Apple sign-in can also use the same managed approach if needed
 
