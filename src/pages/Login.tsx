@@ -512,7 +512,7 @@ const Login = () => {
                           <Tooltip open>
                             <TooltipTrigger asChild>
                               <span
-                                className="absolute right-9 top-1/2 -translate-y-1/2 text-yellow-500"
+                                className="absolute right-9 top-1/2 -translate-y-1/2 text-destructive"
                                 aria-label={t("auth.capsLockOn", "Caps Lock is on")}
                               >
                                 <AlertTriangle className="h-4 w-4" />
