@@ -38,7 +38,7 @@ const SupportChatDialog = ({ rideId, trigger }: SupportChatDialogProps) => {
         role: "assistant",
         content: rideId
           ? "Hi there! 👋 I'm sorry to hear you're having trouble finding a driver for your delivery. I'm here to help — tell me more about the issue and I'll do my best to assist you.\n\nIf you'd prefer to speak with a human agent, you can escalate at any time using the button below."
-          : "Hi there! 👋 Welcome to Swift Drive support. How can I help you today?\n\nI can assist with rides, deliveries, account questions, and more. If you need a human agent, just click the escalate button below.",
+          : "Hi there! 👋 Welcome to PickYou support. How can I help you today?\n\nI can assist with rides, deliveries, account questions, and more. If you need a human agent, just click the escalate button below.",
       };
       setMessages([greeting]);
     }
