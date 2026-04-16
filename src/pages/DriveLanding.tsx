@@ -62,7 +62,7 @@ const DriveLanding = () => {
       canonical.rel = "canonical";
       document.head.appendChild(canonical);
     }
-    canonical.href = "https://pickyou.ca/drive";
+    canonical.href = "https://www.pickyou.ca/drive";
 
     return () => {
       document.title = prevTitle;
