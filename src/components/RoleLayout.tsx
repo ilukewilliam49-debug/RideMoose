@@ -3,6 +3,7 @@ import logoImg from "@/assets/logo.png";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import NotificationBell from "@/components/NotificationBell";
+import RoleSwitcher from "@/components/RoleSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import BottomTabBar from "@/components/BottomTabBar";
@@ -33,7 +34,8 @@ const RoleLayout = () => {
             <span className={`text-sm text-muted-foreground font-medium ${hasMobileNav ? "hidden md:inline" : ""}`}>
               Dashboard
             </span>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <RoleSwitcher />
               <NotificationBell />
             </div>
           </header>
