@@ -117,6 +117,26 @@ const DriverOnboarding = () => {
     refetchInterval: 15_000,
   });
 
+  // Guard: if user is not a driver, send them home.
+  // If driver has already completed onboarding (vehicle + all required docs uploaded),
+  // forward to the pending page (which itself forwards to /driver when fully approved).
+  // This prevents users from being "stuck" on the onboarding form after completion.
+  useEffect(() => {
+    if (!profile) return;
+    if (profile.role !== "driver") {
+      navigate(profile.role === "admin" ? "/admin" : "/rider", { replace: true });
+      return;
+    }
+    if (verifications === undefined) return; // wait for fetch
+    const hasVehicle = !!profile.vehicle_type;
+    const hasAllDocs = REQUIRED_DOC_TYPES.every((docType) =>
+      (verifications || []).some((v: any) => v.document_type === docType),
+    );
+    if (hasVehicle && hasAllDocs && !submitted) {
+      navigate("/driver/onboarding/pending", { replace: true });
+    }
+  }, [profile, verifications, navigate, submitted]);
+
   // Latest verification per doc type
   const latestByType = useMemo(() => {
     const acc: Record<string, any> = {};
