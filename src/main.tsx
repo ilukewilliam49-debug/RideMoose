@@ -70,6 +70,7 @@ const normalizePathname = () => {
 };
 
 const bootstrap = async () => {
+  redirectToCanonicalHost();
   normalizePathname();
 
   if (isPreviewHost || isInIframe) {
