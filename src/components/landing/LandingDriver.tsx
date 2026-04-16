@@ -101,7 +101,7 @@ const LandingDriver = () => {
             <Button
               size="lg"
               className="h-12 rounded-xl text-sm font-bold w-full sm:w-auto sm:px-8"
-              onClick={() => navigate("/login?role=driver")}
+              onClick={() => navigate("/drive")}
             >
               {t("landing.driveApply")}
               <ArrowRight className="ml-2 h-4 w-4" />
