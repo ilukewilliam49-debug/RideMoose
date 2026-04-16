@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import InstallAppPrompt from "@/components/InstallAppPrompt";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,22 @@ import LandingHero from "@/components/landing/LandingHero";
 import LandingServices from "@/components/landing/LandingServices";
 import LandingDriver from "@/components/landing/LandingDriver";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user, profile, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading || !user) return;
+    const role = profile?.role;
+    if (role === "admin") navigate("/admin", { replace: true });
+    else if (role === "driver") navigate("/driver", { replace: true });
+    else navigate("/rider", { replace: true });
+  }, [user, profile, loading, navigate]);
+
+  if (loading || user) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
