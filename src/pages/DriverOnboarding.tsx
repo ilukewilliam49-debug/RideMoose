@@ -28,6 +28,7 @@ const DriverOnboarding = () => {
   const { t } = useTranslation();
 
   const [step, setStep] = useState(1);
+  const [phone, setPhone] = useState(profile?.phone || "");
   const [vehicleType, setVehicleType] = useState("");
   const [seatCapacity, setSeatCapacity] = useState("4");
   const [vehicleMake, setVehicleMake] = useState("");
@@ -41,8 +42,19 @@ const DriverOnboarding = () => {
 
   const currentYear = new Date().getFullYear();
   const LICENSE_PLATE_REGEX = /^[A-Z0-9]{1,8}[-\s]?[A-Z0-9]{1,8}$/i;
+  // E.164-ish: optional +, 10-15 digits total
+  const PHONE_REGEX = /^\+?[1-9]\d{9,14}$/;
 
   const handleSaveVehicle = async () => {
+    const cleanedPhone = phone.trim().replace(/[\s\-()]/g, "");
+    if (!cleanedPhone) {
+      toast.error("Cellphone number is required");
+      return;
+    }
+    if (!PHONE_REGEX.test(cleanedPhone)) {
+      toast.error("Enter a valid cellphone number (e.g. +14165551234)");
+      return;
+    }
     if (!vehicleType || !vehicleMake.trim() || !vehicleModel.trim() || !vehicleYear || !vehicleColor.trim() || !licensePlate.trim()) {
       toast.error("Please fill in all vehicle details");
       return;
@@ -61,6 +73,7 @@ const DriverOnboarding = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
+          phone: cleanedPhone,
           vehicle_type: vehicleType,
           seat_capacity: parseInt(seatCapacity),
           vehicle_make: vehicleMake.trim(),
