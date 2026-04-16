@@ -1,9 +1,12 @@
+import { lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Navigation, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import heroBg from "@/assets/hero-bg.jpg";
+
+// Lazy-load Leaflet so the landing page doesn't pay the ~150 KB cost upfront.
+const YellowknifeMap = lazy(() => import("./YellowknifeMap"));
 
 const LandingHero = () => {
   const navigate = useNavigate();
@@ -73,22 +76,23 @@ const LandingHero = () => {
           </motion.div>
 
           {/* Right — hero image */}
+          {/* Right — live Yellowknife map */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="relative hidden md:block"
           >
-            <div className="relative overflow-hidden rounded-3xl">
-              <img
-                src={heroBg}
-                alt="Aerial view of Yellowknife, NWT at night with aurora borealis"
-                width={1280}
-                height={720}
-                className="h-[400px] w-full object-cover lg:h-[460px]"
-              />
+            <div className="relative overflow-hidden rounded-3xl ring-1 ring-border/40 bg-muted">
+              <Suspense
+                fallback={
+                  <div className="h-[400px] w-full animate-pulse bg-muted lg:h-[460px]" />
+                }
+              >
+                <YellowknifeMap className="h-[400px] w-full lg:h-[460px]" />
+              </Suspense>
               {/* Schedule card overlay */}
-              <div className="absolute bottom-4 right-4 rounded-2xl bg-card/90 backdrop-blur-sm px-5 py-3.5 ring-1 ring-border/30">
+              <div className="absolute bottom-4 right-4 rounded-2xl bg-card/90 backdrop-blur-sm px-5 py-3.5 ring-1 ring-border/30 z-[400]">
                 <p className="text-xs text-muted-foreground mb-1">{t("landing.ctaEyebrow", "Ready to travel?")}</p>
                 <button
                   onClick={() => navigate("/login")}
