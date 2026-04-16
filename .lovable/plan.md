@@ -1,57 +1,40 @@
 
-The user wants riders to be able to switch between rider and driver modes (like Uber's "Switch to Driving" feature). Let me investigate the current state.
+The user wants to add Apple Sign In to the login flow. Looking at the existing code:
 
-Looking at the code:
-- `ActiveRoleContext` already exists and supports switching, but only when `dbRole === "driver"` (i.e., `canSwitch` is true only for users whose DB role is already "driver").
-- This means a pure rider can't become a driver — they'd need to apply/onboard first. That's correct.
-- For users who ARE drivers, the switch capability exists in context but I need to check if there's any UI exposing it.
+- `src/integrations/lovable/index.ts` already exposes `lovable.auth.signInWithOAuth("google" | "apple" | "microsoft", ...)` — Apple support is built into the Lovable Cloud auth wrapper.
+- Google OAuth is presumably already wired into `Login.tsx` (and `AuthCallback.tsx` handles role-based redirect).
+- Lovable Cloud supports Apple Sign In with a managed default — no Apple Developer account / credentials required to start. BYOC (custom Apple credentials) is optional later for branding.
 
-Let me check `AppSidebar`, `BottomTabBar`, `DriverBottomTabBar`, and `RiderAccount` / `DriverAccount` for any role switcher UI.
+## Plan
 
-Based on my read of `RoleLayout` and the bottom tab bars, there's no visible switcher. The `ActiveRoleContext` exists but nothing calls `setActiveRole`. So the infrastructure is there — we just need UI.
+### 1. Add "Continue with Apple" button to Login page
+In `src/pages/Login.tsx`:
+- Add an Apple sign-in button styled to match the existing Google button (black background, white Apple logo, "Continue with Apple" label).
+- Place it directly under the Google button in both Sign In and Sign Up tabs.
+- Preserve the `?role=driver` URL param so Apple sign-ins from the Driver landing flow get auto-promoted to driver role (handled in `useAuth.ts`).
 
-Two distinct user groups need different treatment:
-1. **Existing drivers** (`profile.role === "driver"`): Toggle between Rider mode and Driver mode (infra exists, just add UI)
-2. **Pure riders** (`profile.role === "rider"`): Need a "Become a driver" CTA that routes to driver onboarding/signup
+### 2. Wire up the handler
+```ts
+const handleAppleSignIn = async () => {
+  const params = new URLSearchParams(window.location.search);
+  const role = params.get("role");
+  const redirect = `${window.location.origin}/auth/callback${role ? `?role=${role}` : ""}`;
+  
+  const result = await lovable.auth.signInWithOAuth("apple", { redirect_uri: redirect });
+  if (result.error) toast.error("Apple sign-in failed");
+  // result.redirected → browser navigates to Apple
+};
+```
 
-## Plan: Add Role Switcher UI
+### 3. Confirm callback handling
+`src/pages/AuthCallback.tsx` already handles any OAuth provider generically (reads session, fetches profile, routes by role) — no changes needed.
 
-### 1. For drivers — add a "Switch to Rider/Driver" toggle
-**Location**: Top-right of header in `RoleLayout.tsx` (next to NotificationBell), plus an entry in account pages.
+### 4. Apple credentials decision
+Lovable Cloud's **managed Apple Auth** is the default and works with zero setup. We'll ship that. If the user later wants their own Apple Developer credentials (custom branding showing "PickYou" instead of "Lovable" on Apple's sheet), they can configure BYOC in the Lovable Cloud dashboard — out of scope for this change.
 
-Create `src/components/RoleSwitcher.tsx`:
-- Reads `useActiveRole()` — only renders if `canSwitch === true`
-- Compact dropdown / pill button: shows current mode with car/person icon, click to switch
-- On switch: calls `setActiveRole(newRole)` then `navigate("/rider")` or `navigate("/driver")`
-- Shows toast: "Switched to Driver mode"
+### Files to modify
+- `src/pages/Login.tsx` — add Apple button + handler
 
-Place in `RoleLayout` header so it's globally visible for drivers in either mode.
-
-### 2. For riders — add "Drive with PickYou" CTA
-**Location**: `RiderAccount.tsx` page — add a card section "Earn with PickYou" with a button routing to `/login?role=driver` (or a dedicated `/driver/signup` flow if onboarding requires a fresh account).
-
-Since drivers and riders use the same auth account (role lives on profile), the cleanest approach is: 
-- Add a "Become a driver" card in Rider Account that routes to `/driver/onboarding` 
-- The onboarding flow already exists (`DriverOnboarding.tsx`) — it just needs the user's `profile.role` to be promoted. We'd update onboarding to upgrade `role` from `rider` → `driver` on submission.
-
-### 3. Visual design
-- Header switcher: pill-style toggle, dark theme, primary blue when active mode highlighted
-- Use `Car` and `User` icons from lucide-react
-- Mobile: icon-only; Desktop: icon + label
-
-### Files to create/modify
-- **New**: `src/components/RoleSwitcher.tsx` (the toggle component)
-- **Modify**: `src/components/RoleLayout.tsx` (mount switcher in header for drivers)
-- **Modify**: `src/pages/RiderAccount.tsx` (add "Become a driver" card for riders)
-- **Modify**: `src/pages/DriverOnboarding.tsx` (allow rider→driver role upgrade on completion — verify this already works)
-
-### Out of scope (ask user if needed)
-- Whether pure riders should be able to start driver onboarding directly from the home page header (vs. only from Account)
-- Whether to show the driver application status (pending verification) inline
-
-### Technical notes
-- `ActiveRoleContext` already persists choice in `localStorage` under `pickyou-active-role`
-- `RoleLayout` reads `activeRole` to decide which bottom tab bar to show — so switching will instantly reflect in nav
-- Routes `/rider/*` and `/driver/*` are guarded by `ProtectedRoute` with `allowedRoles`. Drivers are already allowed in `/rider`, so switching works. Riders are NOT allowed in `/driver` — correct, since they must onboard first.
-
-This is the minimum to ship a clean Uber-style role switcher.
+### Out of scope
+- BYOC Apple credentials setup (mention as a follow-up only if user asks for custom branding)
+- Apple-specific scopes (defaults are fine: name + email on first sign-in)
