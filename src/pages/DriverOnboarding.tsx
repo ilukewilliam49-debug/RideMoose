@@ -202,6 +202,22 @@ const DriverOnboarding = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Cellphone Number <span className="text-destructive">*</span></Label>
+                  <Input
+                    type="tel"
+                    placeholder="+1 416 555 1234"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="bg-secondary border-border"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    maxLength={20}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Required so riders and dispatch can reach you.
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Vehicle Type</Label>
@@ -291,7 +307,7 @@ const DriverOnboarding = () => {
                 <Button
                   className="w-full"
                   onClick={handleSaveVehicle}
-                  disabled={!vehicleType || !vehicleMake || !vehicleModel || !vehicleYear || !vehicleColor || !licensePlate || saving}
+                  disabled={!phone || !vehicleType || !vehicleMake || !vehicleModel || !vehicleYear || !vehicleColor || !licensePlate || saving}
                 >
                   {saving ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
