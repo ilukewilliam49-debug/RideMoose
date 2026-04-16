@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleLayout from "./components/RoleLayout";
 import SessionExpiredDialog from "./components/SessionExpiredDialog";
+import IdleTimeoutDialog from "./components/IdleTimeoutDialog";
 import OfflineBanner from "./components/OfflineBanner";
 import NetworkErrorBanner from "./components/NetworkErrorBanner";
 import SplashScreen from "./components/SplashScreen";
