@@ -147,6 +147,10 @@ const Login = () => {
         // A pagehide listener (registered in main.tsx) will clear the
         // Supabase auth token from localStorage when the tab/window closes,
         // forcing the user to sign in again next time.
+        try {
+          localStorage.setItem("pickyou.last_email", email);
+          localStorage.setItem("pickyou.remember_me", rememberMe ? "1" : "0");
+        } catch { /* ignore storage errors */ }
         if (rememberMe) {
           localStorage.removeItem("pickyou.session_only");
         } else {
