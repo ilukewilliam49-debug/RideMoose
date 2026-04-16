@@ -1,40 +1,45 @@
 
-The user wants to add Apple Sign In to the login flow. Looking at the existing code:
 
-- `src/integrations/lovable/index.ts` already exposes `lovable.auth.signInWithOAuth("google" | "apple" | "microsoft", ...)` — Apple support is built into the Lovable Cloud auth wrapper.
-- Google OAuth is presumably already wired into `Login.tsx` (and `AuthCallback.tsx` handles role-based redirect).
-- Lovable Cloud supports Apple Sign In with a managed default — no Apple Developer account / credentials required to start. BYOC (custom Apple credentials) is optional later for branding.
+## Goal
+Enforce a strong password during email signup with clear, real-time guidance so users know exactly what's required before they submit.
 
-## Plan
+## Current state
+- `src/pages/Login.tsx` signup uses `<Input minLength={6} />` and calls `supabase.auth.signUp` directly.
+- No strength meter, no rule checklist, no breach check.
+- Lovable Cloud has a built-in HIBP (Have I Been Pwned) leaked-password check that can be toggled on server-side — independent of any client UI.
 
-### 1. Add "Continue with Apple" button to Login page
-In `src/pages/Login.tsx`:
-- Add an Apple sign-in button styled to match the existing Google button (black background, white Apple logo, "Continue with Apple" label).
-- Place it directly under the Google button in both Sign In and Sign Up tabs.
-- Preserve the `?role=driver` URL param so Apple sign-ins from the Driver landing flow get auto-promoted to driver role (handled in `useAuth.ts`).
+## Two layers to add
 
-### 2. Wire up the handler
-```ts
-const handleAppleSignIn = async () => {
-  const params = new URLSearchParams(window.location.search);
-  const role = params.get("role");
-  const redirect = `${window.location.origin}/auth/callback${role ? `?role=${role}` : ""}`;
-  
-  const result = await lovable.auth.signInWithOAuth("apple", { redirect_uri: redirect });
-  if (result.error) toast.error("Apple sign-in failed");
-  // result.redirected → browser navigates to Apple
-};
-```
+### 1. Client-side: strong-password UX in signup form (`src/pages/Login.tsx`)
+Only shown when `!isLogin` (signup mode). Login flow is untouched so existing users with shorter passwords can still sign in.
 
-### 3. Confirm callback handling
-`src/pages/AuthCallback.tsx` already handles any OAuth provider generically (reads session, fetches profile, routes by role) — no changes needed.
+**Rules enforced (all required):**
+- At least 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one symbol
 
-### 4. Apple credentials decision
-Lovable Cloud's **managed Apple Auth** is the default and works with zero setup. We'll ship that. If the user later wants their own Apple Developer credentials (custom branding showing "PickYou" instead of "Lovable" on Apple's sheet), they can configure BYOC in the Lovable Cloud dashboard — out of scope for this change.
+**UI when password field is focused or non-empty during signup:**
+- Inline checklist below the password input — each rule shows a green check when met, muted dot when not.
+- A 4-segment strength bar (Weak / Fair / Good / Strong) colored red → orange → yellow → green.
+- Submit button stays disabled until all rules pass (in addition to the existing terms-agreement gate).
+- Validate again in `handleEmailSubmit` before calling `supabase.auth.signUp` — show a toast if somehow bypassed.
 
-### Files to modify
-- `src/pages/Login.tsx` — add Apple button + handler
+**i18n:** add keys under `auth.password*` to both `en.json` and `fr.json`:
+- `auth.passwordRequirements`, `auth.passwordMinLength`, `auth.passwordUppercase`, `auth.passwordLowercase`, `auth.passwordNumber`, `auth.passwordSymbol`, `auth.passwordStrengthWeak/Fair/Good/Strong`.
 
-### Out of scope
-- BYOC Apple credentials setup (mention as a follow-up only if user asks for custom branding)
-- Apple-specific scopes (defaults are fine: name + email on first sign-in)
+### 2. Server-side: enable leaked-password protection (HIBP)
+Use `configure_auth` to set `password_hibp_enabled: true`. Supabase will then reject any signup or password change where the password appears in the HIBP breach database, returning a clear error that we surface via the existing `toast.error(error.message)` path.
+
+This is the real defense — client rules can be bypassed; HIBP cannot.
+
+## Files to modify
+- `src/pages/Login.tsx` — add `passwordChecks` derived state, checklist + strength bar UI, gate submit, re-validate in handler.
+- `src/i18n/en.json`, `src/i18n/fr.json` — add password-rule strings.
+- Supabase auth config — enable HIBP via `configure_auth`.
+
+## Out of scope
+- Forcing existing users to rotate weak passwords on next login.
+- Custom password reset flow changes (the same HIBP check will automatically apply to password resets too).
+
