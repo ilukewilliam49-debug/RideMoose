@@ -113,7 +113,7 @@ const DriverOnboarding = () => {
     }
   };
 
-  const allDocsUploaded = REQUIRED_DOCUMENTS.every((d) => uploadedDocs[d.type]);
+  const allDocsUploaded = REQUIRED_DOCUMENTS.every((d) => d.optional || uploadedDocs[d.type]);
 
   const handleFinish = () => {
     toast.success("Your application is under review. We'll notify you once approved!");
@@ -312,7 +312,12 @@ const DriverOnboarding = () => {
                       ) : (
                         <Upload className="h-5 w-5 text-muted-foreground" />
                       )}
-                      <span className="text-sm font-medium">{doc.label}</span>
+                      <span className="text-sm font-medium">
+                        {doc.label}
+                        {doc.optional && (
+                          <span className="ml-1 text-xs text-muted-foreground font-normal">(optional)</span>
+                        )}
+                      </span>
                     </div>
                     {!uploadedDocs[doc.type] && (
                       <label>
