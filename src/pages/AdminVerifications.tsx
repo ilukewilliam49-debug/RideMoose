@@ -27,6 +27,7 @@ const AdminVerifications = () => {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-verifications", statusFilter, page],
+    refetchInterval: 30000,
     queryFn: async () => {
       let query = supabase
         .from("verifications")
