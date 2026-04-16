@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import {
   Camera,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Eye,
   FileText,
   Loader2,
@@ -61,6 +63,7 @@ export const DocumentUploadCard = ({
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [tipsOpen, setTipsOpen] = useState(false);
 
   const handleFile = async (file: File) => {
     const error = validate(file);
@@ -191,19 +194,36 @@ export const DocumentUploadCard = ({
         )}
       </div>
 
-      {/* Tips */}
+      {/* Tips — collapsed by default */}
       {!isDone && (
-        <ul className="mt-3 space-y-1">
-          {doc.tips.map((tip) => (
-            <li
-              key={tip}
-              className="text-[11px] text-muted-foreground flex items-start gap-1.5"
-            >
-              <span className="text-primary mt-0.5">•</span>
-              <span>{tip}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setTipsOpen((v) => !v)}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            aria-expanded={tipsOpen}
+          >
+            {tipsOpen ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+            {tipsOpen ? "Hide tips" : "See tips"}
+          </button>
+          {tipsOpen && (
+            <ul className="mt-2 space-y-1">
+              {doc.tips.map((tip) => (
+                <li
+                  key={tip}
+                  className="text-[11px] text-muted-foreground flex items-start gap-1.5"
+                >
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {/* Rejection notes */}

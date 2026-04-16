@@ -188,7 +188,7 @@ const DriveLanding = () => {
                   className="h-14 rounded-xl text-sm font-bold sm:px-10"
                   onClick={() => navigate("/login?role=driver")}
                 >
-                  Start your application
+                  Apply in 4 minutes
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <a
