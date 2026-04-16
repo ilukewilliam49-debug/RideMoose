@@ -605,6 +605,18 @@ const Login = () => {
                       </label>
                     </div>
                   )}
+                  {isLogin && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="remember"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => setRememberMe(checked === true)}
+                      />
+                      <label htmlFor="remember" className="text-sm text-muted-foreground leading-none cursor-pointer">
+                        {t("auth.rememberMe", "Remember me on this device")}
+                      </label>
+                    </div>
+                  )}
                   <Button
                     type="submit"
                     className="w-full h-12 rounded-xl text-base font-semibold"
