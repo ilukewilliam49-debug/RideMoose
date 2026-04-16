@@ -154,11 +154,18 @@ const DriverOnboarding = () => {
         className="w-full max-w-lg"
       >
         <div className="text-center mb-6">
-          <img
-            src={logoImg}
-            alt="PickYou"
-            className="h-16 mx-auto rounded-xl mb-4 drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-          />
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            aria-label="Go to homepage"
+            className="block mx-auto mb-4 rounded-xl transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <img
+              src={logoImg}
+              alt="PickYou"
+              className="h-16 rounded-xl drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+            />
+          </button>
           <h1 className="text-xl font-semibold text-foreground">Driver Onboarding</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Complete your profile to start driving
