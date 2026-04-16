@@ -1,37 +1,25 @@
 
 
-# Deploy PickYou to Netlify
+# Fix Offline Page & Logo
 
-## Overview
-Export the project code and set up Netlify deployment so pickyou.ca serves your app directly from Netlify.
+## Problem
+1. **pickyou.ca/login shows the offline page** even when you're connected to Wi-Fi. The `public/offline.html` is a static fallback page that Netlify may be serving from cache. Since your app is an SPA and all routes should go to `index.html`, this file shouldn't exist — it can interfere with Netlify's routing.
 
-## Steps
+2. **The offline page logo is plain text** ("PickYou") instead of the actual logo image used throughout the app.
 
-### 1. Create `public/_redirects` for Netlify SPA routing
-Add a `public/_redirects` file with `/* /index.html 200` so Netlify handles client-side routing (deep links like `/privacy` won't 404 on refresh).
+## Solution
 
-### 2. Export and deploy
-Lovable supports self-hosting via GitHub. The recommended flow:
-1. **Connect to GitHub** — Go to **Project Settings** (click project name top-left → Settings) and link to a GitHub repository
-2. **Pull the repo** to your local machine or connect Netlify to that GitHub repo directly
-3. In Netlify, set:
-   - **Build command**: `npm run build`
-   - **Publish directory**: `dist`
-   - **Node version**: 18+
-4. Set environment variables in Netlify dashboard:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - `VITE_SUPABASE_PROJECT_ID`
-   (Copy values from your `.env` file)
+### 1. Delete `public/offline.html`
+This file is not referenced by the service worker or any app code. Netlify may be caching and serving it as a fallback for routes it can't resolve, causing the false offline screen. Removing it ensures all routes go through `index.html` → React Router as intended.
 
-### 3. Point pickyou.ca to Netlify
-Since your domain is already on Netlify, just assign it to the new Netlify site in **Netlify → Domain settings**.
+### 2. Update `public/_redirects`
+Ensure the Netlify redirects file properly catches all routes and sends them to `index.html` with a 200 status, preventing any stale offline page from being served.
 
-## What I'll do now (code changes)
-- Create `public/_redirects` with `/* /index.html 200`
+### 3. Keep in-app offline handling as-is
+The app already has proper offline detection via `NetworkErrorBanner`, `OfflineBanner`, and `OfflineIndicator` components that show contextual messages when the browser detects no internet — these are the correct way to handle offline state in a React SPA.
 
-Everything else (GitHub connection, Netlify config, domain assignment) is done by you in the respective dashboards.
-
-## Important note
-Your backend (database, auth, edge functions) stays on Lovable Cloud — only the frontend is served from Netlify. The Supabase/Cloud URLs remain the same.
+## Technical details
+- Delete: `public/offline.html`
+- Verify: `public/_redirects` contains `/* /index.html 200`
+- No other code changes needed — the in-app offline components already use the correct logo via `src/assets/logo.png`
 
