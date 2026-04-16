@@ -28,6 +28,7 @@ const DriverOnboarding = () => {
   const { t } = useTranslation();
 
   const [step, setStep] = useState(1);
+  const [phone, setPhone] = useState(profile?.phone || "");
   const [vehicleType, setVehicleType] = useState("");
   const [seatCapacity, setSeatCapacity] = useState("4");
   const [vehicleMake, setVehicleMake] = useState("");
@@ -41,8 +42,19 @@ const DriverOnboarding = () => {
 
   const currentYear = new Date().getFullYear();
   const LICENSE_PLATE_REGEX = /^[A-Z0-9]{1,8}[-\s]?[A-Z0-9]{1,8}$/i;
+  // E.164-ish: optional +, 10-15 digits total
+  const PHONE_REGEX = /^\+?[1-9]\d{9,14}$/;
 
   const handleSaveVehicle = async () => {
+    const cleanedPhone = phone.trim().replace(/[\s\-()]/g, "");
+    if (!cleanedPhone) {
+      toast.error("Cellphone number is required");
+      return;
+    }
+    if (!PHONE_REGEX.test(cleanedPhone)) {
+      toast.error("Enter a valid cellphone number (e.g. +14165551234)");
+      return;
+    }
     if (!vehicleType || !vehicleMake.trim() || !vehicleModel.trim() || !vehicleYear || !vehicleColor.trim() || !licensePlate.trim()) {
       toast.error("Please fill in all vehicle details");
       return;
@@ -61,6 +73,7 @@ const DriverOnboarding = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
+          phone: cleanedPhone,
           vehicle_type: vehicleType,
           seat_capacity: parseInt(seatCapacity),
           vehicle_make: vehicleMake.trim(),
@@ -189,6 +202,22 @@ const DriverOnboarding = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Cellphone Number <span className="text-destructive">*</span></Label>
+                  <Input
+                    type="tel"
+                    placeholder="+1 416 555 1234"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="bg-secondary border-border"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    maxLength={20}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Required so riders and dispatch can reach you.
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Vehicle Type</Label>
@@ -278,7 +307,7 @@ const DriverOnboarding = () => {
                 <Button
                   className="w-full"
                   onClick={handleSaveVehicle}
-                  disabled={!vehicleType || !vehicleMake || !vehicleModel || !vehicleYear || !vehicleColor || !licensePlate || saving}
+                  disabled={!phone || !vehicleType || !vehicleMake || !vehicleModel || !vehicleYear || !vehicleColor || !licensePlate || saving}
                 >
                   {saving ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
