@@ -518,6 +518,7 @@ const Login = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className={`pl-10 bg-secondary border-input ${email ? "pr-10" : ""}`}
+                        autoComplete="email"
                         required
                       />
                       {email && (
