@@ -552,6 +552,7 @@ const Login = () => {
                         onKeyUp={handlePasswordKey}
                         onBlur={() => setCapsLockOn(false)}
                         className={`pl-10 bg-secondary border-input ${capsLockOn ? "pr-16" : "pr-10"}`}
+                        autoComplete={isLogin ? "current-password" : "new-password"}
                         required
                         minLength={isLogin ? 6 : 8}
                       />
