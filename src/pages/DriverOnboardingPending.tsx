@@ -1,25 +1,44 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, LogOut, CheckCircle2, XCircle, Upload, Loader2, AlertCircle } from "lucide-react";
+import {
+  Clock,
+  LogOut,
+  AlertCircle,
+  MessageCircle,
+  ShieldCheck,
+  CheckCircle2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import logoImg from "@/assets/logo.png";
 import NotificationBell from "@/components/NotificationBell";
+import DocumentUploadCard from "@/components/driver/DocumentUploadCard";
+import SupportChatDialog from "@/components/SupportChatDialog";
+import { DRIVER_DOCUMENTS, REQUIRED_DOC_TYPES } from "@/lib/driver-documents";
 
-const DOC_LABELS: Record<string, string> = {
-  drivers_license: "Driver's License",
-  vehicle_insurance: "Vehicle Insurance",
-  vehicle_registration: "Vehicle Registration",
+const formatRelativeTime = (iso: string) => {
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
 };
 
 const DriverOnboardingPending = () => {
   const { profile, signOut } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState<string | null>(null);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const { data: verifications } = useQuery({
     queryKey: ["driver-verifications", profile?.id],
@@ -32,30 +51,52 @@ const DriverOnboardingPending = () => {
       return data || [];
     },
     enabled: !!profile?.id,
+    refetchInterval: 15_000,
   });
 
-  // Deduplicate: keep only latest per document_type
-  const latestByType = verifications?.reduce((acc: Record<string, any>, v: any) => {
-    if (!acc[v.document_type]) acc[v.document_type] = v;
+  const latestByType = useMemo(() => {
+    const acc: Record<string, any> = {};
+    (verifications || []).forEach((v: any) => {
+      if (!acc[v.document_type]) acc[v.document_type] = v;
+    });
     return acc;
-  }, {} as Record<string, any>) || {};
+  }, [verifications]);
 
-  const rejectedDocs = Object.values(latestByType).filter((v: any) => v.status === "rejected");
-  const hasRejections = rejectedDocs.length > 0;
+  const earliestSubmission = useMemo(() => {
+    if (!verifications || verifications.length === 0) return null;
+    const dates = verifications.map((v: any) => new Date(v.created_at).getTime());
+    return new Date(Math.min(...dates)).toISOString();
+  }, [verifications]);
+
+  const requiredStatuses = REQUIRED_DOC_TYPES.map((t) => latestByType[t]?.status);
+  const hasRejections = requiredStatuses.includes("rejected");
+  const allApproved =
+    requiredStatuses.length === REQUIRED_DOC_TYPES.length &&
+    requiredStatuses.every((s) => s === "approved");
+
+  const docStatus = (type: string) => {
+    if (uploading === type) return "uploading" as const;
+    const v = latestByType[type];
+    if (!v) return "missing" as const;
+    if (v.status === "approved") return "approved" as const;
+    if (v.status === "rejected") return "rejected" as const;
+    return "pending" as const;
+  };
 
   const handleReupload = async (docType: string, file: File) => {
     if (!profile) return;
     setUploading(docType);
     try {
-      const filePath = `${profile.id}/${docType}_${Date.now()}.${file.name.split(".").pop()}`;
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const filePath = `${profile.id}/${docType}_${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("proof-photos")
-        .upload(filePath, file);
+        .upload(filePath, file, { contentType: file.type });
       if (uploadError) throw uploadError;
 
       const { data: urlData } = await supabase.storage
         .from("proof-photos")
-        .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7);
 
       const { error: insertError } = await supabase.from("verifications").insert({
         driver_id: profile.id,
@@ -65,67 +106,84 @@ const DriverOnboardingPending = () => {
       });
       if (insertError) throw insertError;
 
-      // Notify admins about re-upload
       const { data: admins } = await supabase
         .from("profiles")
         .select("id")
         .eq("role", "admin");
-
       if (admins && admins.length > 0) {
-        const notifications = admins.map((admin: any) => ({
-          user_id: admin.id,
-          title: "Document Re-uploaded",
-          body: `${profile.full_name} re-uploaded their ${DOC_LABELS[docType] || docType} for review.`,
-          type: "verification_reupload",
-        }));
-        await supabase.from("notifications").insert(notifications);
+        await supabase.from("notifications").insert(
+          admins.map((a: any) => ({
+            user_id: a.id,
+            title: "Document Re-uploaded",
+            body: `${profile.full_name} re-uploaded ${
+              DRIVER_DOCUMENTS.find((d) => d.type === docType)?.label || docType
+            }.`,
+            type: "verification_reupload",
+          })),
+        );
       }
 
-      queryClient.invalidateQueries({ queryKey: ["driver-verifications", profile.id] });
-      toast.success("Document re-uploaded successfully");
+      await queryClient.invalidateQueries({
+        queryKey: ["driver-verifications", profile.id],
+      });
+      toast.success("Document re-uploaded — we'll review shortly.");
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || "Upload failed.");
     } finally {
       setUploading(null);
     }
   };
 
-  const statusIcon = (status: string) => {
-    if (status === "approved") return <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />;
-    if (status === "rejected") return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
-    return <Clock className="h-4 w-4 text-primary shrink-0" />;
-  };
+  // Auto-redirect when fully approved
+  if (allApproved) {
+    setTimeout(() => navigate("/driver", { replace: true }), 100);
+  }
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
-      style={{
-        background: "linear-gradient(180deg, hsl(220 30% 10%), hsl(220 30% 6%))",
-      }}
+      className="min-h-screen flex items-start sm:items-center justify-center px-4 py-8 relative overflow-hidden"
+      style={{ background: "linear-gradient(180deg, hsl(220 30% 10%), hsl(220 30% 6%))" }}
     >
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-           background:
+          background:
             "radial-gradient(ellipse 60% 50% at 50% 40%, hsl(213 84% 56% / 0.06) 0%, transparent 70%)",
         }}
       />
 
-      {/* Notification bell in top-right */}
-      <div className="absolute top-4 right-4 z-50">
+      {/* Top-right actions */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
         <NotificationBell />
+        <button
+          onClick={signOut}
+          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          aria-label="Sign out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </button>
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md text-center"
+        className="w-full max-w-lg"
       >
-        <img
-          src={logoImg}
-          alt="PickYou"
-          className="h-16 mx-auto rounded-xl mb-6 drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-        />
+        <div className="text-center mb-6">
+          <button
+            type="button"
+            onClick={() => navigate("/?view=landing", { replace: true })}
+            aria-label="Go to homepage"
+            className="block mx-auto mb-4 rounded-xl transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <img
+              src={logoImg}
+              alt="PickYou"
+              className="h-14 rounded-xl drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+            />
+          </button>
+        </div>
 
         <Card
           className="border-border/50 backdrop-blur-xl"
@@ -138,113 +196,112 @@ const DriverOnboardingPending = () => {
         >
           <CardContent className="pt-6 space-y-4">
             {hasRejections ? (
-              <>
-                <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <AlertCircle className="h-8 w-8 text-destructive" />
+              <div className="text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertCircle className="h-7 w-7 text-destructive" />
                 </div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Action Required
+                <h1 className="text-xl font-semibold text-foreground mt-3">
+                  Action required
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Some documents were rejected. Please re-upload them to continue.
+                <p className="text-sm text-muted-foreground mt-1">
+                  Some documents need to be re-uploaded. See the notes below.
                 </p>
-              </>
+              </div>
+            ) : allApproved ? (
+              <div className="text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle2 className="h-7 w-7 text-green-500" />
+                </div>
+                <h1 className="text-xl font-semibold text-foreground mt-3">
+                  You're approved!
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Redirecting to your dashboard…
+                </p>
+              </div>
             ) : (
-              <>
-                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Clock className="h-8 w-8 text-primary" />
+              <div className="text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-7 w-7 text-primary" />
                 </div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Application Under Review
+                <h1 className="text-xl font-semibold text-foreground mt-3">
+                  Application under review
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Your documents have been submitted and are being reviewed by our team.
-                  You'll receive a notification once your account is approved.
+                <p className="text-sm text-muted-foreground mt-1">
+                  Most reviews complete within <strong className="text-foreground">24 hours</strong>.
+                  We'll send you a notification.
                 </p>
-              </>
+              </div>
             )}
 
-            {/* Document statuses */}
-            <div className="space-y-2 text-left">
-              {Object.entries(DOC_LABELS).map(([type, label]) => {
-                const doc = latestByType[type];
-                const status = doc?.status || "missing";
-                return (
-                  <div
-                    key={type}
-                    className={`rounded-lg border p-3 ${
-                      status === "rejected"
-                        ? "border-destructive/50 bg-destructive/5"
-                        : "border-border bg-secondary/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {statusIcon(status)}
-                        <span className="text-sm font-medium">{label}</span>
-                      </div>
-                      <span
-                        className={`text-xs capitalize ${
-                          status === "approved"
-                            ? "text-green-500"
-                            : status === "rejected"
-                            ? "text-destructive"
-                            : "text-primary"
-                        }`}
-                      >
-                        {status}
-                      </span>
-                    </div>
-
-                    {status === "rejected" && doc?.reviewer_notes && (
-                      <p className="text-xs text-destructive/80 mt-1.5 ml-6">
-                        {doc.reviewer_notes}
-                      </p>
-                    )}
-
-                    {status === "rejected" && (
-                      <div className="mt-2 ml-6">
-                        <label>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*,.pdf"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleReupload(type, file);
-                            }}
-                            disabled={uploading !== null}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            disabled={uploading !== null}
-                          >
-                            <span className="cursor-pointer inline-flex items-center gap-1.5">
-                              {uploading === type ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Upload className="h-3 w-3" />
-                              )}
-                              Re-upload
-                            </span>
-                          </Button>
-                        </label>
-                      </div>
-                    )}
+            {/* Trust + timestamp banner */}
+            {!allApproved && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1.5">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                  <span>
+                    Reviewed by the PickYou Operations team in Yellowknife.
+                  </span>
+                </div>
+                {earliestSubmission && (
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      Submitted {formatRelativeTime(earliestSubmission)}
+                    </span>
                   </div>
-                );
-              })}
+                )}
+              </div>
+            )}
+
+            {/* Document list */}
+            <div className="space-y-3">
+              {DRIVER_DOCUMENTS.filter((d) => !d.optional || latestByType[d.type]).map(
+                (doc) => (
+                  <DocumentUploadCard
+                    key={doc.type}
+                    doc={doc}
+                    status={docStatus(doc.type)}
+                    previewUrl={latestByType[doc.type]?.document_url}
+                    reviewerNotes={latestByType[doc.type]?.reviewer_notes}
+                    onUpload={(file) => handleReupload(doc.type, file)}
+                    disabled={uploading !== null && uploading !== doc.type}
+                  />
+                ),
+              )}
             </div>
 
-            <Button variant="outline" onClick={signOut} className="mt-4">
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            {/* Support */}
+            {!allApproved && (
+              <div className="rounded-lg border border-border bg-secondary/40 p-3 flex items-center justify-between gap-3">
+                <div className="text-xs text-muted-foreground">
+                  Questions about your application?
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSupportOpen(true)}
+                >
+                  <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Contact support
+                </Button>
+              </div>
+            )}
+
+            {/* Browse as rider */}
+            <div className="text-center pt-1">
+              <button
+                onClick={() => navigate("/rider")}
+                className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              >
+                Use PickYou as a rider while you wait
+              </button>
+            </div>
           </CardContent>
         </Card>
       </motion.div>
+
+      <SupportChatDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
