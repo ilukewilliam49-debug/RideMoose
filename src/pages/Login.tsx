@@ -152,8 +152,24 @@ const Login = () => {
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
+        // If the user arrived from the "Drive" CTA (?role=driver) and their
+        // existing profile is a rider, upgrade rider → driver before
+        // navigating. Admins are never demoted. We do this BEFORE letting the
+        // redirect-to-dashboard effect fire so the user lands on /driver
+        // instead of /rider on first sign-in from the Drive flow.
+        const wantedRole = searchParams.get("role");
+        if (wantedRole === "driver" && signInData.user) {
+          await supabase.auth.updateUser({ data: { role: "driver" } });
+          await supabase
+            .from("profiles")
+            .update({ role: "driver" as any })
+            .eq("user_id", signInData.user.id)
+            .neq("role", "admin");
+        }
+
         // "Remember me": when unchecked, mark this session as tab-only.
         // A pagehide listener (registered in main.tsx) will clear the
         // Supabase auth token from localStorage when the tab/window closes,
