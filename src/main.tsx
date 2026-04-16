@@ -18,6 +18,17 @@ const isPreviewHost =
 const isOAuthProxyPath = window.location.pathname.startsWith("/~oauth/");
 const oauthRecoveryKey = "__oauth_sw_recovery__";
 
+// SEO consolidation: redirect pickyou.lovable.app → pickyou.ca (preserves path, query, hash).
+// Skipped for OAuth proxy paths so the managed auth flow can complete on the original host.
+const redirectToCanonicalHost = () => {
+  if (isInIframe || isPreviewHost) return;
+  if (isOAuthProxyPath) return;
+  if (window.location.hostname !== "pickyou.lovable.app") return;
+
+  const target = `https://pickyou.ca${window.location.pathname}${window.location.search}${window.location.hash}`;
+  window.location.replace(target);
+};
+
 const unregisterServiceWorkers = async () => {
   const registrations = await navigator.serviceWorker?.getRegistrations();
   await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
