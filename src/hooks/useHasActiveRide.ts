@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "./useAuth";
 
-const ACTIVE_STATUSES = ["accepted", "arrived", "in_progress"] as const;
+const ACTIVE_STATUSES = ["accepted", "arrived", "in_progress"] as const satisfies readonly ("accepted" | "arrived" | "in_progress")[];
 
 /**
  * Returns true if the given profile (rider or driver) is currently in an
@@ -24,7 +24,7 @@ export const useHasActiveRide = (profile: Profile | null): boolean => {
         .from("rides")
         .select("id")
         .eq(column, profileId)
-        .in("status", ACTIVE_STATUSES as unknown as string[])
+        .in("status", ACTIVE_STATUSES)
         .limit(1);
       if (error) return false;
       return (data?.length ?? 0) > 0;
