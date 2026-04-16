@@ -148,7 +148,8 @@
     "passwordStrengthFair": "Fair",
     "passwordStrengthGood": "Good",
     "passwordStrengthStrong": "Strong",
-    "passwordTooWeak": "Password does not meet all requirements"
+    "passwordTooWeak": "Password does not meet all requirements",
+    "capsLockOn": "Caps Lock is on"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",

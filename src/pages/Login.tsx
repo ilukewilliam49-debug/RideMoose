@@ -500,10 +500,30 @@ const Login = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 pr-10 bg-secondary border-input"
+                        onKeyDown={handlePasswordKey}
+                        onKeyUp={handlePasswordKey}
+                        onBlur={() => setCapsLockOn(false)}
+                        className={`pl-10 bg-secondary border-input ${capsLockOn ? "pr-16" : "pr-10"}`}
                         required
                         minLength={isLogin ? 6 : 8}
                       />
+                      {capsLockOn && (
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip open>
+                            <TooltipTrigger asChild>
+                              <span
+                                className="absolute right-9 top-1/2 -translate-y-1/2 text-yellow-500"
+                                aria-label={t("auth.capsLockOn", "Caps Lock is on")}
+                              >
+                                <AlertTriangle className="h-4 w-4" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="z-[1200]">
+                              {t("auth.capsLockOn", "Caps Lock is on")}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       <button
                         type="button"
                         onClick={() => setShowPassword((s) => !s)}
