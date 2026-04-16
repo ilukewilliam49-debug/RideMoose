@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,15 +138,20 @@ const Login = () => {
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/auth/callback`;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-          queryParams: !isLogin && role === "driver" ? { role: "driver" } : undefined,
-        },
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
       });
-      if (error) throw error;
+
+      if (result.error) {
+        toast.error((result.error as Error).message || "Sign-in failed");
+        return;
+      }
+
+      if (result.redirected) {
+        return;
+      }
+
+      toast.success(t("auth.welcomeBack"));
     } catch (err: any) {
       toast.error(err.message || "Sign-in failed");
     } finally {
