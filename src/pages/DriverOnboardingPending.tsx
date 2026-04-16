@@ -11,6 +11,11 @@ import {
   MessageCircle,
   ShieldCheck,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  FileCheck,
+  UserCheck,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -38,6 +43,7 @@ const DriverOnboardingPending = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState<string | null>(null);
+  const [whatsNextOpen, setWhatsNextOpen] = useState(false);
 
   const { data: verifications } = useQuery({
     queryKey: ["driver-verifications", profile?.id],
