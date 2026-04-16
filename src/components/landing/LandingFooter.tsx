@@ -38,7 +38,7 @@ const LandingFooter = () => {
             <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Products</h4>
             <div className="flex flex-col gap-2">
               <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Ride</Link>
-              <Link to="/login?role=driver" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Drive</Link>
+              <Link to="/drive" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Drive</Link>
               <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Courier</Link>
             </div>
           </div>

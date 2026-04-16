@@ -32,7 +32,7 @@ const LandingNav = () => {
               {t("nav.ride")}
             </button>
             <button
-              onClick={() => navigate("/login?role=driver")}
+              onClick={() => navigate("/drive")}
               className="flex items-center gap-1 px-3.5 py-2 text-sm font-medium text-foreground/80 hover:text-foreground rounded-lg transition-colors"
             >
               {t("nav.drive")}
