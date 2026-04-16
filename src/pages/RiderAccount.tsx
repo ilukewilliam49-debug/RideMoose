@@ -335,7 +335,7 @@ const RiderAccount = () => {
 
       {/* Settings */}
       <div className="space-y-2 pt-2">
-        {canSwitch && (
+        {canSwitch ? (
           <Button
             variant="outline"
             className="w-full justify-start gap-3 h-12 rounded-xl"
@@ -347,6 +347,18 @@ const RiderAccount = () => {
             <Car className="h-4 w-4" />
             Switch to Driver
           </Button>
+        ) : (
+          <SupportChatDialog
+            trigger={
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3 h-12 rounded-xl"
+              >
+                <Car className="h-4 w-4" />
+                Become a Driver — Earn with PickYou
+              </Button>
+            }
+          />
         )}
         <LanguageSwitcher />
         <Button
