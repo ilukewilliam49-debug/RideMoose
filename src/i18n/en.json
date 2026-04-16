@@ -137,7 +137,18 @@
     "or": "or",
     "agreeToTerms": "I agree to the Terms of Service and Privacy Policy",
     "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service"
+    "termsOfService": "Terms of Service",
+    "passwordRequirements": "Password must include:",
+    "passwordMinLength": "At least 8 characters",
+    "passwordUppercase": "One uppercase letter",
+    "passwordLowercase": "One lowercase letter",
+    "passwordNumber": "One number",
+    "passwordSymbol": "One symbol (!@#$…)",
+    "passwordStrengthWeak": "Weak",
+    "passwordStrengthFair": "Fair",
+    "passwordStrengthGood": "Good",
+    "passwordStrengthStrong": "Strong",
+    "passwordTooWeak": "Password does not meet all requirements"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
