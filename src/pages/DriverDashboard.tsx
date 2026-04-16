@@ -486,6 +486,9 @@ const DriverDashboard = () => {
         profileId={profile?.id}
         shiftStartedAt={lastShiftStart}
       />
+
+      {/* First-time approved-driver welcome */}
+      <DriverWelcomeFlow />
     </div>
   );
 };
