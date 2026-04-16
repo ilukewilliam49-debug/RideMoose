@@ -29,19 +29,19 @@ const LandingNav = () => {
               onClick={() => navigate("/login")}
               className="px-3.5 py-2 text-sm font-medium text-foreground/80 hover:text-foreground rounded-lg transition-colors"
             >
-              Ride
+              {t("nav.ride")}
             </button>
             <button
               onClick={() => navigate("/login?role=driver")}
               className="flex items-center gap-1 px-3.5 py-2 text-sm font-medium text-foreground/80 hover:text-foreground rounded-lg transition-colors"
             >
-              Drive
+              {t("nav.drive")}
             </button>
             <button
               onClick={() => navigate("/rider/corporate-apply")}
               className="px-3.5 py-2 text-sm font-medium text-foreground/80 hover:text-foreground rounded-lg transition-colors"
             >
-              Business
+              {t("nav.business")}
             </button>
           </div>
         </div>
@@ -66,7 +66,7 @@ const LandingNav = () => {
             className="rounded-full px-4 sm:px-5 text-xs font-bold"
             onClick={() => navigate("/login")}
           >
-            Sign up
+            {t("nav.signUp")}
           </Button>
         </div>
       </div>
