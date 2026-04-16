@@ -150,7 +150,8 @@
     "passwordStrengthStrong": "Fort",
     "passwordTooWeak": "Le mot de passe ne respecte pas toutes les exigences",
     "capsLockOn": "Verr. Maj. activé",
-    "rememberMe": "Se souvenir de moi sur cet appareil"
+    "rememberMe": "Se souvenir de moi sur cet appareil",
+    "clearEmail": "Effacer l'e-mail"
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",

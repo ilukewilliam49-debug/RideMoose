@@ -150,7 +150,8 @@
     "passwordStrengthStrong": "Strong",
     "passwordTooWeak": "Password does not meet all requirements",
     "capsLockOn": "Caps Lock is on",
-    "rememberMe": "Remember me on this device"
+    "rememberMe": "Remember me on this device",
+    "clearEmail": "Clear email"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
