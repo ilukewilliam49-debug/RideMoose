@@ -49,8 +49,13 @@ const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
     return <Navigate to={roleRoute} replace />;
   }
 
-  // Driver onboarding gate — only when viewing as driver
-  if (dbRole === "driver" && activeRole === "driver" && !location.pathname.startsWith("/driver/onboarding")) {
+  // Driver onboarding gate — only when viewing as driver on driver routes
+  if (
+    dbRole === "driver" &&
+    activeRole === "driver" &&
+    location.pathname.startsWith("/driver") &&
+    !location.pathname.startsWith("/driver/onboarding")
+  ) {
     const hasVehicle = !!profile?.vehicle_type;
     const hasAllDocs = REQUIRED_DOC_TYPES.every((docType) =>
       verifications?.some((v) => v.document_type === docType)
