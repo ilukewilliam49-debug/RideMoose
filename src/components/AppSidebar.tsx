@@ -96,6 +96,20 @@ export function AppSidebar() {
     refetchInterval: 30000,
   });
 
+  const { data: pendingVerificationCount } = useQuery({
+    queryKey: ["pending-verification-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("verifications")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: role === "admin",
+    refetchInterval: 30000,
+  });
+
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
@@ -166,6 +180,11 @@ export function AppSidebar() {
                               {pendingAppCount > 99 ? "99+" : pendingAppCount}
                             </span>
                           )}
+                          {item.url === "/admin/verifications" && !!pendingVerificationCount && pendingVerificationCount > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                              {pendingVerificationCount > 99 ? "99+" : pendingVerificationCount}
+                            </span>
+                          )}
                         </span>
                       )}
                       {collapsed && item.url === "/admin/support" && !!openTicketCount && openTicketCount > 0 && (
@@ -176,6 +195,11 @@ export function AppSidebar() {
                       {collapsed && item.url === "/admin/corporate" && !!pendingAppCount && pendingAppCount > 0 && (
                         <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold">
                           {pendingAppCount > 99 ? "99+" : pendingAppCount}
+                        </span>
+                      )}
+                      {collapsed && item.url === "/admin/verifications" && !!pendingVerificationCount && pendingVerificationCount > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
+                          {pendingVerificationCount > 99 ? "99+" : pendingVerificationCount}
                         </span>
                       )}
                     </NavLink>
