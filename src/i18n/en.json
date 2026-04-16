@@ -12,7 +12,8 @@
     "pricing": "Pricing",
     "hireZones": "Hire Zones",
     "signIn": "Sign In",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "support": "Support"
   },
   "landing": {
     "badge": "Your Ride. Your Choice.",
@@ -132,7 +133,11 @@
     "verify": "Verify",
     "mustAgreeToTerms": "You must agree to the Terms of Service",
     "codeSentTo": "We sent a code to",
-    "resendCode": "Resend code"
+    "resendCode": "Resend code",
+    "or": "or",
+    "agreeToTerms": "I agree to the Terms of Service and Privacy Policy",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
@@ -171,7 +176,11 @@
     "whereTo": "Where to?",
     "now": "Now",
     "suggestions": "Suggestions",
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "getARide": "Get a ride",
+    "go": "Go",
+    "recent": "Recent",
+    "supportDesc": "Get help with your account or rides"
   },
   "bottomNav": {
     "home": "Home",
@@ -180,7 +189,15 @@
     "account": "Account"
   },
   "activity": {
-    "noRides": "No rides yet. Book your first ride!"
+    "noRides": "No rides yet. Book your first ride!",
+    "all": "All",
+    "active": "Active",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "tripDetails": "Trip Details",
+    "fareBreakdown": "Fare Breakdown",
+    "serviceFee": "Service fee",
+    "commission": "Commission"
   },
   "earnings": {
     "title": "Earnings Summary",
@@ -430,7 +447,46 @@
     "smsOff": "Off",
     "smsTurnedOn": "SMS notifications enabled",
     "smsTurnedOff": "SMS notifications disabled",
-    "edit": "Edit"
+    "edit": "Edit",
+    "riderScore": "Your Rider Score",
+    "riderScoreHint": "Drivers rate you after each trip. Keep it high for better service!",
+    "noRatingsYet": "No ratings yet",
+    "phonePlaceholder": "+1 (867) 555-0123",
+    "phoneSaveError": "Could not save phone number",
+    "editPhone": "Edit phone number",
+    "smsNotifications": "SMS notifications",
+    "you": "You",
+    "service": "Service",
+    "chooseService": "Choose a service",
+    "pickupAddress": "Pickup address",
+    "pickupPlaceholder": "Enter pickup address",
+    "dropoffAddress": "Dropoff address",
+    "dropoffPlaceholder": "Where to?",
+    "enterAddressToSeeMap": "Enter an address to see the map",
+    "locationFound": "Location found",
+    "locationError": "Could not get your location",
+    "estimatedFare": "Estimated fare",
+    "confirmRide": "Confirm Ride",
+    "confirmAndRequest": "Confirm & Request",
+    "scheduled": "Scheduled",
+    "payNow": "Pay Now",
+    "duePayNow": "Due now",
+    "outstandingBalance": "Outstanding balance",
+    "addTip": "Add a tip",
+    "tip": "Tip",
+    "rateYourTrip": "Rate your trip",
+    "tripComplete": "Trip complete",
+    "lookingForDriver": "Looking for a driver…",
+    "noDriverYet": "No driver found yet",
+    "searchCancelled": "Search cancelled",
+    "driverFound": "Driver found!",
+    "driverArrived": "Your driver has arrived",
+    "isOnTheWay": "is on the way",
+    "courierSubtitle": "Send a package across town",
+    "courierPricingNote": "$8 base + $1.50/km, $12 minimum",
+    "packageSmallDesc": "Fits in a backpack (under 5 kg)",
+    "packageMediumDesc": "Fits on a car seat (5–15 kg)",
+    "packageLargeDesc": "Fits in a trunk (15–30 kg)"
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
@@ -471,12 +527,16 @@
     "paymentAuthorized": "Payment authorized",
     "processing": "Processing...",
     "authorize": "Authorize",
-    "chargeNote": "You'll only be charged the final metered fare. This authorization holds a maximum amount."
+    "chargeNote": "You'll only be charged the final metered fare. This authorization holds a maximum amount.",
+    "savedCards": "Saved Cards",
+    "useNewCard": "Use a new card"
   },
   "common": {
     "language": "Language",
     "english": "English",
-    "french": "French"
+    "french": "French",
+    "and": "and",
+    "back": "Back"
   },
   "dispatch": {
     "dispatchBoard": "Dispatch Board",
@@ -570,5 +630,40 @@
     "placeOrder": "Place Order",
     "placing": "Placing...",
     "orderPlaced": "Order placed! Looking for a driver..."
+  },
+  "receipt": {
+    "tripReceipt": "Trip Receipt",
+    "tripId": "Trip ID",
+    "date": "Date",
+    "driver": "Driver",
+    "vehicle": "Vehicle",
+    "plate": "Plate",
+    "service": "Service",
+    "distance": "Distance",
+    "fare": "Fare",
+    "serviceFee": "Service fee",
+    "gst": "GST (5%)",
+    "tip": "Tip",
+    "total": "Total",
+    "paidInApp": "Paid in app",
+    "dueToDriver": "Due to driver",
+    "paymentMethod": "Payment method",
+    "downloadPdf": "Download PDF",
+    "downloaded": "Receipt downloaded",
+    "share": "Share",
+    "copiedToClipboard": "Copied to clipboard",
+    "thankYou": "Thank you for riding with PickYou!"
+  },
+  "tip": {
+    "addTip": "Add a tip",
+    "thankDriver": "Thank your driver",
+    "thankYourDriver": "Thank your driver",
+    "driverThanks": "100% of your tip goes to the driver",
+    "selectAmount": "Select amount",
+    "custom": "Custom",
+    "tipLabel": "Tip amount",
+    "sendTip": "Send tip",
+    "sending": "Sending…",
+    "sentSuccess": "Tip sent. Thanks!"
   }
 }
