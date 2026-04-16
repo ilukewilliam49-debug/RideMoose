@@ -19,33 +19,33 @@ const LandingFooter = () => {
 
           {/* Company */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Company</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("landing.footerCompany")}</h4>
             <div className="flex flex-col gap-2">
               <Link to="/terms" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
-                Terms of Service
+                {t("landing.footerTerms")}
               </Link>
               <Link to="/privacy" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
-                Privacy Policy
+                {t("landing.footerPrivacy")}
               </Link>
               <Link to="/rider/corporate-apply" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
-                Business
+                {t("landing.footerBusiness")}
               </Link>
             </div>
           </div>
 
           {/* Products */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Products</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("landing.footerProducts")}</h4>
             <div className="flex flex-col gap-2">
-              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Ride</Link>
-              <Link to="/drive" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Drive</Link>
-              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">Courier</Link>
+              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerRide")}</Link>
+              <Link to="/drive" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerDrive")}</Link>
+              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerCourier")}</Link>
             </div>
           </div>
 
           {/* Contact */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Contact</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("landing.footerContact")}</h4>
             <div className="flex flex-col gap-2">
               <a
                 href="tel:+18679888836"
@@ -54,7 +54,7 @@ const LandingFooter = () => {
                 (867) 988-8836
               </a>
               <span className="text-xs text-muted-foreground">
-                Yellowknife, NT, Canada
+                {t("landing.footerLocation")}
               </span>
             </div>
           </div>
