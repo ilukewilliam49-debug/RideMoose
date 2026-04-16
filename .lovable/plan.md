@@ -1,36 +1,30 @@
 
 
-# Set Up Your Own Google OAuth Credentials
+# Fix Netlify SPA Routing + Google OAuth
 
-## What You Need to Do (in Google Cloud Console)
+## Problem
+`pickyou.ca` is deployed on Netlify, but there's no SPA rewrite rule. Every route except `/` returns Netlify's built-in 404. This breaks:
+- The login page (`/login`)
+- The OAuth callback (`/auth/callback`)
+- Every other client-side route
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Credentials**
-2. On the **OAuth consent screen**, add your domains (`pickyou.ca`, `*.lovable.app`) under Authorized domains
-3. Configure scopes: `openid`, `email`, `profile`
-4. Create an **OAuth Client ID** (Web application type)
-5. Set **Authorized JavaScript origins**:
-   - `https://pickyou.ca`
-   - `https://www.pickyou.ca`
-   - `https://pickyou.lovable.app`
-6. Set **Authorized redirect URI** to the Supabase callback URL:
-   - `https://qmkcgwgiqrmtqrxmxeam.supabase.co/auth/v1/callback`
-7. Copy the **Client ID** and **Client Secret**
+## Changes
 
-## What I'll Do in the App
+### 1. Create `public/_redirects`
+Add a single Netlify rewrite rule so all routes serve `index.html`:
 
-### 1. Configure Google credentials in Lovable Cloud
-Use the Cloud auth settings tool to switch Google OAuth from "Managed by Lovable" to your own Client ID and Secret. You'll be prompted to enter these values.
+```
+/*    /index.html   200
+```
 
-### 2. Keep the current direct Supabase OAuth code
-The current code already uses `supabase.auth.signInWithOAuth()` which is correct for BYOK (Bring Your Own Keys) Google credentials — this bypasses Lovable's managed proxy and talks directly to Supabase, which is what we want.
+This file goes in `public/` so Vite copies it to the build output root.
 
-### 3. Verify the `/auth/callback` route
-The existing `AuthCallback` page and route are already set up to handle the OAuth return, read the session, and redirect to the correct dashboard.
+### 2. Publish
+After adding the file, publish to apply changes on `pickyou.ca`.
 
-### 4. Ensure redirect URL works
-The current `redirectTo: window.location.origin + "/auth/callback"` will resolve to `https://pickyou.ca/auth/callback` in production and `http://localhost:5173/auth/callback` in dev — both need to be in Supabase's allowed redirect URLs.
-
-## Summary of Changes
-- Configure your Google Client ID + Secret in Lovable Cloud auth settings
-- No code changes needed — the current implementation already supports BYOK credentials
+## Technical Details
+- Netlify uses `_redirects` (or `netlify.toml`) for routing rules
+- The `200` status code means "rewrite" (serve index.html but keep the URL), not a redirect
+- This is the standard pattern for all SPAs on Netlify
+- Once this works, the Google OAuth flow (`/auth/callback`) will also work since the page will actually load
 
