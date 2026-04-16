@@ -3,7 +3,6 @@ import App from "./App.tsx";
 import "./index.css";
 import "./i18n";
 
-// Guard: never register service worker in Lovable preview iframe
 const isInIframe = (() => {
   try {
     return window.self !== window.top;
@@ -16,10 +15,48 @@ const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
   window.location.hostname.includes("lovableproject.com");
 
-if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((r) => r.unregister());
-  });
-}
+const isOAuthProxyPath = window.location.pathname.startsWith("/~oauth/");
+const oauthRecoveryKey = "__oauth_sw_recovery__";
 
-createRoot(document.getElementById("root")!).render(<App />);
+const unregisterServiceWorkers = async () => {
+  const registrations = await navigator.serviceWorker?.getRegistrations();
+  await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
+};
+
+const clearBrowserCaches = async () => {
+  if (!("caches" in window)) return;
+  const cacheKeys = await caches.keys();
+  await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+};
+
+const shouldRecoverOAuthRoute = () => {
+  if (!isOAuthProxyPath) return false;
+
+  try {
+    if (sessionStorage.getItem(oauthRecoveryKey) === "done") {
+      sessionStorage.removeItem(oauthRecoveryKey);
+      return false;
+    }
+
+    sessionStorage.setItem(oauthRecoveryKey, "done");
+    return true;
+  } catch {
+    return true;
+  }
+};
+
+const bootstrap = async () => {
+  if (isPreviewHost || isInIframe) {
+    await unregisterServiceWorkers();
+  }
+
+  if (shouldRecoverOAuthRoute()) {
+    await Promise.allSettled([unregisterServiceWorkers(), clearBrowserCaches()]);
+    window.location.replace(window.location.href);
+    return;
+  }
+
+  createRoot(document.getElementById("root")!).render(<App />);
+};
+
+void bootstrap();
