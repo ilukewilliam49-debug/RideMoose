@@ -65,6 +65,8 @@ const MOCK_DRIVERS: MockDriver[] = [
 interface NearbyDriversMapProps {
   activeTab: Tab;
   userLocation: { lat: number; lng: number } | null;
+  height?: number | string;
+  className?: string;
 }
 
 const VEHICLE_TYPES = ["sedan", "suv", "van"] as const;
@@ -76,7 +78,7 @@ const vehicleFilterLabels: Record<VehicleFilter, string> = {
   van: "Van",
 };
 
-const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) => {
+const NearbyDriversMap = ({ activeTab, userLocation, height = 200, className }: NearbyDriversMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -274,11 +276,11 @@ const NearbyDriversMap = ({ activeTab, userLocation }: NearbyDriversMapProps) =>
   const TabIcon = activeTab === "taxi" ? Car : activeTab === "charter" ? Briefcase : Package;
 
   return (
-    <div className="relative mt-4">
+    <div className={`relative ${className ?? "mt-4"}`}>
       <div
         ref={containerRef}
         className="rounded-2xl overflow-hidden border border-border/30"
-        style={{ height: 200 }}
+        style={{ height }}
       />
       {/* Loading overlay */}
       {isLoading && (
