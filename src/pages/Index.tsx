@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import InstallAppPrompt from "@/components/InstallAppPrompt";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Phone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -15,18 +15,20 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const { user, profile, loading } = useAuth();
+  const showPublicLanding = new URLSearchParams(location.search).get("view") === "landing";
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading || !user || showPublicLanding) return;
     const role = profile?.role;
     if (role === "admin") navigate("/admin", { replace: true });
     else if (role === "driver") navigate("/driver", { replace: true });
     else navigate("/rider", { replace: true });
-  }, [user, profile, loading, navigate]);
+  }, [user, profile, loading, navigate, showPublicLanding]);
 
-  if (loading || user) return null;
+  if (loading || (user && !showPublicLanding)) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
