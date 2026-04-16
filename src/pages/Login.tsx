@@ -136,6 +136,15 @@ const Login = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // "Remember me": when unchecked, mark this session as tab-only.
+        // A pagehide listener (registered in main.tsx) will clear the
+        // Supabase auth token from localStorage when the tab/window closes,
+        // forcing the user to sign in again next time.
+        if (rememberMe) {
+          localStorage.removeItem("pickyou.session_only");
+        } else {
+          localStorage.setItem("pickyou.session_only", "1");
+        }
         toast.success(t("auth.welcomeBack"));
       } else {
         if (!agreedToTerms) {
