@@ -19,6 +19,11 @@ export interface Profile {
   can_courier: boolean;
   vehicle_type: string | null;
   seat_capacity: number | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_year: number | null;
+  vehicle_color: string | null;
+  license_plate: string | null;
   driver_balance_cents: number;
   commission_rate: number;
   promo_commission_rate: number;

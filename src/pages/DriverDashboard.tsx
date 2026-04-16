@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { serviceLabels, fmt } from "@/lib/driver-constants";
 import { DashboardStatsSkeleton, RecentTripsSkeleton } from "@/components/driver/DriverDashboardSkeletons";
 import ShiftSummaryDialog from "@/components/driver/ShiftSummaryDialog";
+import DriverWelcomeFlow from "@/components/driver/DriverWelcomeFlow";
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
@@ -485,6 +486,9 @@ const DriverDashboard = () => {
         profileId={profile?.id}
         shiftStartedAt={lastShiftStart}
       />
+
+      {/* First-time approved-driver welcome */}
+      <DriverWelcomeFlow />
     </div>
   );
 };
