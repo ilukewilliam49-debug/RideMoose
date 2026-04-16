@@ -38,7 +38,6 @@ const DriverOnboardingPending = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState<string | null>(null);
-  const [supportOpen, setSupportOpen] = useState(false);
 
   const { data: verifications } = useQuery({
     queryKey: ["driver-verifications", profile?.id],
@@ -277,14 +276,14 @@ const DriverOnboardingPending = () => {
                 <div className="text-xs text-muted-foreground">
                   Questions about your application?
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSupportOpen(true)}
-                >
-                  <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
-                  Contact support
-                </Button>
+                <SupportChatDialog
+                  trigger={
+                    <Button size="sm" variant="outline">
+                      <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Contact support
+                    </Button>
+                  }
+                />
               </div>
             )}
 
@@ -300,8 +299,6 @@ const DriverOnboardingPending = () => {
           </CardContent>
         </Card>
       </motion.div>
-
-      <SupportChatDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
