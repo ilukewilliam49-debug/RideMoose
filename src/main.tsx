@@ -45,7 +45,22 @@ const shouldRecoverOAuthRoute = () => {
   }
 };
 
+const normalizePathname = () => {
+  const { pathname, search, hash } = window.location;
+  const strayPaths: Record<string, string> = {
+    "/index": "/",
+    "/index.html": "/",
+    "/home": "/",
+  };
+  const normalized = strayPaths[pathname.toLowerCase()];
+  if (normalized) {
+    window.history.replaceState(null, "", normalized + search + hash);
+  }
+};
+
 const bootstrap = async () => {
+  normalizePathname();
+
   if (isPreviewHost || isInIframe) {
     await unregisterServiceWorkers();
   }
