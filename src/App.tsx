@@ -72,7 +72,7 @@ const PageLoader = () => (
 );
 
 const AppContent = () => {
-  const { sessionExpired, expiredEmail, clearSessionExpired } = useAuth();
+  const { user, sessionExpired, expiredEmail, clearSessionExpired, signOut } = useAuth();
   useNetworkStatus();
 
   const handleReLoginSuccess = () => {
@@ -82,6 +82,11 @@ const AppContent = () => {
 
   const handleSwitchAccount = () => {
     clearSessionExpired();
+    window.location.href = "/login";
+  };
+
+  const handleIdleSignOut = async () => {
+    await signOut();
     window.location.href = "/login";
   };
 
