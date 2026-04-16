@@ -259,6 +259,65 @@ const DriverOnboardingPending = () => {
               </div>
             )}
 
+            {/* What happens next — collapsible */}
+            {!allApproved && !hasRejections && (
+              <div className="rounded-lg border border-border bg-secondary/30 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setWhatsNextOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-secondary/50 transition-colors"
+                  aria-expanded={whatsNextOpen}
+                >
+                  <span className="text-xs font-semibold text-foreground">
+                    What happens next?
+                  </span>
+                  {whatsNextOpen ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+                {whatsNextOpen && (
+                  <div className="px-3 pb-3 pt-1 space-y-2.5">
+                    {[
+                      {
+                        icon: FileCheck,
+                        title: "1. Document review",
+                        body: "Our team checks each document for clarity and validity. Usually takes a few hours.",
+                      },
+                      {
+                        icon: UserCheck,
+                        title: "2. Background verification",
+                        body: "We confirm your driving record meets PickYou's safety standards.",
+                      },
+                      {
+                        icon: Sparkles,
+                        title: "3. Approval & onboarding",
+                        body: "You'll get a push notification the moment you're cleared. Then go online and start earning.",
+                      },
+                    ].map((step) => {
+                      const Icon = step.icon;
+                      return (
+                        <div key={step.title} className="flex items-start gap-2.5">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                            <Icon className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground">
+                              {step.title}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+                              {step.body}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Document list */}
             <div className="space-y-3">
               {DRIVER_DOCUMENTS.filter((d) => !d.optional || latestByType[d.type]).map(
