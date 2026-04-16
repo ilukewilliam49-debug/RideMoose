@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleLayout from "./components/RoleLayout";
 import SessionExpiredDialog from "./components/SessionExpiredDialog";
+import IdleTimeoutDialog from "./components/IdleTimeoutDialog";
 import OfflineBanner from "./components/OfflineBanner";
 import NetworkErrorBanner from "./components/NetworkErrorBanner";
 import SplashScreen from "./components/SplashScreen";
@@ -71,7 +72,7 @@ const PageLoader = () => (
 );
 
 const AppContent = () => {
-  const { sessionExpired, expiredEmail, clearSessionExpired } = useAuth();
+  const { user, sessionExpired, expiredEmail, clearSessionExpired, signOut } = useAuth();
   useNetworkStatus();
 
   const handleReLoginSuccess = () => {
@@ -81,6 +82,11 @@ const AppContent = () => {
 
   const handleSwitchAccount = () => {
     clearSessionExpired();
+    window.location.href = "/login";
+  };
+
+  const handleIdleSignOut = async () => {
+    await signOut();
     window.location.href = "/login";
   };
 
@@ -94,6 +100,7 @@ const AppContent = () => {
         onSuccess={handleReLoginSuccess}
         onSwitchAccount={handleSwitchAccount}
       />
+      <IdleTimeoutDialog enabled={!!user} onSignOut={handleIdleSignOut} />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
