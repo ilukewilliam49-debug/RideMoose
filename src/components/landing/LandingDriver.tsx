@@ -16,9 +16,9 @@ const LandingDriver = () => {
   ];
 
   const stats = [
-    { icon: DollarSign, value: "95.1%", label: "You keep" },
-    { icon: TrendingUp, value: "$1,200+", label: "Avg weekly" },
-    { icon: Shield, value: "4.9%", label: "Low commission" },
+    { icon: DollarSign, value: "95.1%", label: t("landing.statKeep") },
+    { icon: TrendingUp, value: "$1,200+", label: t("landing.statWeekly") },
+    { icon: Shield, value: "4.9%", label: t("landing.statCommission") },
   ];
 
   return (

@@ -45,7 +45,7 @@ const LandingServices = () => {
                   {t(service.descKey)}
                 </p>
                 <span className="inline-block text-xs font-semibold text-primary group-hover:underline mt-1">
-                  Details
+                  {t("landing.details")}
                 </span>
               </div>
             </motion.button>
