@@ -328,9 +328,8 @@ const DriverOnboarding = () => {
         className="w-full max-w-lg relative"
       >
         <div className="text-center mb-5">
-          <button
-            type="button"
-            onClick={() => navigate("/?view=landing", { replace: true })}
+          <a
+            href="/?view=landing"
             aria-label="Go to homepage"
             className="block mx-auto mb-3 rounded-xl transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
@@ -339,7 +338,7 @@ const DriverOnboarding = () => {
               alt="PickYou"
               className="h-12 rounded-xl drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
             />
-          </button>
+          </a>
         </div>
 
         {/* Labelled progress bar */}
