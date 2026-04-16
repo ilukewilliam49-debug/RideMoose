@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Car, ArrowLeft, Phone, Check, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Car, ArrowLeft, Phone, Check, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +33,13 @@ const Login = () => {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+
+  const handlePasswordKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (typeof e.getModifierState === "function") {
+      setCapsLockOn(e.getModifierState("CapsLock"));
+    }
+  };
 
   // Phone OTP state
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -492,10 +500,30 @@ const Login = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 pr-10 bg-secondary border-input"
+                        onKeyDown={handlePasswordKey}
+                        onKeyUp={handlePasswordKey}
+                        onBlur={() => setCapsLockOn(false)}
+                        className={`pl-10 bg-secondary border-input ${capsLockOn ? "pr-16" : "pr-10"}`}
                         required
                         minLength={isLogin ? 6 : 8}
                       />
+                      {capsLockOn && (
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip open>
+                            <TooltipTrigger asChild>
+                              <span
+                                className="absolute right-9 top-1/2 -translate-y-1/2 text-destructive"
+                                aria-label={t("auth.capsLockOn", "Caps Lock is on")}
+                              >
+                                <AlertTriangle className="h-4 w-4" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="z-[1200]">
+                              {t("auth.capsLockOn", "Caps Lock is on")}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       <button
                         type="button"
                         onClick={() => setShowPassword((s) => !s)}

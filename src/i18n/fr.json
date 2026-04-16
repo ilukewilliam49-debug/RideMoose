@@ -148,7 +148,8 @@
     "passwordStrengthFair": "Moyen",
     "passwordStrengthGood": "Bon",
     "passwordStrengthStrong": "Fort",
-    "passwordTooWeak": "Le mot de passe ne respecte pas toutes les exigences"
+    "passwordTooWeak": "Le mot de passe ne respecte pas toutes les exigences",
+    "capsLockOn": "Verr. Maj. activé"
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",
