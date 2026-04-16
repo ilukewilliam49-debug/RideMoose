@@ -1,66 +1,144 @@
 
-The user wants to build the deferred `/drive` marketing landing page. I have enough context already (LandingDriver.tsx, LandingNav, LandingFooter, branding memory, driver onboarding flow). No need to ask clarifying questions — scope is clear from the prior audit.
+The user wants a designed, optimized driver onboarding flow — screen-by-screen spec with copy, UI, progress, doc upload, approval messaging. They want fewer steps than Uber, mobile-first, high conversion.
 
-## Plan: Dedicated `/drive` Marketing Landing Page
+I already have full context on the current flow (DriverOnboarding.tsx is now 3 steps: Contact → Vehicle → Documents, plus DriverOnboardingPending and the new DriverWelcomeFlow). So this plan is about *redesigning what's there* — tightening copy, adding micro-interactions, smoothing flow — not building from scratch.
 
-A standalone, conversion-optimized page that sells driving for PickYou — separate from the main landing page — designed to convert prospective drivers into applicants.
+Strategy: deliver a compact spec the user can approve, then implement as a focused refactor of existing files. No new routes, no schema changes.
 
-### Route
-- New route `/drive` in `App.tsx` (public, no auth required)
-- Update "Drive" link in `LandingNav.tsx` to point to `/drive` instead of scrolling to a section
-- "Apply now" CTAs route to `/login?role=driver`
+## Plan: Optimized Driver Onboarding v2
 
-### Page structure (single scrollable page, mobile-first)
+### Goal
+Cut perceived effort by ~40%. Target: signup → submitted in **under 4 minutes** on mobile. Match or beat Uber's 5-step flow with **3 visible steps + 1 review**.
 
-1. **Hero** — Full-bleed driver image, headline "Drive in Yellowknife. Earn on your schedule.", subhead, sticky "Apply now" CTA, secondary "How it works" anchor link.
+### The flow (4 screens, 1 of which is auto-progress)
 
-2. **Earnings strip** — 3 stat cards: "95.1% you keep", "$1,200+ avg weekly", "Weekly payouts".
+```
+[1] Apply CTA  →  [2] Account  →  [3] Vehicle  →  [4] Documents  →  [5] Submitted/Pending
+   (/drive)        (/login)        (onboarding)    (onboarding)       (pending)
+```
 
-3. **Interactive earnings calculator** — Two sliders (hours/week 5–60, days/week 1–7) → live projected weekly + monthly take-home. Pure client-side math using a configurable per-hour rate (~$28/hr Yellowknife benchmark, before commission). Shows "Estimate only — actual earnings vary."
+User-perceived steps inside `/driver/onboarding`: **3 dots, ~90s each.**
 
-4. **How it works (4 steps)** — Apply → Upload docs → Get approved (24h) → Start earning. Numbered cards with icons.
+---
 
-5. **Requirements checklist** — Self-qualification ("Valid driver's license > 1 year", "Vehicle 2016 or newer", "Clean driving record", "Smartphone"). Lets unqualified drivers self-deselect.
+### Screen-by-screen spec
 
-6. **Why PickYou** — 4 perks: low 4.9% commission, flexible hours, multi-service (taxi/courier/delivery), local Yellowknife support.
+**Screen 1 — Pre-application hook (already exists at `/drive`)**
+- Sticky CTA "Apply in 4 minutes" (currently says "Apply now" — change to time-bound).
+- Below CTA: "No fees. Keep 95.1%. Approved in 24 hrs." trust strip.
 
-7. **FAQ accordion** — 6–8 questions: How much can I earn? When do I get paid? What are the requirements? How long does approval take? What documents do I need? Can I drive part-time? Is insurance covered? How does commission work?
+**Screen 2 — Account (existing `/login`, minor tweaks)**
+- Add visible "I want to drive" badge at top when `?role=driver` is in URL.
+- Default to Google OAuth as primary button (1-tap).
+- Email/password collapsed under "Use email instead."
+- Copy: "Create your driver account" (not generic "Sign in").
 
-8. **Trust strip** — "Background-checked drivers", "Local Yellowknife operations", "Secure document handling".
+**Screen 3 — Step 1 of 3: Contact (~30 seconds)**
+- Headline: **"Let's start with you"**
+- Subhead: "We'll text you when riders need you."
+- Fields: Full name, Mobile number (with country code).
+- Inline validation: green check on valid phone format.
+- Helper under phone: "We'll send a verification code next."
+- CTA button: **"Continue →"** (full-width, sticky bottom on mobile).
+- Progress: `● ○ ○  Step 1 of 3 · About you`
 
-9. **Final CTA band** — Big "Start your application" button + "Questions? Contact support" link.
+**Screen 4 — Step 2 of 3: Your vehicle (~60 seconds)**
+- Headline: **"Tell us about your ride"**
+- Subhead: "Must be 2016 or newer."
+- Fields stacked, single column:
+  1. Vehicle type — visual chip selector (Sedan / SUV / Van / Truck) with icons
+  2. Year (numeric pad, min 2016)
+  3. Make + Model (side-by-side on `sm+`, stacked on mobile)
+  4. Color (chip selector: Black / White / Silver / Grey / Blue / Red / Other)
+  5. Plate number (uppercase auto-format)
+  6. Seats (chip: 4 / 5 / 6 / 7+)
+- Each field shows inline ✓ when valid. Continue button stays visible but greyed until valid.
+- Progress: `● ● ○  Step 2 of 3 · Your vehicle`
+- Microcopy at bottom: "Vehicle info can be updated later."
 
-10. **Footer** — Reuse `LandingFooter.tsx`.
+**Screen 5 — Step 3 of 3: Documents (~2 min)**
+Headline: **"Upload 3 documents"**
+Subhead: "Snap a photo or pick from your gallery. Takes about 2 minutes."
 
-### Files to create/edit
+For each document card (already uses `DocumentUploadCard`):
+- Icon + label ("Driver's License")
+- 1-line "what" + 1-line "why we need it"
+- "Take photo" (primary, opens camera via `capture="environment"`) and "Upload file" (secondary)
+- After upload: thumbnail preview, "Replace" link, green check
+- Tips collapsed by default ("See tips" expands)
 
-- **Create** `src/pages/DriveLanding.tsx` — main page
-- **Create** `src/components/drive/EarningsCalculator.tsx` — interactive sliders + projection
-- **Create** `src/components/drive/DriveFAQ.tsx` — accordion
-- **Create** `src/components/drive/DriveHero.tsx` — hero section
-- **Create** `src/components/drive/DriveHowItWorks.tsx` — 4-step section
-- **Create** `src/components/drive/DriveRequirements.tsx` — checklist
-- **Edit** `src/App.tsx` — add lazy-loaded `/drive` route (public)
-- **Edit** `src/components/landing/LandingNav.tsx` — point "Drive" link to `/drive`
-- **Edit** `src/components/landing/LandingDriver.tsx` — change "Drive" CTA to link to `/drive` (keep section as teaser on main landing)
-- **Edit** `src/i18n/en.json` and `src/i18n/fr.json` — add `drive.*` translation keys for all copy
+Per-document mini-progress at top: **"2 of 3 uploaded"** with thin progress bar.
 
-### Design system
-- Reuse existing branding (dark theme #0B0F1A, primary #2F80ED, accent #F2994A)
-- Framer Motion fade-up animations consistent with `LandingHero` / `LandingDriver`
-- Tailwind responsive — mobile-first, two-column layouts on `md+`
-- Accessible: semantic headings, focus rings, accordion uses Radix `Collapsible`
+After all 3 uploaded → big sticky CTA: **"Submit application →"**
 
-### SEO
-- Add `<title>` and `<meta description>` via document head update on mount
-- Headline targets "Drive in Yellowknife", "rideshare driver Yellowknife", "PickYou driver application"
-- Add to `public/sitemap.xml`
+Progress: `● ● ●  Step 3 of 3 · Documents`
+
+**Screen 6 — Submitted (success moment, before pending)**
+Full-screen success state for 2s before auto-routing to `/driver/onboarding/pending`:
+- Animated checkmark (Framer Motion scale + spring)
+- "Application submitted!"
+- "We're reviewing now. Most drivers approved within 24 hours."
+
+**Screen 7 — Pending (existing `DriverOnboardingPending`, refined)**
+- ETA banner at top: **"Most reviews complete within 24 hours"** (already added)
+- Submission timestamp ("Submitted Today at 2:34 PM")
+- Per-doc status with re-upload affordance for rejected
+- "Contact support" button (already added)
+- New: **"What happens next?"** collapsible explaining the 3 stages
+- Push notification will fire when status changes
+
+**Screen 8 — Approved (already built — `DriverWelcomeFlow`)**
+- Confetti celebration → 3-card tour → Go online.
+
+---
+
+### UI / interaction details
+
+- **Sticky CTA** at bottom of viewport on mobile (`safe-area-inset-bottom` aware).
+- **One field per visual focus** — keyboard pushes view, label stays visible.
+- **No modal dialogs** during onboarding — full-page transitions only.
+- **Auto-save on blur** for every field → resume where they left off.
+- **Inline error states** with red border + icon + 1-line fix instruction.
+- **Skeleton loading** when rehydrating saved state.
+- **Haptic-style feedback** via subtle scale animation on button tap.
+
+### Progress indicator design
+Replace current pill dots with a labelled top bar:
+
+```
+┌─────────────────────────────────┐
+│ ●━━━━━●━━━━━○   2 of 3          │
+│ About    Vehicle    Documents   │
+└─────────────────────────────────┘
+```
+
+- Filled circle = done, ring = current, hollow = upcoming
+- Tap a completed step to go back and edit
+
+### Approval messaging copy bank
+
+| State | Headline | Body |
+|---|---|---|
+| Submitted | "Application submitted!" | "We're reviewing now. You'll get a notification within 24 hours." |
+| Pending | "Under review" | "Most drivers approved within 24 hours. We'll notify you the moment you're cleared." |
+| Doc rejected | "One thing needs attention" | "Your {doc} couldn't be verified. Tap below to re-upload." |
+| Approved | "You're approved! 🎉" | "Welcome to PickYou. Let's get you online." |
+
+---
+
+### Files to edit (no new files)
+
+- `src/pages/DriverOnboarding.tsx` — restructure to use new step UI, labelled progress bar, sticky CTA, vehicle chip selectors, success transition screen
+- `src/components/driver/DocumentUploadCard.tsx` — make "Take photo" the primary CTA (mobile), collapse tips
+- `src/pages/DriverOnboardingPending.tsx` — add submission timestamp display + "What happens next" collapsible
+- `src/pages/Login.tsx` — add "I want to drive" badge when `?role=driver`, promote Google to primary
+- `src/pages/DriveLanding.tsx` — change CTA copy to "Apply in 4 minutes"
+- `src/i18n/en.json` + `src/i18n/fr.json` — add new copy keys
 
 ### Out of scope (next sprint)
-- Server-side rendered earnings (stays client-side)
-- Real-time driver count or surge data
-- Video testimonials
-- Referral program signup
+- OCR auto-approval (would need Lovable AI vision integration)
+- Background-check integration (third-party)
+- Document expiry tracking (DB schema additions)
 
-### Estimated effort
-~1 day. After approval, I'll build all components, wire the route, add i18n keys, and update the sitemap.
+### Effort
+~half day. After approval I'll ship all edits and you can test the full flow end-to-end.
