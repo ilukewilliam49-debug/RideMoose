@@ -138,17 +138,17 @@ const Login = () => {
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
-      const redirectUrl = new URL(window.location.origin);
-      if (!isLogin) {
-        redirectUrl.searchParams.set("role", role);
-      }
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: redirectUrl.toString(),
+      const callbackUrl = `${window.location.origin}/auth/callback`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: callbackUrl,
+          queryParams: !isLogin ? { role } : undefined,
+        },
       });
-      if (result.error) {
-        toast.error(result.error instanceof Error ? result.error.message : "Sign-in failed");
+      if (error) {
+        toast.error(error.message || "Sign-in failed");
       }
-      if (result.redirected) return;
     } catch (err: any) {
       toast.error(err.message || "Sign-in failed");
     } finally {
