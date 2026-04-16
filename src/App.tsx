@@ -100,6 +100,7 @@ const AppContent = () => {
         onSuccess={handleReLoginSuccess}
         onSwitchAccount={handleSwitchAccount}
       />
+      <IdleTimeoutDialog enabled={!!user} onSignOut={handleIdleSignOut} />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
