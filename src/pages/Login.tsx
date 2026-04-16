@@ -34,6 +34,7 @@ const Login = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handlePasswordKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (typeof e.getModifierState === "function") {
