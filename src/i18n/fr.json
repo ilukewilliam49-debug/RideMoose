@@ -137,7 +137,18 @@
     "or": "ou",
     "agreeToTerms": "J'accepte les Conditions d'utilisation et la Politique de confidentialité",
     "privacyPolicy": "Politique de confidentialité",
-    "termsOfService": "Conditions d'utilisation"
+    "termsOfService": "Conditions d'utilisation",
+    "passwordRequirements": "Le mot de passe doit inclure :",
+    "passwordMinLength": "Au moins 8 caractères",
+    "passwordUppercase": "Une lettre majuscule",
+    "passwordLowercase": "Une lettre minuscule",
+    "passwordNumber": "Un chiffre",
+    "passwordSymbol": "Un symbole (!@#$…)",
+    "passwordStrengthWeak": "Faible",
+    "passwordStrengthFair": "Moyen",
+    "passwordStrengthGood": "Bon",
+    "passwordStrengthStrong": "Fort",
+    "passwordTooWeak": "Le mot de passe ne respecte pas toutes les exigences"
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",
