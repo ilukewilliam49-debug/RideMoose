@@ -13,7 +13,11 @@
     "hireZones": "Zones de location",
     "signIn": "Se connecter",
     "signOut": "Se déconnecter",
-    "support": "Assistance"
+    "support": "Assistance",
+    "ride": "Voyager",
+    "drive": "Conduire",
+    "business": "Entreprise",
+    "signUp": "S'inscrire"
   },
   "landing": {
     "badge": "Votre trajet. Votre choix.",
