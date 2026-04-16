@@ -44,7 +44,7 @@ const DriveHero = () => {
               className="h-14 rounded-xl text-sm font-bold sm:px-8"
               onClick={() => navigate("/login?role=driver")}
             >
-              Apply now
+              Apply in 4 minutes
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <a
@@ -54,6 +54,22 @@ const DriveHero = () => {
               How it works
               <ChevronDown className="h-4 w-4" />
             </a>
+          </div>
+
+          {/* Trust strip */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3 text-[12px] font-medium text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              No fees
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Keep 95.1%
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Approved in 24 hrs
+            </span>
           </div>
         </motion.div>
       </div>
