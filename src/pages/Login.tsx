@@ -78,12 +78,23 @@ const Login = () => {
       : t("auth.passwordStrengthStrong", "Strong");
   const strengthColors = ["bg-destructive", "bg-destructive", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
 
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!authLoading && user && profile) {
       const route = profile.role === "admin" ? "/admin" : profile.role === "driver" ? "/driver" : "/rider";
       navigate(route, { replace: true });
     }
   }, [user, profile, authLoading, navigate]);
+
+  // Auto-focus password when entering email login view with email pre-filled.
+  useEffect(() => {
+    if (view === "email" && isLogin && email) {
+      // Wait for AnimatePresence mount + transition
+      const t = setTimeout(() => passwordInputRef.current?.focus(), 250);
+      return () => clearTimeout(t);
+    }
+  }, [view, isLogin, email]);
 
   const formatPhone = (raw: string) => {
     const digits = raw.replace(/\D/g, "");
