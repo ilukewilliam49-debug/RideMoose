@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 const IDLE_MS = 25 * 60 * 1000; // 25 minutes
-const WARNING_MS = 60 * 1000; // 60 second warning
+const BROADCAST_THROTTLE_MS = 2000; // throttle cross-tab activity pings
 const ACTIVITY_EVENTS = [
   "mousemove",
   "mousedown",
@@ -22,6 +22,11 @@ const ACTIVITY_EVENTS = [
   "scroll",
   "wheel",
 ] as const;
+
+const CHANNEL_NAME = "pickyou.idle";
+const STORAGE_KEY = "pickyou.idle.ping";
+const MSG_ACTIVITY = "activity";
+const MSG_STAY = "stay";
 
 interface IdleTimeoutDialogProps {
   enabled: boolean;
@@ -35,6 +40,13 @@ const IdleTimeoutDialog = ({ enabled, onSignOut }: IdleTimeoutDialogProps) => {
 
   const idleTimer = useRef<number | null>(null);
   const countdownTimer = useRef<number | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const lastBroadcastRef = useRef<number>(0);
+  const openRef = useRef(false);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   const clearIdleTimer = () => {
     if (idleTimer.current !== null) {
@@ -72,6 +84,27 @@ const IdleTimeoutDialog = ({ enabled, onSignOut }: IdleTimeoutDialogProps) => {
     idleTimer.current = window.setTimeout(startCountdown, IDLE_MS);
   }, [startCountdown]);
 
+  // Broadcast activity to other tabs (throttled)
+  const broadcast = useCallback((type: string) => {
+    const now = Date.now();
+    if (type === MSG_ACTIVITY && now - lastBroadcastRef.current < BROADCAST_THROTTLE_MS) {
+      return;
+    }
+    lastBroadcastRef.current = now;
+    const payload = { type, ts: now };
+    try {
+      channelRef.current?.postMessage(payload);
+    } catch {
+      // noop
+    }
+    // localStorage fallback so 'storage' listeners in other tabs fire
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // noop
+    }
+  }, []);
+
   useEffect(() => {
     if (!enabled) {
       clearIdleTimer();
@@ -80,10 +113,52 @@ const IdleTimeoutDialog = ({ enabled, onSignOut }: IdleTimeoutDialogProps) => {
       return;
     }
 
+    // Set up cross-tab channel
+    if ("BroadcastChannel" in window) {
+      try {
+        channelRef.current = new BroadcastChannel(CHANNEL_NAME);
+      } catch {
+        channelRef.current = null;
+      }
+    }
+
+    const handleRemoteSignal = (type: string) => {
+      if (type === MSG_STAY) {
+        // Another tab refreshed the session — close our warning if open
+        clearCountdown();
+        setOpen(false);
+        resetIdleTimer();
+        return;
+      }
+      if (type === MSG_ACTIVITY) {
+        // Don't reset while our warning dialog is open — user must explicitly stay
+        if (openRef.current) return;
+        resetIdleTimer();
+      }
+    };
+
+    const onChannelMessage = (e: MessageEvent) => {
+      const data = e.data as { type?: string } | null;
+      if (data?.type) handleRemoteSignal(data.type);
+    };
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || !e.newValue) return;
+      try {
+        const data = JSON.parse(e.newValue) as { type?: string };
+        if (data?.type) handleRemoteSignal(data.type);
+      } catch {
+        // noop
+      }
+    };
+
+    channelRef.current?.addEventListener("message", onChannelMessage);
+    window.addEventListener("storage", onStorage);
+
     const handleActivity = () => {
-      // Don't reset while warning dialog is showing — user must explicitly stay signed in
-      if (open) return;
+      if (openRef.current) return;
       resetIdleTimer();
+      broadcast(MSG_ACTIVITY);
     };
 
     ACTIVITY_EVENTS.forEach((evt) =>
@@ -96,10 +171,18 @@ const IdleTimeoutDialog = ({ enabled, onSignOut }: IdleTimeoutDialogProps) => {
       ACTIVITY_EVENTS.forEach((evt) =>
         window.removeEventListener(evt, handleActivity)
       );
+      window.removeEventListener("storage", onStorage);
+      channelRef.current?.removeEventListener("message", onChannelMessage);
+      try {
+        channelRef.current?.close();
+      } catch {
+        // noop
+      }
+      channelRef.current = null;
       clearIdleTimer();
       clearCountdown();
     };
-  }, [enabled, open, resetIdleTimer]);
+  }, [enabled, resetIdleTimer, broadcast]);
 
   const handleStaySignedIn = async () => {
     clearCountdown();
@@ -110,6 +193,7 @@ const IdleTimeoutDialog = ({ enabled, onSignOut }: IdleTimeoutDialogProps) => {
       // noop — onAuthStateChange will surface any session issues
     }
     resetIdleTimer();
+    broadcast(MSG_STAY);
   };
 
   return (
