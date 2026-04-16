@@ -493,9 +493,49 @@ const Login = () => {
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10 bg-secondary border-input"
                         required
-                        minLength={6}
+                        minLength={isLogin ? 6 : 8}
                       />
                     </div>
+                    {!isLogin && password.length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        {/* Strength bar */}
+                        <div className="flex gap-1">
+                          {[0, 1, 2, 3].map((i) => (
+                            <div
+                              key={i}
+                              className={`h-1 flex-1 rounded-full transition-colors ${
+                                passwordScore > i ? strengthColors[passwordScore] : "bg-muted"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{strengthLabel}</p>
+                        {/* Checklist */}
+                        <ul className="space-y-1 text-xs">
+                          {[
+                            { ok: passwordChecks.length, label: t("auth.passwordMinLength", "At least 8 characters") },
+                            { ok: passwordChecks.uppercase, label: t("auth.passwordUppercase", "One uppercase letter") },
+                            { ok: passwordChecks.lowercase, label: t("auth.passwordLowercase", "One lowercase letter") },
+                            { ok: passwordChecks.number, label: t("auth.passwordNumber", "One number") },
+                            { ok: passwordChecks.symbol, label: t("auth.passwordSymbol", "One symbol (!@#$…)") },
+                          ].map((rule, i) => (
+                            <li
+                              key={i}
+                              className={`flex items-center gap-2 ${
+                                rule.ok ? "text-green-500" : "text-muted-foreground"
+                              }`}
+                            >
+                              {rule.ok ? (
+                                <Check className="h-3.5 w-3.5" />
+                              ) : (
+                                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 ml-1" />
+                              )}
+                              {rule.label}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                   {!isLogin && (
                     <div className="flex items-start gap-2">
@@ -520,7 +560,7 @@ const Login = () => {
                   <Button
                     type="submit"
                     className="w-full h-12 rounded-xl text-base font-semibold"
-                    disabled={loading || (!isLogin && !agreedToTerms)}
+                    disabled={loading || (!isLogin && (!agreedToTerms || !passwordValid))}
                   >
                     {loading ? t("auth.loading") : isLogin ? t("auth.signIn") : t("auth.signUp")}
                   </Button>
