@@ -13,7 +13,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
-import { lovable } from "@/integrations/lovable/index";
 
 type AuthView = "main" | "email" | "phone-otp";
 

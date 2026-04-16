@@ -48,6 +48,7 @@ const CorporateApply = lazy(() => import("./pages/CorporateApply"));
 const RiderActivity = lazy(() => import("./pages/RiderActivity"));
 const RiderAccount = lazy(() => import("./pages/RiderAccount"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -99,6 +100,7 @@ const AppContent = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth" element={<Navigate to="/login" replace />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/corporate-apply" element={<Navigate to="/rider/corporate-apply" replace />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
