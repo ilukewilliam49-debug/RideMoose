@@ -12,10 +12,14 @@ i18n
       en: { translation: en },
       fr: { translation: fr },
     },
+    supportedLngs: ["en", "fr"],
     fallbackLng: "en",
+    load: "languageOnly", // map "fr-CA", "fr-FR" → "fr"
+    nonExplicitSupportedLngs: true,
     interpolation: { escapeValue: false },
     detection: {
-      order: ["localStorage", "navigator"],
+      order: ["localStorage", "navigator", "htmlTag"],
+      lookupLocalStorage: "i18nextLng",
       caches: ["localStorage"],
     },
   });
