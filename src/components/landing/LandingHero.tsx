@@ -98,7 +98,7 @@ const LandingHero = () => {
                   onClick={() => navigate("/login")}
                   className="text-sm font-bold text-primary hover:underline"
                 >
-                  Schedule ahead →
+                  {t("landing.scheduleAhead")}
                 </button>
               </div>
             </div>
