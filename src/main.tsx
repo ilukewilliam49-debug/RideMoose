@@ -69,6 +69,25 @@ const normalizePathname = () => {
   }
 };
 
+// "Remember me" off → wipe Supabase auth tokens from localStorage when the
+// tab/window is closed, so the user must re-authenticate on next open.
+// Uses pagehide (more reliable than beforeunload, esp. on mobile Safari).
+const installSessionOnlyTokenWipe = () => {
+  const wipe = () => {
+    try {
+      if (localStorage.getItem("pickyou.session_only") !== "1") return;
+      // Supabase JS v2 stores tokens under keys starting with "sb-"
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith("sb-") && k.endsWith("-auth-token"))
+        .forEach((k) => localStorage.removeItem(k));
+      localStorage.removeItem("pickyou.session_only");
+    } catch {
+      /* ignore storage errors */
+    }
+  };
+  window.addEventListener("pagehide", wipe);
+};
+
 const bootstrap = async () => {
   redirectToCanonicalHost();
   normalizePathname();
@@ -83,6 +102,7 @@ const bootstrap = async () => {
     return;
   }
 
+  installSessionOnlyTokenWipe();
   createRoot(document.getElementById("root")!).render(<App />);
 };
 

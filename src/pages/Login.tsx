@@ -34,6 +34,7 @@ const Login = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handlePasswordKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (typeof e.getModifierState === "function") {
@@ -135,6 +136,15 @@ const Login = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // "Remember me": when unchecked, mark this session as tab-only.
+        // A pagehide listener (registered in main.tsx) will clear the
+        // Supabase auth token from localStorage when the tab/window closes,
+        // forcing the user to sign in again next time.
+        if (rememberMe) {
+          localStorage.removeItem("pickyou.session_only");
+        } else {
+          localStorage.setItem("pickyou.session_only", "1");
+        }
         toast.success(t("auth.welcomeBack"));
       } else {
         if (!agreedToTerms) {
@@ -592,6 +602,18 @@ const Login = () => {
                         <a href="/privacy" target="_blank" className="text-primary hover:underline">
                           {t("auth.privacyPolicy", "Privacy Policy")}
                         </a>
+                      </label>
+                    </div>
+                  )}
+                  {isLogin && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="remember"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => setRememberMe(checked === true)}
+                      />
+                      <label htmlFor="remember" className="text-sm text-muted-foreground leading-none cursor-pointer">
+                        {t("auth.rememberMe", "Remember me on this device")}
                       </label>
                     </div>
                   )}
