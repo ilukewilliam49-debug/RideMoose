@@ -15,6 +15,7 @@ import OfflineBanner from "./components/OfflineBanner";
 import NetworkErrorBanner from "./components/NetworkErrorBanner";
 import SplashScreen from "./components/SplashScreen";
 import { useAuth } from "./hooks/useAuth";
+import { useHasActiveRide } from "./hooks/useHasActiveRide";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ActiveRoleProvider } from "./contexts/ActiveRoleContext";
 
@@ -72,8 +73,9 @@ const PageLoader = () => (
 );
 
 const AppContent = () => {
-  const { user, sessionExpired, expiredEmail, clearSessionExpired, signOut } = useAuth();
+  const { user, profile, sessionExpired, expiredEmail, clearSessionExpired, signOut } = useAuth();
   useNetworkStatus();
+  const hasActiveRide = useHasActiveRide(profile);
 
   const handleReLoginSuccess = () => {
     clearSessionExpired();
@@ -100,7 +102,7 @@ const AppContent = () => {
         onSuccess={handleReLoginSuccess}
         onSwitchAccount={handleSwitchAccount}
       />
-      <IdleTimeoutDialog enabled={!!user} onSignOut={handleIdleSignOut} />
+      <IdleTimeoutDialog enabled={!!user && !hasActiveRide} onSignOut={handleIdleSignOut} />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
