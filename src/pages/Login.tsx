@@ -167,6 +167,21 @@ const Login = () => {
     </div>
   );
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-6">
+        <img src={logoImg} alt="PickYou" className="h-16 rounded-xl object-contain animate-pulse" />
+        <div className="w-full max-w-sm space-y-4 px-6">
+          <div className="h-8 w-3/4 mx-auto rounded-lg bg-muted animate-pulse" />
+          <div className="h-12 w-full rounded-xl bg-muted animate-pulse" />
+          <div className="h-12 w-full rounded-xl bg-muted animate-pulse" />
+          <div className="h-12 w-full rounded-xl bg-muted animate-pulse" />
+          <div className="h-12 w-full rounded-xl bg-muted animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top bar */}
