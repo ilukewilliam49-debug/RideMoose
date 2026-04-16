@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -139,10 +139,15 @@ const DriverOnboardingPending = () => {
     }
   };
 
-  // Auto-redirect when fully approved
-  if (allApproved) {
-    setTimeout(() => navigate("/driver", { replace: true }), 100);
-  }
+  // Auto-redirect when fully approved. MUST live inside an effect — calling
+  // navigate() (or scheduling it via setTimeout) during render throws a
+  // React warning and, under Suspense, can surface as a crash that the
+  // global ErrorBoundary catches ("Something went wrong").
+  useEffect(() => {
+    if (!allApproved) return;
+    const id = window.setTimeout(() => navigate("/driver", { replace: true }), 100);
+    return () => window.clearTimeout(id);
+  }, [allApproved, navigate]);
 
   return (
     <div
@@ -176,9 +181,8 @@ const DriverOnboardingPending = () => {
         className="w-full max-w-lg"
       >
         <div className="text-center mb-6">
-          <button
-            type="button"
-            onClick={() => navigate("/?view=landing", { replace: true })}
+          <a
+            href="/?view=landing"
             aria-label="Go to homepage"
             className="block mx-auto mb-4 rounded-xl transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
@@ -187,7 +191,7 @@ const DriverOnboardingPending = () => {
               alt="PickYou"
               className="h-14 rounded-xl drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
             />
-          </button>
+          </a>
         </div>
 
         <Card
