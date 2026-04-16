@@ -16,10 +16,10 @@ import logoImg from "@/assets/logo.png";
 const VEHICLE_TYPES = ["Sedan", "SUV", "Van", "Truck"] as const;
 
 const REQUIRED_DOCUMENTS = [
-  { type: "drivers_license", label: "Driver's License" },
-  { type: "chauffeurs_permit", label: "Chauffeur's Permit" },
-  { type: "vehicle_insurance", label: "Vehicle Insurance" },
-  { type: "vehicle_registration", label: "Vehicle Registration" },
+  { type: "drivers_license", label: "Driver's License", optional: false },
+  { type: "chauffeurs_permit", label: "Chauffeur's Permit", optional: true },
+  { type: "vehicle_insurance", label: "Vehicle Insurance", optional: false },
+  { type: "vehicle_registration", label: "Vehicle Registration", optional: false },
 ] as const;
 
 const DriverOnboarding = () => {
@@ -113,7 +113,7 @@ const DriverOnboarding = () => {
     }
   };
 
-  const allDocsUploaded = REQUIRED_DOCUMENTS.every((d) => uploadedDocs[d.type]);
+  const allDocsUploaded = REQUIRED_DOCUMENTS.every((d) => d.optional || uploadedDocs[d.type]);
 
   const handleFinish = () => {
     toast.success("Your application is under review. We'll notify you once approved!");
@@ -312,7 +312,12 @@ const DriverOnboarding = () => {
                       ) : (
                         <Upload className="h-5 w-5 text-muted-foreground" />
                       )}
-                      <span className="text-sm font-medium">{doc.label}</span>
+                      <span className="text-sm font-medium">
+                        {doc.label}
+                        {doc.optional && (
+                          <span className="ml-1 text-xs text-muted-foreground font-normal">(optional)</span>
+                        )}
+                      </span>
                     </div>
                     {!uploadedDocs[doc.type] && (
                       <label>
