@@ -312,9 +312,29 @@ const Login = () => {
             />
           </div>
 
-          <h1 className="text-2xl font-bold text-center mb-8 text-foreground">
-            {t("auth.getStarted", "Get started with PickYou")}
+          {preselectedSignup && view === "main" && (
+            <div className="flex justify-center mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-primary ring-1 ring-primary/20">
+                <Car className="h-3 w-3" />
+                {t("auth.driverApplication", "Driver application")}
+              </span>
+            </div>
+          )}
+
+          <h1 className="text-2xl font-bold text-center mb-2 text-foreground">
+            {preselectedSignup
+              ? t("auth.createDriverAccount", "Create your driver account")
+              : t("auth.getStarted", "Get started with PickYou")}
           </h1>
+          {preselectedSignup && view === "main" && (
+            <p className="text-center text-sm text-muted-foreground mb-6">
+              {t(
+                "auth.driverAccountSubtitle",
+                "Takes about 4 minutes. Approved in 24 hours.",
+              )}
+            </p>
+          )}
+          {!preselectedSignup && <div className="mb-8" />}
 
           <AnimatePresence mode="wait">
             {/* ── MAIN VIEW ── */}
