@@ -138,8 +138,14 @@ const Login = () => {
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
+      // Preserve ?role=driver across the OAuth round-trip so AuthCallback can
+      // promote the profile to driver before routing.
+      const roleParam = searchParams.get("role");
+      const redirectUri = `${window.location.origin}/auth/callback${
+        roleParam ? `?role=${encodeURIComponent(roleParam)}` : ""
+      }`;
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: redirectUri,
       });
 
       if (result.error) {

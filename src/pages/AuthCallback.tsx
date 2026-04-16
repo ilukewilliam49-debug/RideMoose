@@ -17,6 +17,22 @@ const AuthCallback = () => {
           return;
         }
 
+        // If the login flow preserved ?role=driver across the OAuth round-trip,
+        // promote the user to a driver profile before deciding where to route.
+        const params = new URLSearchParams(window.location.search);
+        const roleParam = params.get("role");
+        if (roleParam === "driver") {
+          // Update auth metadata so the profile trigger sees it for new users,
+          // and update existing profile rows for returning users. Admins are
+          // never demoted (we only upgrade rider → driver).
+          await supabase.auth.updateUser({ data: { role: "driver" } });
+          await supabase
+            .from("profiles")
+            .update({ role: "driver" as any })
+            .eq("user_id", session.user.id)
+            .neq("role", "admin");
+        }
+
         // Fetch profile to determine role-based redirect
         const { data: profile } = await supabase
           .from("profiles")
