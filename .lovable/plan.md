@@ -1,40 +1,36 @@
 
 
-# Google Sign-In on pickyou.ca — Clarification & Plan
+# Set Up Your Own Google OAuth Credentials
 
-## Important Context
+## What You Need to Do (in Google Cloud Console)
 
-This project is **not deployed on Netlify** — it runs on **Lovable hosting** (published at `pickyou.lovable.app` with `pickyou.ca` as a custom domain). This changes the approach significantly:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Credentials**
+2. On the **OAuth consent screen**, add your domains (`pickyou.ca`, `*.lovable.app`) under Authorized domains
+3. Configure scopes: `openid`, `email`, `profile`
+4. Create an **OAuth Client ID** (Web application type)
+5. Set **Authorized JavaScript origins**:
+   - `https://pickyou.ca`
+   - `https://www.pickyou.ca`
+   - `https://pickyou.lovable.app`
+6. Set **Authorized redirect URI** to the Supabase callback URL:
+   - `https://qmkcgwgiqrmtqrxmxeam.supabase.co/auth/v1/callback`
+7. Copy the **Client ID** and **Client Secret**
 
-1. **`public/_redirects` has no effect** — Lovable hosting has built-in SPA fallback. The existing `_redirects` file is inert and can be deleted.
+## What I'll Do in the App
 
-2. **No `/auth/callback` route is needed** — The project uses **Lovable Cloud managed OAuth** (`lovable.auth.signInWithOAuth`), which handles the entire OAuth token exchange automatically via Lovable's proxy at `/~oauth/`. Custom domains are fully supported by this system.
+### 1. Configure Google credentials in Lovable Cloud
+Use the Cloud auth settings tool to switch Google OAuth from "Managed by Lovable" to your own Client ID and Secret. You'll be prompted to enter these values.
 
-3. **Google sign-in should already work on pickyou.ca** — The managed OAuth infrastructure handles custom domains automatically. The current `redirect_uri: window.location.origin` resolves correctly to `https://pickyou.ca`.
+### 2. Keep the current direct Supabase OAuth code
+The current code already uses `supabase.auth.signInWithOAuth()` which is correct for BYOK (Bring Your Own Keys) Google credentials — this bypasses Lovable's managed proxy and talks directly to Supabase, which is what we want.
 
-## What I'll Actually Do
+### 3. Verify the `/auth/callback` route
+The existing `AuthCallback` page and route are already set up to handle the OAuth return, read the session, and redirect to the correct dashboard.
 
-Since the architecture doesn't need the changes you described, here's what will genuinely help:
+### 4. Ensure redirect URL works
+The current `redirectTo: window.location.origin + "/auth/callback"` will resolve to `https://pickyou.ca/auth/callback` in production and `http://localhost:5173/auth/callback` in dev — both need to be in Supabase's allowed redirect URLs.
 
-### 1. Delete `public/_redirects`
-It's a Netlify artifact with no effect on Lovable hosting. Removing it avoids confusion.
-
-### 2. Verify Google OAuth works on pickyou.ca
-Navigate to `https://pickyou.ca/login` and test the Google sign-in button to confirm the managed OAuth flow completes successfully on the custom domain.
-
-### 3. If OAuth fails — diagnose and fix
-If the flow does fail, the most likely causes are:
-- Custom domain DNS misconfiguration (preventing `/~oauth` proxy interception)
-- A service worker caching `/~oauth` routes (the existing `sw.js` would need a denylist entry)
-
-I'll check `public/sw.js` for any problematic caching of OAuth paths and add `/~oauth` to the denylist if needed.
-
-### 4. Improve post-OAuth role routing
-The current flow redirects to `/` after OAuth, then the Login page's `useEffect` redirects to the role-based route. This works but adds a visible hop. I can make the redirect smoother if desired.
-
-## Technical Details
-
-- **OAuth flow**: `lovable.auth.signInWithOAuth("google")` → Lovable proxy at `/~oauth/initiate` → Google → `/~oauth/callback` → token exchange → redirect to `redirect_uri` with session set
-- **No server-side callback route needed** — tokens are exchanged by the proxy, not by app code
-- **Custom domain OAuth** is explicitly supported per Lovable Cloud docs
+## Summary of Changes
+- Configure your Google Client ID + Secret in Lovable Cloud auth settings
+- No code changes needed — the current implementation already supports BYOK credentials
 
