@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Car, ArrowLeft, Phone } from "lucide-react";
+import { Mail, Lock, User, Car, ArrowLeft, Phone, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +40,26 @@ const Login = () => {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const { t } = useTranslation();
+
+  // Password strength rules (only enforced on signup)
+  const passwordChecks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    symbol: /[^A-Za-z0-9]/.test(password),
+  };
+  const passwordScore = Object.values(passwordChecks).filter(Boolean).length;
+  const passwordValid = passwordScore === 5;
+  const strengthLabel =
+    passwordScore <= 2
+      ? t("auth.passwordStrengthWeak", "Weak")
+      : passwordScore === 3
+      ? t("auth.passwordStrengthFair", "Fair")
+      : passwordScore === 4
+      ? t("auth.passwordStrengthGood", "Good")
+      : t("auth.passwordStrengthStrong", "Strong");
+  const strengthColors = ["bg-destructive", "bg-destructive", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
 
   useEffect(() => {
     if (!authLoading && user && profile) {
@@ -110,6 +130,11 @@ const Login = () => {
       } else {
         if (!agreedToTerms) {
           toast.error(t("auth.mustAgreeToTerms", "You must agree to the Terms of Service"));
+          setLoading(false);
+          return;
+        }
+        if (!passwordValid) {
+          toast.error(t("auth.passwordTooWeak", "Password does not meet all requirements"));
           setLoading(false);
           return;
         }
