@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { resolvePostAuthRoute, clearRoleIntentFromUrl } from "@/lib/post-auth-route";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -32,19 +33,12 @@ const AuthCallback = () => {
         // Fetch profile to determine role-based redirect
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role, is_driver, driver_onboarding_complete")
+          .select("role, is_driver, is_rider, driver_onboarding_complete")
           .eq("user_id", session.user.id)
           .single();
 
-        let route = "/rider";
-        if (profile?.role === "admin") {
-          route = "/admin";
-        } else if (roleParam === "driver" || (profile as any)?.is_driver) {
-          // Send to onboarding when the driver hasn't finished setup yet,
-          // otherwise to the driver dashboard.
-          route = (profile as any)?.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
-        }
-
+        const route = resolvePostAuthRoute(profile as any, { intent: roleParam });
+        clearRoleIntentFromUrl();
         navigate(route, { replace: true });
       } catch (err) {
         console.error("OAuth callback unexpected error:", err);
