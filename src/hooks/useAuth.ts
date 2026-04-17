@@ -146,6 +146,7 @@ export const useAuth = () => {
 
   const signOut = async () => {
     clearSessionExpired();
+    clearActiveRoleStorage();
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
