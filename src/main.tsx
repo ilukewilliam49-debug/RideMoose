@@ -18,18 +18,45 @@ const isPreviewHost =
 const isOAuthProxyPath = window.location.pathname.startsWith("/~oauth/");
 const oauthRecoveryKey = "__oauth_sw_recovery__";
 const canonicalHost = "www.pickyou.ca";
-const legacyHosts = new Set(["pickyou.lovable.app"]);
+const legacyHosts = new Set(["pickyou.lovable.app", "pickyou.ca"]);
+
+// Kill-switch: bump this string when stale Service Workers / caches need to
+// be force-purged across all origins. Stored per-origin in localStorage so
+// each browser self-cleans exactly once per version.
+const KILL_SWITCH_VERSION = "2026-04-17-sw-purge-1";
+const KILL_SWITCH_KEY = "__pickyou_sw_purge__";
 
 // Public host consolidation: redirect legacy hosts to the active custom domain
-// (preserves path, query, hash). Skipped for OAuth proxy paths so the managed
-// auth flow can complete on the original host.
-const redirectToCanonicalHost = () => {
+// (preserves path, query, hash). Before redirecting, force-unregister the
+// legacy origin's Service Worker + caches so it can never serve stale content
+// on the next visit. Skipped for OAuth proxy paths so the managed auth flow
+// can complete on the original host.
+const redirectToCanonicalHost = async () => {
   if (isInIframe || isPreviewHost) return;
   if (isOAuthProxyPath) return;
   if (!legacyHosts.has(window.location.hostname)) return;
 
+  // Self-clean the legacy origin so re-visits don't resurrect stale builds.
+  await Promise.allSettled([unregisterServiceWorkers(), clearBrowserCaches()]);
+
   const target = `https://${canonicalHost}${window.location.pathname}${window.location.search}${window.location.hash}`;
   window.location.replace(target);
+};
+
+// One-time kill-switch: when KILL_SWITCH_VERSION changes, force every
+// origin (including the canonical host) to drop its old Service Worker and
+// caches, then reload once. Guarded by localStorage so it never loops.
+const runKillSwitchOnce = async () => {
+  if (isInIframe || isPreviewHost) return false;
+  try {
+    if (localStorage.getItem(KILL_SWITCH_KEY) === KILL_SWITCH_VERSION) return false;
+    await Promise.allSettled([unregisterServiceWorkers(), clearBrowserCaches()]);
+    localStorage.setItem(KILL_SWITCH_KEY, KILL_SWITCH_VERSION);
+    window.location.reload();
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const unregisterServiceWorkers = async () => {
@@ -92,7 +119,10 @@ const installSessionOnlyTokenWipe = () => {
 };
 
 const bootstrap = async () => {
-  redirectToCanonicalHost();
+  // Run kill-switch first — if it fires, we reload and bail before anything else.
+  if (await runKillSwitchOnce()) return;
+
+  await redirectToCanonicalHost();
   normalizePathname();
 
   if (isPreviewHost || isInIframe) {
