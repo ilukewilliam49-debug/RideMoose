@@ -119,7 +119,10 @@ const installSessionOnlyTokenWipe = () => {
 };
 
 const bootstrap = async () => {
-  redirectToCanonicalHost();
+  // Run kill-switch first — if it fires, we reload and bail before anything else.
+  if (await runKillSwitchOnce()) return;
+
+  await redirectToCanonicalHost();
   normalizePathname();
 
   if (isPreviewHost || isInIframe) {
