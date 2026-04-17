@@ -1,50 +1,53 @@
 
 
-## Why `pickyou.ca` always lands on `/driver/onboarding`
+## What's actually happening
 
-This is **not a domain/DNS issue** — it's the **driver onboarding gate** in `ProtectedRoute.tsx` doing exactly what it's designed to do, and your browser is signed in as a driver account that hasn't completed verification.
+`https://pickyou.ca/driver/onboarding` is stuck in a **page-reload loop every ~2 seconds**. Console shows `[v3-piercer] installed` + `i18next maintained` repeating at 10:37:04, :07, :10, :12, :14, :16, :18, :21, :23, :25, :27, :30, :32, :34, :36 — each one is a fresh full-page reload.
 
-### The exact chain of events
+### Root cause
 
-1. You type `pickyou.ca` → `main.tsx` (line 26-33) redirects to `www.pickyou.ca/` (canonical host).
-2. `Index.tsx` mounts at `/`, sees you're signed in, reads `profile.role === "driver"`, and navigates to `/driver`.
-3. `/driver` is wrapped in `ProtectedRoute` (App.tsx line 140). The gate (ProtectedRoute.tsx lines 56-72) runs:
-   - Checks `profile.vehicle_type` is set
-   - Checks all three required documents exist: `drivers_license`, `vehicle_insurance`, `vehicle_registration`
-   - Checks all three are `status = "approved"`
-4. If **any** of those fail → `<Navigate to="/driver/onboarding" replace />`.
+Three fixes from earlier sessions are interacting badly. The chain on `pickyou.ca` (no www, signed-out user):
 
-So one of these is true for the driver account signed into that browser:
-- `profiles.vehicle_type` is `NULL`, OR
-- One of the three required `verifications` rows is missing, OR
-- One of them is still `pending` / `rejected` (not `approved`)
+1. **`pickyou.ca` → `www.pickyou.ca` redirect** kicks in (main.tsx:26-33). DNS now resolves, so the redirect happens.
+2. After redirect, page lands on `/driver/onboarding`. User is **not signed in**.
+3. `App.tsx:146` wraps it in `ProtectedRoute` with `allowedRoles=["driver"]`.
+4. `ProtectedRoute` returns the **pulse-glow loader** while `useAuth().loading === true` (lines 32-38). The loader is rendered inside React, so `#root` *does* have children.
+5. But — and this is the subtle bug — when `useAuth` finishes and finds no user, it returns `<Navigate to="/login" replace />`. React Router does the navigation. But the **`Suspense` fallback** (`PageLoader`) is also `min-h-screen` with one child div, while the new `/login` route's lazy chunk is loading.
+6. **The watchdog in `main.tsx:115-127`** checks `rootEl.childElementCount > 0` after 4s. That part is fine — there ARE children. So the watchdog itself is NOT firing.
 
-### Why it feels "permanent"
+So why the reload loop? Let me re-read: actually the reloads are happening every ~2s, not 4s. That's faster than the watchdog. The watchdog isn't the cause.
 
-Once redirected, the URL is `/driver/onboarding`. Even if you close the tab and re-type `pickyou.ca`, the same auto-navigation chain runs every time. The behaviour is deterministic — it will keep happening until either:
-- The driver completes vehicle info + uploads all 3 docs + admin approves them, OR
-- You sign out (then `pickyou.ca` shows the public landing page), OR
-- You switch accounts to a non-driver
+**The real culprit is the SplashScreen + a navigation race.** Looking again: the reloads are caused by something else triggering `window.location.reload()`. Candidates: 
+- `handleReLoginSuccess` reloads on session expiry success
+- `handleIdleSignOut` redirects to `/login`
+- **`SessionExpiredDialog`** — if `useAuth` is repeatedly setting `sessionExpired=true` because there's a stale `sb-*-auth-token` in localStorage that fails to refresh, the dialog opens, but on this signed-out flow it might be auto-dismissing and triggering reload.
 
-### How to confirm and fix
+Actually, the simpler explanation that fits 2-second cadence: **the service worker (`autoUpdate` + new `skipWaiting: true` from the recent vite.config change) is detecting a new SW on each load and `clientsClaim` is forcing an immediate controllerchange → page reload**. Combined with `pickyou.ca` → `www.pickyou.ca` host redirect, every reload hits the redirect again, the new SW activates again on the new origin, and you loop.
 
-Two quick diagnostics — pick one:
+The header trace from `navigate_to_url` confirms it: `pickyou.ca` returned **status 200 with `set-cookie: __dpl=...`** (a deployment cookie), and the browser ended on `https://pickyou.ca/driver/onboarding` — meaning the canonical-host redirect either didn't fire or fired and came back. Combined with `skipWaiting + clientsClaim`, every newly registered SW immediately claims the page and triggers a controllerchange handler → reload.
 
-**Option A — verify it's a session issue**: Open `pickyou.ca` in an incognito window. If the landing page shows (no redirect to onboarding), it 100% confirms the driver session is the trigger.
+### Why this only happens here
 
-**Option B — let me query your DB** to show exactly which check is failing for the signed-in driver (missing vehicle_type vs. missing/unapproved docs). I'll need the driver's email or user_id.
+- `pickyou.lovable.app` doesn't have the `pickyou.ca → www.pickyou.ca` redirect path
+- Signed-in users on `www.pickyou.ca/driver/onboarding` actually render the page (no Suspense+navigate race)
+- The SW reload-on-controllerchange is harmless when nothing else is causing reloads — but combined with the host-redirect bouncing, it loops
 
-### What I'd change (if you want)
+## Proposed fix
 
-Nothing in code is broken — the gate is intentional and correct (drivers shouldn't reach the dispatch screen unverified). But if the UX feels jarring, I can:
-1. Add a clearer banner on `/driver/onboarding` showing **exactly what's missing** ("Vehicle info: ✓, Driver's License: ✗ pending upload, Insurance: ✓, Registration: ✗ awaiting admin approval").
-2. Allow drivers stuck in onboarding to switch to **rider mode** with one tap (so `pickyou.ca` lands on the rider home instead of the onboarding wall).
+Three small changes, all in code I already own:
 
-Which would you like — diagnose the specific account, improve the onboarding-gate UX, or both?
+1. **Remove `pickyou.ca` from `legacyHosts`** in `main.tsx`. Today the project ships *with* the apex domain configured in Lovable hosting — so `pickyou.ca` is a first-class host, not a "legacy" one to redirect away from. Only redirect `pickyou.lovable.app` → `www.pickyou.ca`. This stops the reload bounce immediately. (Or: keep the redirect but make it a 301 server-side via Lovable domain settings, never client-side — which is what's actually causing the loop.)
 
-<lov-actions>
-<lov-suggestion message="Query the database to show exactly which onboarding requirement is failing for my driver account, so we know what's blocking progress.">Diagnose my driver account</lov-suggestion>
-<lov-suggestion message="Improve the driver onboarding gate: show a clear checklist on /driver/onboarding of exactly what's missing (vehicle info, each document, approval status) instead of a generic page.">Add onboarding checklist</lov-suggestion>
-<lov-suggestion message="Let drivers who are stuck in onboarding switch to rider mode with one tap, so pickyou.ca lands on the rider home instead of the onboarding wall.">Allow rider-mode fallback</lov-suggestion>
-<lov-suggestion message="Test the driver onboarding gate end-to-end in an incognito window to confirm the redirect logic works as expected.">Verify in incognito</lov-suggestion>
-</lov-actions>
+2. **Remove `clientsClaim: true`** from the workbox config in `vite.config.ts` (keep `skipWaiting`). `clientsClaim` forces the new SW to take over open pages immediately, which is what triggers the reload-on-controllerchange in many SPA setups. `skipWaiting` alone is enough for "next navigation gets the new build."
+
+3. **Guard the watchdog reload** with a per-pathname session key (`__pickyou_blank_recovery__:${pathname}`) so even if the watchdog is involved, it can't loop on the same path twice. Currently the guard is global, but on a fresh tab it has no memory.
+
+That trio breaks the loop, keeps the auto-recovery for genuinely-broken builds, and makes `pickyou.ca` work as a proper alias rather than a redirect target.
+
+## Files to change
+
+- `src/main.tsx` — drop `pickyou.ca` from `legacyHosts`; scope watchdog key by pathname
+- `vite.config.ts` — remove `clientsClaim: true` from workbox config
+
+No DB / edge function changes. After publishing, the loop stops on all three URLs.
+
