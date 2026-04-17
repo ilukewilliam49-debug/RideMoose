@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { clearActiveRoleStorage } from "@/lib/post-auth-route";
 
 export interface Profile {
   id: string;
