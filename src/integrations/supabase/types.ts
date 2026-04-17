@@ -741,9 +741,12 @@ export type Database = {
           commission_rate: number
           created_at: string
           driver_balance_cents: number
+          driver_onboarding_complete: boolean
           full_name: string
           id: string
           is_available: boolean | null
+          is_driver: boolean
+          is_rider: boolean
           last_seen_at: string | null
           latitude: number | null
           launch_start_date: string | null
@@ -782,9 +785,12 @@ export type Database = {
           commission_rate?: number
           created_at?: string
           driver_balance_cents?: number
+          driver_onboarding_complete?: boolean
           full_name?: string
           id?: string
           is_available?: boolean | null
+          is_driver?: boolean
+          is_rider?: boolean
           last_seen_at?: string | null
           latitude?: number | null
           launch_start_date?: string | null
@@ -823,9 +829,12 @@ export type Database = {
           commission_rate?: number
           created_at?: string
           driver_balance_cents?: number
+          driver_onboarding_complete?: boolean
           full_name?: string
           id?: string
           is_available?: boolean | null
+          is_driver?: boolean
+          is_rider?: boolean
           last_seen_at?: string | null
           latitude?: number | null
           launch_start_date?: string | null
