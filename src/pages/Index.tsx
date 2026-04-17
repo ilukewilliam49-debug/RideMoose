@@ -13,6 +13,7 @@ import LandingDriver from "@/components/landing/LandingDriver";
 import LandingFooter from "@/components/landing/LandingFooter";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
+import { resolvePostAuthRoute, clearRoleIntentFromUrl } from "@/lib/post-auth-route";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -24,24 +25,10 @@ const Index = () => {
 
   useEffect(() => {
     if (loading || !user || showPublicLanding) return;
-    const role = profile?.role;
-    const isDriverCapable = !!profile?.is_driver;
-    const driverReady = !!profile?.driver_onboarding_complete;
-
-    // Honour explicit ?role=driver intent on the landing URL — even if the
-    // user's primary role is still 'rider', send them into the driver flow
-    // (onboarding or dashboard depending on completion state).
     const intent = new URLSearchParams(location.search).get("role");
-    if (intent === "driver" && role !== "admin") {
-      navigate(driverReady ? "/driver" : "/driver/onboarding", { replace: true });
-      return;
-    }
-
-    if (role === "admin") navigate("/admin", { replace: true });
-    else if (role === "driver" || isDriverCapable) {
-      if (activeRole === "rider") navigate("/rider", { replace: true });
-      else navigate(driverReady ? "/driver" : "/driver/onboarding", { replace: true });
-    } else navigate("/rider", { replace: true });
+    const route = resolvePostAuthRoute(profile as any, { intent, activeRole });
+    clearRoleIntentFromUrl();
+    navigate(route, { replace: true });
   }, [user, profile, loading, navigate, showPublicLanding, activeRole, location.search]);
 
   if (loading || (user && !showPublicLanding)) return null;
