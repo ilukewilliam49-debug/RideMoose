@@ -246,7 +246,15 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
-        {/* Role switch button */}
+        {/* Active mode label — keeps the user oriented even when the header
+            mode badge is off-screen on small viewports. */}
+        {!collapsed && (
+          <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Mode</span>
+            <span className="text-xs font-semibold capitalize">{role}</span>
+          </div>
+        )}
+        {/* Role switch button — only when the user has both capabilities */}
         {canSwitch && !collapsed && (
           <Button
             variant="outline"
@@ -260,7 +268,7 @@ export function AppSidebar() {
             }}
           >
             <Car className="h-4 w-4 shrink-0" />
-            {activeRole === "driver" ? "Switch to Rider" : "Switch to Driver"}
+            Switch to {activeRole === "driver" ? "Rider" : "Driver"} mode
           </Button>
         )}
         {role === "rider" && (
