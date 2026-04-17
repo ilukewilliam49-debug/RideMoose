@@ -106,7 +106,25 @@ const bootstrap = async () => {
   }
 
   installSessionOnlyTokenWipe();
-  createRoot(document.getElementById("root")!).render(<App />);
+  const rootEl = document.getElementById("root")!;
+  createRoot(rootEl).render(<App />);
+
+  // Blank-screen watchdog: if React fails to mount (stale SW, broken chunk,
+  // etc.) and #root is still empty after 4s, force-unregister SWs, clear
+  // caches, and hard-reload once. Guarded by sessionStorage so we never loop.
+  const watchdogKey = "__pickyou_blank_recovery__";
+  setTimeout(() => {
+    if (rootEl.childElementCount > 0) return;
+    try {
+      if (sessionStorage.getItem(watchdogKey) === "1") return;
+      sessionStorage.setItem(watchdogKey, "1");
+    } catch {
+      /* ignore */
+    }
+    void Promise.allSettled([unregisterServiceWorkers(), clearBrowserCaches()]).then(
+      () => window.location.reload(),
+    );
+  }, 4000);
 };
 
 void bootstrap();
