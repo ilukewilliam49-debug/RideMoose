@@ -207,9 +207,21 @@ export default function ActiveTripPanel({
   const handleArrivedAtPickup = async (rideId: string) => {
     setTransitioning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("arrive-ride", { body: { ride_id: rideId } });
+      const body: Record<string, unknown> = { ride_id: rideId };
+      if (profile?.latitude != null && profile?.longitude != null) {
+        body.driver_lat = profile.latitude;
+        body.driver_lng = profile.longitude;
+      }
+      const { data, error } = await supabase.functions.invoke("arrive-ride", { body });
       if (error) { toast.error("Failed to mark arrival"); return; }
-      if (data?.error) { toast.error(data.error); return; }
+      if (data?.error) {
+        if (data?.code === "too_far_from_pickup") {
+          toast.error(data.error, { duration: 5000 });
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
       toast.success("Marked as arrived at pickup");
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     } finally { setTransitioning(false); }
@@ -218,9 +230,21 @@ export default function ActiveTripPanel({
   const handleStartTrip = async (rideId: string) => {
     setTransitioning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("start-ride", { body: { ride_id: rideId } });
+      const body: Record<string, unknown> = { ride_id: rideId };
+      if (profile?.latitude != null && profile?.longitude != null) {
+        body.driver_lat = profile.latitude;
+        body.driver_lng = profile.longitude;
+      }
+      const { data, error } = await supabase.functions.invoke("start-ride", { body });
       if (error) { toast.error("Failed to start ride"); return; }
-      if (data?.error) { toast.error(data.error); return; }
+      if (data?.error) {
+        if (data?.code === "too_far_from_pickup") {
+          toast.error(data.error, { duration: 5000 });
+        } else {
+          toast.error(data.error);
+        }
+        return;
+      }
       toast.success("Trip started");
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     } finally { setTransitioning(false); }

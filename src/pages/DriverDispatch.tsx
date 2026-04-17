@@ -277,15 +277,29 @@ const DriverDispatch = () => {
   }, []);
 
   // ─── Sound + vibration on new requests ───
+  // We must compute visiblePendingRides BEFORE this effect so it has stable input.
+  const visiblePendingRides = (pendingRides || []).filter((r) => !declinedIds.has(r.id));
+  const hasMountedSoundRef = useRef(false);
+
   useEffect(() => {
     const currentCount = visiblePendingRides.length;
 
-    // Check for newly dispatched-to-me rides (urgent alert)
+    // Track currently dispatched-to-me ride IDs
     const currentDispatchedIds = new Set(
       visiblePendingRides
         .filter((r) => r.dispatched_to_driver_id === profile?.id)
         .map((r) => r.id)
     );
+
+    // Suppress all alerts on the very first render (initial data load),
+    // otherwise drivers hear a siren just for opening the page.
+    if (!hasMountedSoundRef.current) {
+      hasMountedSoundRef.current = true;
+      prevPendingCountRef.current = currentCount;
+      prevDispatchedIdsRef.current = currentDispatchedIds;
+      return;
+    }
+
     const newDispatched = [...currentDispatchedIds].filter(
       (id) => !prevDispatchedIdsRef.current.has(id)
     );
@@ -298,7 +312,6 @@ const DriverDispatch = () => {
         gain.connect(ctx.destination);
         gain.gain.value = 0.45;
 
-        // First tone — high
         const osc1 = ctx.createOscillator();
         osc1.connect(gain);
         osc1.frequency.value = 1200;
@@ -306,7 +319,6 @@ const DriverDispatch = () => {
         osc1.start(ctx.currentTime);
         osc1.stop(ctx.currentTime + 0.15);
 
-        // Second tone — higher
         const osc2 = ctx.createOscillator();
         osc2.connect(gain);
         osc2.frequency.value = 1500;
@@ -314,7 +326,6 @@ const DriverDispatch = () => {
         osc2.start(ctx.currentTime + 0.18);
         osc2.stop(ctx.currentTime + 0.33);
 
-        // Repeat
         const osc3 = ctx.createOscillator();
         osc3.connect(gain);
         osc3.frequency.value = 1200;
@@ -333,16 +344,14 @@ const DriverDispatch = () => {
         setTimeout(() => ctx.close(), 900);
       } catch { /* audio not available */ }
 
-      // Trigger visual flash
       setUrgentFlash(true);
       setTimeout(() => setUrgentFlash(false), 1500);
 
-      // Strong haptic pattern for dispatched rides
       if (navigator.vibrate) {
         navigator.vibrate([100, 50, 100, 50, 200, 100, 300]);
       }
-    } else if (currentCount > prevPendingCountRef.current && prevPendingCountRef.current >= 0) {
-      // Standard alert for broadcast requests
+    } else if (currentCount > prevPendingCountRef.current) {
+      // Standard alert for new broadcast requests
       try {
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
@@ -358,7 +367,6 @@ const DriverDispatch = () => {
         setTimeout(() => ctx.close(), 600);
       } catch { /* audio not available */ }
 
-      // Standard vibrate
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
       }
@@ -366,7 +374,7 @@ const DriverDispatch = () => {
 
     prevPendingCountRef.current = currentCount;
     prevDispatchedIdsRef.current = currentDispatchedIds;
-  });
+  }, [visiblePendingRides, profile?.id]);
 
   // ─── Actions ───
   const acceptRide = useCallback(async (rideId: string) => {
@@ -404,7 +412,7 @@ const DriverDispatch = () => {
     toast.info("Request declined");
   }, []);
 
-  const visiblePendingRides = (pendingRides || []).filter((r) => !declinedIds.has(r.id));
+  // visiblePendingRides is declared above (used by the sound effect)
 
   const pendingMarkers: MapMarker[] = visiblePendingRides
     .filter((r) => r.pickup_lat && r.pickup_lng)

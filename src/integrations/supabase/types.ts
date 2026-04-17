@@ -744,6 +744,7 @@ export type Database = {
           full_name: string
           id: string
           is_available: boolean | null
+          last_seen_at: string | null
           latitude: number | null
           launch_start_date: string | null
           license_plate: string | null
@@ -784,6 +785,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_available?: boolean | null
+          last_seen_at?: string | null
           latitude?: number | null
           launch_start_date?: string | null
           license_plate?: string | null
@@ -824,6 +826,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_available?: boolean | null
+          last_seen_at?: string | null
           latitude?: number | null
           launch_start_date?: string | null
           license_plate?: string | null
@@ -1901,6 +1904,7 @@ export type Database = {
         Args: { _channel: string; _user_id: string }
         Returns: boolean
       }
+      auto_offline_stale_drivers: { Args: never; Returns: number }
       check_notification_rate_limit: {
         Args: { _key: string; _max_requests?: number; _window_seconds?: number }
         Returns: boolean
