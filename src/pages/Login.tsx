@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
+import { resolvePostAuthRoute, clearRoleIntentFromUrl } from "@/lib/post-auth-route";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 type AuthView = "main" | "email" | "phone-otp";
 
