@@ -18,7 +18,7 @@ const isPreviewHost =
 const isOAuthProxyPath = window.location.pathname.startsWith("/~oauth/");
 const oauthRecoveryKey = "__oauth_sw_recovery__";
 const canonicalHost = "www.pickyou.ca";
-const legacyHosts = new Set(["pickyou.lovable.app", "pickyou.ca"]);
+const legacyHosts = new Set(["pickyou.lovable.app"]);
 
 // Public host consolidation: redirect legacy hosts to the active custom domain
 // (preserves path, query, hash). Skipped for OAuth proxy paths so the managed
@@ -112,7 +112,7 @@ const bootstrap = async () => {
   // Blank-screen watchdog: if React fails to mount (stale SW, broken chunk,
   // etc.) and #root is still empty after 4s, force-unregister SWs, clear
   // caches, and hard-reload once. Guarded by sessionStorage so we never loop.
-  const watchdogKey = "__pickyou_blank_recovery__";
+  const watchdogKey = `__pickyou_blank_recovery__:${window.location.pathname}`;
   setTimeout(() => {
     if (rootEl.childElementCount > 0) return;
     try {
