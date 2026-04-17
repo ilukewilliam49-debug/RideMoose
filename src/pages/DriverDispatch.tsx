@@ -412,7 +412,7 @@ const DriverDispatch = () => {
     toast.info("Request declined");
   }, []);
 
-  const visiblePendingRides = (pendingRides || []).filter((r) => !declinedIds.has(r.id));
+  // visiblePendingRides is declared above (used by the sound effect)
 
   const pendingMarkers: MapMarker[] = visiblePendingRides
     .filter((r) => r.pickup_lat && r.pickup_lng)
