@@ -82,10 +82,19 @@ const Login = () => {
 
   useEffect(() => {
     if (!authLoading && user && profile) {
-      const route = profile.role === "admin" ? "/admin" : profile.role === "driver" ? "/driver" : "/rider";
+      const wantedRole = searchParams.get("role");
+      const driverReady = (profile as any).driver_onboarding_complete;
+      let route: string;
+      if (profile.role === "admin") {
+        route = "/admin";
+      } else if (wantedRole === "driver" || (profile as any).is_driver) {
+        route = driverReady ? "/driver" : "/driver/onboarding";
+      } else {
+        route = "/rider";
+      }
       navigate(route, { replace: true });
     }
-  }, [user, profile, authLoading, navigate]);
+  }, [user, profile, authLoading, navigate, searchParams]);
 
   // Auto-focus password when entering email login view with email pre-filled.
   useEffect(() => {
