@@ -10,6 +10,9 @@ export interface Profile {
   phone_verified: boolean;
   avatar_url: string | null;
   role: "rider" | "driver" | "admin";
+  is_rider: boolean;
+  is_driver: boolean;
+  driver_onboarding_complete: boolean;
   is_available: boolean;
   latitude: number | null;
   longitude: number | null;
@@ -75,15 +78,19 @@ export const useAuth = () => {
         if (session?.user) {
           clearSessionExpired();
 
-          // Handle Google OAuth role assignment from URL params
+          // Handle role-intent from URL (?role=driver). We DO NOT overwrite the
+          // user's primary `role` (that would break admins and demote rider
+          // history). We only flip the `is_driver` capability flag so the
+          // routing layer continues the driver flow. Admins keep their role.
           if (event === "SIGNED_IN") {
             const urlParams = new URLSearchParams(window.location.search);
             const roleParam = urlParams.get("role");
             if (roleParam === "driver") {
-              // Update user metadata so profile trigger picks it up for new users,
-              // and update existing profile for returning users
-              await supabase.auth.updateUser({ data: { role: "driver" } });
-              await supabase.from("profiles").update({ role: "driver" as any }).eq("user_id", session.user.id);
+              await supabase
+                .from("profiles")
+                .update({ is_driver: true } as any)
+                .eq("user_id", session.user.id)
+                .neq("role", "admin");
             }
           }
 

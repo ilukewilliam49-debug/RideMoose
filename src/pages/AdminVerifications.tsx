@@ -84,6 +84,13 @@ const AdminVerifications = () => {
         );
 
         if (allApproved) {
+          // Mark driver onboarding complete so the user can switch into
+          // Driver mode and access the driver dashboard.
+          await supabase
+            .from("profiles")
+            .update({ driver_onboarding_complete: true } as any)
+            .eq("id", verification.driver_id);
+
           await supabase.from("notifications").insert({
             user_id: verification.driver_id,
             title: "You're Approved! 🎉",

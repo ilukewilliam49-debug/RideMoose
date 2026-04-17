@@ -17,7 +17,14 @@ const STORAGE_KEY = "pickyou-active-role";
 export function ActiveRoleProvider({ children }: { children: ReactNode }) {
   const { profile, user } = useAuth();
   const dbRole: ActiveRole = (profile?.role as ActiveRole) || "rider";
-  const canSwitch = dbRole === "driver";
+  // A user can switch into Driver mode only if they (a) hold the driver
+  // capability AND (b) have completed driver onboarding. Riders who have
+  // never opted in still see the regular rider UI.
+  const canSwitch =
+    !!profile?.is_driver &&
+    !!profile?.is_rider &&
+    !!profile?.driver_onboarding_complete &&
+    dbRole !== "admin";
 
   const [activeRole, setActiveRoleState] = useState<ActiveRole>(() => {
     if (typeof window === "undefined") return dbRole;
