@@ -31,8 +31,8 @@ const RoleLayout = () => {
             {hasMobileNav && (
               <img src={logoImg} alt="PickYou" className="h-6 object-contain md:hidden" />
             )}
-            <span className={`text-sm text-muted-foreground font-medium ${hasMobileNav ? "hidden md:inline" : ""}`}>
-              Dashboard
+            <span className={`text-sm font-semibold ${hasMobileNav ? "hidden md:inline" : ""}`}>
+              {isDriver ? "Driver dashboard" : isRider ? "Rider dashboard" : "Admin dashboard"}
             </span>
             <div className="ml-auto flex items-center gap-2">
               <RoleSwitcher />
