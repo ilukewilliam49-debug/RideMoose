@@ -16,7 +16,10 @@ const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
   const location = useLocation();
   const { activeRole } = useActiveRole();
 
-  // Check driver onboarding status
+  const isDriverRoute = location.pathname.startsWith("/driver");
+  const needsVerifications = !!profile && (profile.is_driver || profile.role === "driver");
+
+  // Check driver onboarding status (only when relevant)
   const { data: verifications, isLoading: verificationsLoading } = useQuery({
     queryKey: ["driver-verifications", profile?.id],
     queryFn: async () => {
@@ -26,10 +29,10 @@ const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
         .eq("driver_id", profile!.id);
       return data || [];
     },
-    enabled: !!profile && profile.role === "driver",
+    enabled: needsVerifications,
   });
 
-  if (loading || (profile?.role === "driver" && verificationsLoading)) {
+  if (loading || (needsVerifications && verificationsLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse-glow w-8 h-8 rounded-full bg-primary" />
@@ -39,29 +42,36 @@ const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
 
   if (!user) return <Navigate to="/login" replace />;
 
+  // Capability-based access — a user with is_driver can hit /driver routes
+  // even if their primary `role` is still 'rider'. Admin is exclusive.
   const dbRole = profile?.role || "rider";
+  const isAdmin = dbRole === "admin";
+  const hasDriverAccess = isAdmin || !!profile?.is_driver;
+  const hasRiderAccess = isAdmin || !!profile?.is_rider || dbRole === "rider" || dbRole === "driver";
 
-  // Use activeRole for routing decisions — allows drivers to access rider routes
-  const effectiveRole = dbRole === "driver" ? activeRole : dbRole;
+  const canAccess =
+    (allowedRoles.includes("admin") && isAdmin) ||
+    (allowedRoles.includes("driver") && hasDriverAccess) ||
+    (allowedRoles.includes("rider") && hasRiderAccess);
 
-  if (!allowedRoles.includes(dbRole) && !allowedRoles.includes(effectiveRole)) {
-    const roleRoute = dbRole === "admin" ? "/admin" : dbRole === "driver" ? "/driver" : "/rider";
+  if (!canAccess) {
+    const roleRoute = isAdmin ? "/admin" : profile?.is_driver ? "/driver" : "/rider";
     return <Navigate to={roleRoute} replace />;
   }
 
-  // Driver onboarding gate — only when viewing as driver on driver routes
+  // Driver onboarding gate — applies only to driver routes (excluding the
+  // onboarding pages themselves) when the user holds driver capability.
   if (
-    dbRole === "driver" &&
-    activeRole === "driver" &&
-    location.pathname.startsWith("/driver") &&
-    !location.pathname.startsWith("/driver/onboarding")
+    isDriverRoute &&
+    !location.pathname.startsWith("/driver/onboarding") &&
+    profile?.is_driver
   ) {
     const hasVehicle = !!profile?.vehicle_type;
     const hasAllDocs = REQUIRED_DOC_TYPES.every((docType) =>
-      verifications?.some((v) => v.document_type === docType)
+      verifications?.some((v) => v.document_type === docType),
     );
     const allApproved = REQUIRED_DOC_TYPES.every((docType) =>
-      verifications?.some((v) => v.document_type === docType && v.status === "approved")
+      verifications?.some((v) => v.document_type === docType && v.status === "approved"),
     );
 
     if (!hasVehicle || !hasAllDocs) {
