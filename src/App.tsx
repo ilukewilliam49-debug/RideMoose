@@ -164,13 +164,34 @@ const AppContent = () => {
   );
 };
 
+const SPLASH_SHOWN_KEY = "pickyou.splash_shown";
+
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  // Splash should only appear on the first load of a browser session, not on
+  // every soft navigation, HMR update, or component remount that happens
+  // afterwards. Persist a flag in sessionStorage so the second appearance is
+  // suppressed (the rrweb session replay showed splash flashing again ~12s
+  // after the first dismissal, which is what the user perceived as a glitch).
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      return sessionStorage.getItem(SPLASH_SHOWN_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 1200);
+    if (!showSplash) return;
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+      try {
+        sessionStorage.setItem(SPLASH_SHOWN_KEY, "1");
+      } catch {
+        /* ignore storage errors */
+      }
+    }, 1200);
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   return (
     <ErrorBoundary>
