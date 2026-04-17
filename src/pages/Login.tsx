@@ -160,29 +160,23 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      const wantedRole = searchParams.get("role");
+
       if (isLogin) {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // If the user arrived from the "Drive" CTA (?role=driver) and their
-        // existing profile is a rider, upgrade rider → driver before
-        // navigating. Admins are never demoted. We do this BEFORE letting the
-        // redirect-to-dashboard effect fire so the user lands on /driver
-        // instead of /rider on first sign-in from the Drive flow.
-        const wantedRole = searchParams.get("role");
+        // Coming from the Drive CTA (?role=driver): grant the driver
+        // capability without overwriting the user's primary role. Admins are
+        // never modified.
         if (wantedRole === "driver" && signInData.user) {
-          await supabase.auth.updateUser({ data: { role: "driver" } });
           await supabase
             .from("profiles")
-            .update({ role: "driver" as any })
+            .update({ is_driver: true } as any)
             .eq("user_id", signInData.user.id)
             .neq("role", "admin");
         }
 
-        // "Remember me": when unchecked, mark this session as tab-only.
-        // A pagehide listener (registered in main.tsx) will clear the
-        // Supabase auth token from localStorage when the tab/window closes,
-        // forcing the user to sign in again next time.
         try {
           localStorage.setItem("pickyou.last_email", email);
           localStorage.setItem("pickyou.remember_me", rememberMe ? "1" : "0");
@@ -212,11 +206,48 @@ const Login = () => {
             emailRedirectTo: window.location.origin,
           },
         });
-        if (error) throw error;
-        if (data.session) {
-          toast.success(t("auth.accountCreated"));
+
+        // If the email already exists, gracefully fall back to sign-in so the
+        // user isn't bounced back to the signup screen with an opaque error.
+        // The wantedRole=driver upgrade then runs against the existing
+        // account, putting them straight into driver onboarding.
+        if (error) {
+          const msg = error.message?.toLowerCase() || "";
+          const looksLikeDuplicate =
+            msg.includes("already") ||
+            msg.includes("registered") ||
+            msg.includes("exists") ||
+            msg.includes("user_already");
+          if (looksLikeDuplicate) {
+            const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+            if (signInErr) {
+              toast.error(
+                t(
+                  "auth.accountExistsWrongPassword",
+                  "An account with this email already exists. Sign in with your existing password to continue.",
+                ),
+              );
+              setIsLogin(true);
+              setLoading(false);
+              return;
+            }
+            if (wantedRole === "driver" && signInData.user) {
+              await supabase
+                .from("profiles")
+                .update({ is_driver: true } as any)
+                .eq("user_id", signInData.user.id)
+                .neq("role", "admin");
+            }
+            toast.success(t("auth.welcomeBack"));
+          } else {
+            throw error;
+          }
         } else {
-          toast.success(t("auth.checkEmail"));
+          if (data.session) {
+            toast.success(t("auth.accountCreated"));
+          } else {
+            toast.success(t("auth.checkEmail"));
+          }
         }
       }
     } catch (error: any) {
