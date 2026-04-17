@@ -12,21 +12,24 @@ import LandingServices from "@/components/landing/LandingServices";
 import LandingDriver from "@/components/landing/LandingDriver";
 import LandingFooter from "@/components/landing/LandingFooter";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
   const { user, profile, loading } = useAuth();
+  const { activeRole } = useActiveRole();
   const showPublicLanding = new URLSearchParams(location.search).get("view") === "landing";
 
   useEffect(() => {
     if (loading || !user || showPublicLanding) return;
     const role = profile?.role;
     if (role === "admin") navigate("/admin", { replace: true });
-    else if (role === "driver") navigate("/driver", { replace: true });
+    // Drivers default to /driver, but if they've switched to rider mode, honour it
+    else if (role === "driver") navigate(activeRole === "rider" ? "/rider" : "/driver", { replace: true });
     else navigate("/rider", { replace: true });
-  }, [user, profile, loading, navigate, showPublicLanding]);
+  }, [user, profile, loading, navigate, showPublicLanding, activeRole]);
 
   if (loading || (user && !showPublicLanding)) return null;
 
