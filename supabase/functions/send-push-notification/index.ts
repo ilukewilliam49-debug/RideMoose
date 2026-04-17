@@ -548,11 +548,15 @@ serve(async (req) => {
     switch (event) {
       // ── A. Ride Requested → Batch notify nearby drivers ────────
       case "requested": {
+        // Only target drivers with a recent heartbeat (last 3 minutes) — avoids
+        // pinging zombie sessions whose tab/PWA is closed.
+        const freshCutoff = new Date(Date.now() - 3 * 60_000).toISOString();
         let driverQuery = supabase
           .from("profiles")
-          .select("id, onesignal_player_id, phone, sms_notifications_enabled, latitude, longitude")
+          .select("id, onesignal_player_id, phone, sms_notifications_enabled, latitude, longitude, last_seen_at")
           .eq("role", "driver")
-          .eq("is_available", true);
+          .eq("is_available", true)
+          .gte("last_seen_at", freshCutoff);
 
         if (ride.service_type === "large_delivery") {
           driverQuery = driverQuery.in("vehicle_type", ["SUV", "truck", "van"]);

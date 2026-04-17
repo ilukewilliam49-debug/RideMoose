@@ -10,13 +10,30 @@ const corsHeaders = {
 
 const RequestBody = z.object({
   ride_id: z.string().uuid("ride_id must be a valid UUID"),
+  driver_lat: z.number().min(-90).max(90).optional(),
+  driver_lng: z.number().min(-180).max(180).optional(),
+  override_geofence: z.boolean().optional(),
 });
+
+const START_GEOFENCE_METERS = 300;
 
 function jsonRes(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 serve(async (req) => {
@@ -36,7 +53,7 @@ serve(async (req) => {
     if (!parsed.success) {
       return jsonRes({ error: parsed.error.flatten().fieldErrors }, 400);
     }
-    const { ride_id } = parsed.data;
+    const { ride_id, driver_lat, driver_lng, override_geofence } = parsed.data;
 
     // Authenticate caller
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -70,7 +87,7 @@ serve(async (req) => {
     // Fetch ride
     const { data: ride, error: rideErr } = await admin
       .from("rides")
-      .select("id, status, driver_id, rider_id, service_type, pickup_address")
+      .select("id, status, driver_id, rider_id, service_type, pickup_address, pickup_lat, pickup_lng")
       .eq("id", ride_id)
       .single();
 
@@ -84,6 +101,31 @@ serve(async (req) => {
     // Ride must be in 'accepted' or 'arrived' status
     if (ride.status !== "accepted" && ride.status !== "arrived") {
       return jsonRes({ error: `Cannot start ride in '${ride.status}' status. Must be 'accepted' or 'arrived'.` }, 400);
+    }
+
+    // Geofence: driver must be within 300m of pickup to start the trip
+    if (!override_geofence && ride.pickup_lat && ride.pickup_lng) {
+      let lat = driver_lat;
+      let lng = driver_lng;
+      if (lat == null || lng == null) {
+        const { data: driverProfile } = await admin
+          .from("profiles")
+          .select("latitude, longitude")
+          .eq("id", profile.id)
+          .single();
+        lat = driverProfile?.latitude ?? undefined;
+        lng = driverProfile?.longitude ?? undefined;
+      }
+      if (lat != null && lng != null) {
+        const distance = haversineMeters(lat, lng, ride.pickup_lat, ride.pickup_lng);
+        if (distance > START_GEOFENCE_METERS) {
+          return jsonRes({
+            error: `You're ${Math.round(distance)}m from pickup. Get within ${START_GEOFENCE_METERS}m of the rider before starting the trip.`,
+            code: "too_far_from_pickup",
+            distance_m: Math.round(distance),
+          }, 400);
+        }
+      }
     }
 
     // Update ride status to in_progress
