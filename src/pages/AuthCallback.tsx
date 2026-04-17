@@ -8,7 +8,6 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Supabase automatically picks up the tokens from the URL hash/query
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error || !session) {
@@ -17,18 +16,15 @@ const AuthCallback = () => {
           return;
         }
 
-        // If the login flow preserved ?role=driver across the OAuth round-trip,
-        // promote the user to a driver profile before deciding where to route.
+        // Honour ?role=driver intent across the OAuth round-trip. We only flip
+        // the `is_driver` capability flag — we never overwrite the primary
+        // role (admins stay admin; existing riders keep their role too).
         const params = new URLSearchParams(window.location.search);
         const roleParam = params.get("role");
         if (roleParam === "driver") {
-          // Update auth metadata so the profile trigger sees it for new users,
-          // and update existing profile rows for returning users. Admins are
-          // never demoted (we only upgrade rider → driver).
-          await supabase.auth.updateUser({ data: { role: "driver" } });
           await supabase
             .from("profiles")
-            .update({ role: "driver" as any })
+            .update({ is_driver: true } as any)
             .eq("user_id", session.user.id)
             .neq("role", "admin");
         }
@@ -36,16 +32,18 @@ const AuthCallback = () => {
         // Fetch profile to determine role-based redirect
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, is_driver, driver_onboarding_complete")
           .eq("user_id", session.user.id)
           .single();
 
-        const route =
-          profile?.role === "admin"
-            ? "/admin"
-            : profile?.role === "driver"
-              ? "/driver"
-              : "/rider";
+        let route = "/rider";
+        if (profile?.role === "admin") {
+          route = "/admin";
+        } else if (roleParam === "driver" || (profile as any)?.is_driver) {
+          // Send to onboarding when the driver hasn't finished setup yet,
+          // otherwise to the driver dashboard.
+          route = (profile as any)?.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
+        }
 
         navigate(route, { replace: true });
       } catch (err) {
