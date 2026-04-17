@@ -1,144 +1,48 @@
 
-The user wants a designed, optimized driver onboarding flow — screen-by-screen spec with copy, UI, progress, doc upload, approval messaging. They want fewer steps than Uber, mobile-first, high conversion.
 
-I already have full context on the current flow (DriverOnboarding.tsx is now 3 steps: Contact → Vehicle → Documents, plus DriverOnboardingPending and the new DriverWelcomeFlow). So this plan is about *redesigning what's there* — tightening copy, adding micro-interactions, smoothing flow — not building from scratch.
+## Why the preview is blank
 
-Strategy: deliver a compact spec the user can approve, then implement as a focused refactor of existing files. No new routes, no schema changes.
+**Most likely cause: stale PWA service worker / cached chunks**
 
-## Plan: Optimized Driver Onboarding v2
+Your app registers a service worker via `vite-plugin-pwa` (autoUpdate). After several recent file changes (`useDriverLocation.ts`, `ActiveTripPanel.tsx`, `types.ts` regen, the migration), the SW is likely serving a stale module graph that no longer matches the current code, so React fails silently before mounting and the screen stays blank.
 
-### Goal
-Cut perceived effort by ~40%. Target: signup → submitted in **under 4 minutes** on mobile. Match or beat Uber's 5-step flow with **3 visible steps + 1 review**.
+Evidence:
+- Dev server is healthy (`vite ready in 698ms`, no errors in log)
+- TypeScript compiles cleanly
+- HTML 200s and serves the correct shell
+- Console logs are empty (which itself is suspicious — usually means the JS bundle never reached `console`)
+- `main.tsx` already has chunk-error handling and SW unregistration logic for preview hosts, so a stale cache fully matches the symptom
 
-### The flow (4 screens, 1 of which is auto-progress)
+**Other possibilities (less likely but worth ruling out):**
+1. The `as never` cast in `useDriverLocation.ts` heartbeat (`{ updated_at: ... } as never`) — TS accepts it, but at runtime if `profiles` has no `updated_at` column it just errors silently in the `.then`, so this isn't blank-screen worthy.
+2. `ErrorBoundary` may have caught a chunk error and triggered its one-shot reload — if it already used its retry token (`pickyou.chunk_reload_attempt`), a second failure would show the fallback UI, not blank. Since you see blank (not the error UI), the failure is happening *before* React mounts at all → confirms SW/cache.
 
-```
-[1] Apply CTA  →  [2] Account  →  [3] Vehicle  →  [4] Documents  →  [5] Submitted/Pending
-   (/drive)        (/login)        (onboarding)    (onboarding)       (pending)
-```
+## Fix (one-time, user-side)
 
-User-perceived steps inside `/driver/onboarding`: **3 dots, ~90s each.**
+I cannot clear your browser cache from code. You need to do this once:
 
----
+1. **Open the preview in a new tab** (not the iframe) → DevTools → Application → Service Workers → **Unregister**
+2. Application → Storage → **Clear site data**
+3. Hard reload (Cmd/Ctrl + Shift + R)
 
-### Screen-by-screen spec
+OR, simpler:
+- Open the preview URL in an **incognito window** — if it loads there, it's 100% the cached SW.
 
-**Screen 1 — Pre-application hook (already exists at `/drive`)**
-- Sticky CTA "Apply in 4 minutes" (currently says "Apply now" — change to time-bound).
-- Below CTA: "No fees. Keep 95.1%. Approved in 24 hrs." trust strip.
+## Code-level hardening (after you confirm the cache theory)
 
-**Screen 2 — Account (existing `/login`, minor tweaks)**
-- Add visible "I want to drive" badge at top when `?role=driver` is in URL.
-- Default to Google OAuth as primary button (1-tap).
-- Email/password collapsed under "Use email instead."
-- Copy: "Create your driver account" (not generic "Sign in").
+Once the cache is confirmed as the culprit, I'd like to make the recovery automatic so this never strands you again:
 
-**Screen 3 — Step 1 of 3: Contact (~30 seconds)**
-- Headline: **"Let's start with you"**
-- Subhead: "We'll text you when riders need you."
-- Fields: Full name, Mobile number (with country code).
-- Inline validation: green check on valid phone format.
-- Helper under phone: "We'll send a verification code next."
-- CTA button: **"Continue →"** (full-width, sticky bottom on mobile).
-- Progress: `● ○ ○  Step 1 of 3 · About you`
+1. **Bump SW behavior in `vite.config.ts`**: add `clientsClaim: true` and `skipWaiting: true` to the `workbox` config so new SW versions activate immediately instead of waiting for all tabs to close.
+2. **Reset the chunk-reload guard in `ErrorBoundary.tsx`** after a successful mount (currently the sessionStorage flag is never cleared on success, so a second chunk error in the same session shows the fallback instead of auto-recovering).
+3. **Add a render-detection watchdog in `main.tsx`**: if `#root` is still empty 4s after `createRoot().render()`, force-unregister SWs and hard-reload once.
 
-**Screen 4 — Step 2 of 3: Your vehicle (~60 seconds)**
-- Headline: **"Tell us about your ride"**
-- Subhead: "Must be 2016 or newer."
-- Fields stacked, single column:
-  1. Vehicle type — visual chip selector (Sedan / SUV / Van / Truck) with icons
-  2. Year (numeric pad, min 2016)
-  3. Make + Model (side-by-side on `sm+`, stacked on mobile)
-  4. Color (chip selector: Black / White / Silver / Grey / Blue / Red / Other)
-  5. Plate number (uppercase auto-format)
-  6. Seats (chip: 4 / 5 / 6 / 7+)
-- Each field shows inline ✓ when valid. Continue button stays visible but greyed until valid.
-- Progress: `● ● ○  Step 2 of 3 · Your vehicle`
-- Microcopy at bottom: "Vehicle info can be updated later."
+That trio means: if a deploy ships and a user's tab has a stale SW, the page recovers itself instead of going blank.
 
-**Screen 5 — Step 3 of 3: Documents (~2 min)**
-Headline: **"Upload 3 documents"**
-Subhead: "Snap a photo or pick from your gallery. Takes about 2 minutes."
+## Files I would touch
 
-For each document card (already uses `DocumentUploadCard`):
-- Icon + label ("Driver's License")
-- 1-line "what" + 1-line "why we need it"
-- "Take photo" (primary, opens camera via `capture="environment"`) and "Upload file" (secondary)
-- After upload: thumbnail preview, "Replace" link, green check
-- Tips collapsed by default ("See tips" expands)
+- `vite.config.ts` — Workbox `clientsClaim`/`skipWaiting`
+- `src/components/ErrorBoundary.tsx` — clear `pickyou.chunk_reload_attempt` after successful render
+- `src/main.tsx` — add post-render watchdog for blank `#root`
 
-Per-document mini-progress at top: **"2 of 3 uploaded"** with thin progress bar.
+Approve and I'll implement these in default mode. In the meantime, please try the preview in an incognito window to confirm the diagnosis.
 
-After all 3 uploaded → big sticky CTA: **"Submit application →"**
-
-Progress: `● ● ●  Step 3 of 3 · Documents`
-
-**Screen 6 — Submitted (success moment, before pending)**
-Full-screen success state for 2s before auto-routing to `/driver/onboarding/pending`:
-- Animated checkmark (Framer Motion scale + spring)
-- "Application submitted!"
-- "We're reviewing now. Most drivers approved within 24 hours."
-
-**Screen 7 — Pending (existing `DriverOnboardingPending`, refined)**
-- ETA banner at top: **"Most reviews complete within 24 hours"** (already added)
-- Submission timestamp ("Submitted Today at 2:34 PM")
-- Per-doc status with re-upload affordance for rejected
-- "Contact support" button (already added)
-- New: **"What happens next?"** collapsible explaining the 3 stages
-- Push notification will fire when status changes
-
-**Screen 8 — Approved (already built — `DriverWelcomeFlow`)**
-- Confetti celebration → 3-card tour → Go online.
-
----
-
-### UI / interaction details
-
-- **Sticky CTA** at bottom of viewport on mobile (`safe-area-inset-bottom` aware).
-- **One field per visual focus** — keyboard pushes view, label stays visible.
-- **No modal dialogs** during onboarding — full-page transitions only.
-- **Auto-save on blur** for every field → resume where they left off.
-- **Inline error states** with red border + icon + 1-line fix instruction.
-- **Skeleton loading** when rehydrating saved state.
-- **Haptic-style feedback** via subtle scale animation on button tap.
-
-### Progress indicator design
-Replace current pill dots with a labelled top bar:
-
-```
-┌─────────────────────────────────┐
-│ ●━━━━━●━━━━━○   2 of 3          │
-│ About    Vehicle    Documents   │
-└─────────────────────────────────┘
-```
-
-- Filled circle = done, ring = current, hollow = upcoming
-- Tap a completed step to go back and edit
-
-### Approval messaging copy bank
-
-| State | Headline | Body |
-|---|---|---|
-| Submitted | "Application submitted!" | "We're reviewing now. You'll get a notification within 24 hours." |
-| Pending | "Under review" | "Most drivers approved within 24 hours. We'll notify you the moment you're cleared." |
-| Doc rejected | "One thing needs attention" | "Your {doc} couldn't be verified. Tap below to re-upload." |
-| Approved | "You're approved! 🎉" | "Welcome to PickYou. Let's get you online." |
-
----
-
-### Files to edit (no new files)
-
-- `src/pages/DriverOnboarding.tsx` — restructure to use new step UI, labelled progress bar, sticky CTA, vehicle chip selectors, success transition screen
-- `src/components/driver/DocumentUploadCard.tsx` — make "Take photo" the primary CTA (mobile), collapse tips
-- `src/pages/DriverOnboardingPending.tsx` — add submission timestamp display + "What happens next" collapsible
-- `src/pages/Login.tsx` — add "I want to drive" badge when `?role=driver`, promote Google to primary
-- `src/pages/DriveLanding.tsx` — change CTA copy to "Apply in 4 minutes"
-- `src/i18n/en.json` + `src/i18n/fr.json` — add new copy keys
-
-### Out of scope (next sprint)
-- OCR auto-approval (would need Lovable AI vision integration)
-- Background-check integration (third-party)
-- Document expiry tracking (DB schema additions)
-
-### Effort
-~half day. After approval I'll ship all edits and you can test the full flow end-to-end.
