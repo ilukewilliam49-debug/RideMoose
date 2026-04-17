@@ -19,7 +19,9 @@ import {
   Truck,
   Bus,
   CarFront,
+  User,
 } from "lucide-react";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "@/assets/logo.png";
 import DocumentUploadCard from "@/components/driver/DocumentUploadCard";
@@ -59,6 +61,7 @@ const LICENSE_PLATE_REGEX = /^[A-Z0-9]{1,8}[-\s]?[A-Z0-9]{1,8}$/i;
 
 const DriverOnboarding = () => {
   const { user, profile, signOut } = useAuth();
+  const { setActiveRole } = useActiveRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -332,15 +335,28 @@ const DriverOnboarding = () => {
         }}
       />
 
-      {/* Top-right sign out */}
-      <button
-        onClick={signOut}
-        className="absolute top-4 right-4 z-10 inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-        aria-label="Sign out"
-      >
-        <LogOut className="h-3.5 w-3.5" />
-        Sign out
-      </button>
+      {/* Top-right actions */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5">
+        <button
+          onClick={() => {
+            setActiveRole("rider");
+            navigate("/rider");
+          }}
+          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          aria-label="Use rider mode"
+        >
+          <User className="h-3.5 w-3.5" />
+          Use rider mode
+        </button>
+        <button
+          onClick={signOut}
+          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+          aria-label="Sign out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </button>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
