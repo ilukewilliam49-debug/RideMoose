@@ -1,37 +1,50 @@
 
 
-## Why your three URLs aren't in sync
+## Why `pickyou.ca` always lands on `/driver/onboarding`
 
-You have three URLs pointing at the same project, but they behave differently. Here's exactly what's happening:
+This is **not a domain/DNS issue** — it's the **driver onboarding gate** in `ProtectedRoute.tsx` doing exactly what it's designed to do, and your browser is signed in as a driver account that hasn't completed verification.
 
-### 1. `https://pickyou.lovable.app` — the **published** build
-This is the deployment that goes live when you click **Publish → Update** in the editor. It only updates when you push publish. **Backend changes (edge functions, DB migrations) deploy instantly, but frontend changes do NOT** — they sit on the preview until you publish.
+### The exact chain of events
 
-### 2. `https://www.pickyou.ca` — your **canonical custom domain**
-Your `main.tsx` (lines 20–33) defines `www.pickyou.ca` as the canonical host. This domain serves the **same** published build as `pickyou.lovable.app`. So if it looks different, it's almost always a stale service worker / browser cache on one of the two domains — they're literally the same artifact.
+1. You type `pickyou.ca` → `main.tsx` (line 26-33) redirects to `www.pickyou.ca/` (canonical host).
+2. `Index.tsx` mounts at `/`, sees you're signed in, reads `profile.role === "driver"`, and navigates to `/driver`.
+3. `/driver` is wrapped in `ProtectedRoute` (App.tsx line 140). The gate (ProtectedRoute.tsx lines 56-72) runs:
+   - Checks `profile.vehicle_type` is set
+   - Checks all three required documents exist: `drivers_license`, `vehicle_insurance`, `vehicle_registration`
+   - Checks all three are `status = "approved"`
+4. If **any** of those fail → `<Navigate to="/driver/onboarding" replace />`.
 
-### 3. `https://pickyou.ca` (apex, no www) — currently **broken / not served**
-From the earlier conversation, your apex domain lost its A record at SiteGround and shows "Offline" in Lovable's domain settings. So `pickyou.ca` either won't resolve, or resolves intermittently from old DNS cache. When it does load, your `main.tsx` redirects it to `www.pickyou.ca` — but only if it loads at all.
+So one of these is true for the driver account signed into that browser:
+- `profiles.vehicle_type` is `NULL`, OR
+- One of the three required `verifications` rows is missing, OR
+- One of them is still `pending` / `rejected` (not `approved`)
 
-### The real reasons they "look out of sync"
+### Why it feels "permanent"
 
-| Symptom | Root cause |
-|---|---|
-| `lovable.app` shows new code, `www.pickyou.ca` shows old (or vice versa) | **Stale PWA service worker** on whichever domain you visited first. Each hostname has its own SW registration and its own cache. |
-| `pickyou.ca` (apex) doesn't load at all | **Missing A record** at SiteGround DNS Zone Editor (`@` → `185.158.133.1`) |
-| Preview (`id-preview--…`) shows changes immediately, but `lovable.app` / `www.pickyou.ca` don't | **You haven't clicked Publish → Update.** Only the preview auto-deploys; the published site requires a manual update. |
-| Logged in on one, logged out on the other | Auth tokens are stored per-origin in localStorage. `www.pickyou.ca` and `pickyou.lovable.app` are different origins → different sessions. This is browser-standard, not a bug. |
+Once redirected, the URL is `/driver/onboarding`. Even if you close the tab and re-type `pickyou.ca`, the same auto-navigation chain runs every time. The behaviour is deterministic — it will keep happening until either:
+- The driver completes vehicle info + uploads all 3 docs + admin approves them, OR
+- You sign out (then `pickyou.ca` shows the public landing page), OR
+- You switch accounts to a non-driver
 
-### What to do
+### How to confirm and fix
 
-1. **Click Publish → Update in the editor.** This is the #1 cause of "lovable.app is behind." Your recent dispatch / heartbeat / blank-screen fixes are sitting on preview but won't reach `lovable.app` or `www.pickyou.ca` until you publish.
-2. **Fix the apex `pickyou.ca` A record at SiteGround** (DNS Zone Editor → A record → Host `@` → `185.158.133.1`). Once active, the canonical redirect in `main.tsx` will forward it to `www.pickyou.ca` automatically.
-3. **For the cross-domain stale-cache issue**: hard-reload each domain once (Cmd/Ctrl + Shift + R) or open in incognito. The hardening fixes you just approved (skipWaiting + watchdog) will prevent this going forward, but only on builds shipped *after* you publish.
+Two quick diagnostics — pick one:
 
-### No code changes needed
-This is a deployment + DNS issue, not a code issue. Your `main.tsx` already correctly handles canonical redirection and stale-SW recovery. The fix is operational:
+**Option A — verify it's a session issue**: Open `pickyou.ca` in an incognito window. If the landing page shows (no redirect to onboarding), it 100% confirms the driver session is the trigger.
 
-- **Action 1**: Click **Publish → Update** in Lovable
-- **Action 2**: Add the missing A record at SiteGround for the apex domain
-- **Action 3**: Hard-refresh each URL once to flush stale SWs
+**Option B — let me query your DB** to show exactly which check is failing for the signed-in driver (missing vehicle_type vs. missing/unapproved docs). I'll need the driver's email or user_id.
 
+### What I'd change (if you want)
+
+Nothing in code is broken — the gate is intentional and correct (drivers shouldn't reach the dispatch screen unverified). But if the UX feels jarring, I can:
+1. Add a clearer banner on `/driver/onboarding` showing **exactly what's missing** ("Vehicle info: ✓, Driver's License: ✗ pending upload, Insurance: ✓, Registration: ✗ awaiting admin approval").
+2. Allow drivers stuck in onboarding to switch to **rider mode** with one tap (so `pickyou.ca` lands on the rider home instead of the onboarding wall).
+
+Which would you like — diagnose the specific account, improve the onboarding-gate UX, or both?
+
+<lov-actions>
+<lov-suggestion message="Query the database to show exactly which onboarding requirement is failing for my driver account, so we know what's blocking progress.">Diagnose my driver account</lov-suggestion>
+<lov-suggestion message="Improve the driver onboarding gate: show a clear checklist on /driver/onboarding of exactly what's missing (vehicle info, each document, approval status) instead of a generic page.">Add onboarding checklist</lov-suggestion>
+<lov-suggestion message="Let drivers who are stuck in onboarding switch to rider mode with one tap, so pickyou.ca lands on the rider home instead of the onboarding wall.">Allow rider-mode fallback</lov-suggestion>
+<lov-suggestion message="Test the driver onboarding gate end-to-end in an incognito window to confirm the redirect logic works as expected.">Verify in incognito</lov-suggestion>
+</lov-actions>
