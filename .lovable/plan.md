@@ -1,48 +1,37 @@
 
 
-## Why the preview is blank
+## Why your three URLs aren't in sync
 
-**Most likely cause: stale PWA service worker / cached chunks**
+You have three URLs pointing at the same project, but they behave differently. Here's exactly what's happening:
 
-Your app registers a service worker via `vite-plugin-pwa` (autoUpdate). After several recent file changes (`useDriverLocation.ts`, `ActiveTripPanel.tsx`, `types.ts` regen, the migration), the SW is likely serving a stale module graph that no longer matches the current code, so React fails silently before mounting and the screen stays blank.
+### 1. `https://pickyou.lovable.app` — the **published** build
+This is the deployment that goes live when you click **Publish → Update** in the editor. It only updates when you push publish. **Backend changes (edge functions, DB migrations) deploy instantly, but frontend changes do NOT** — they sit on the preview until you publish.
 
-Evidence:
-- Dev server is healthy (`vite ready in 698ms`, no errors in log)
-- TypeScript compiles cleanly
-- HTML 200s and serves the correct shell
-- Console logs are empty (which itself is suspicious — usually means the JS bundle never reached `console`)
-- `main.tsx` already has chunk-error handling and SW unregistration logic for preview hosts, so a stale cache fully matches the symptom
+### 2. `https://www.pickyou.ca` — your **canonical custom domain**
+Your `main.tsx` (lines 20–33) defines `www.pickyou.ca` as the canonical host. This domain serves the **same** published build as `pickyou.lovable.app`. So if it looks different, it's almost always a stale service worker / browser cache on one of the two domains — they're literally the same artifact.
 
-**Other possibilities (less likely but worth ruling out):**
-1. The `as never` cast in `useDriverLocation.ts` heartbeat (`{ updated_at: ... } as never`) — TS accepts it, but at runtime if `profiles` has no `updated_at` column it just errors silently in the `.then`, so this isn't blank-screen worthy.
-2. `ErrorBoundary` may have caught a chunk error and triggered its one-shot reload — if it already used its retry token (`pickyou.chunk_reload_attempt`), a second failure would show the fallback UI, not blank. Since you see blank (not the error UI), the failure is happening *before* React mounts at all → confirms SW/cache.
+### 3. `https://pickyou.ca` (apex, no www) — currently **broken / not served**
+From the earlier conversation, your apex domain lost its A record at SiteGround and shows "Offline" in Lovable's domain settings. So `pickyou.ca` either won't resolve, or resolves intermittently from old DNS cache. When it does load, your `main.tsx` redirects it to `www.pickyou.ca` — but only if it loads at all.
 
-## Fix (one-time, user-side)
+### The real reasons they "look out of sync"
 
-I cannot clear your browser cache from code. You need to do this once:
+| Symptom | Root cause |
+|---|---|
+| `lovable.app` shows new code, `www.pickyou.ca` shows old (or vice versa) | **Stale PWA service worker** on whichever domain you visited first. Each hostname has its own SW registration and its own cache. |
+| `pickyou.ca` (apex) doesn't load at all | **Missing A record** at SiteGround DNS Zone Editor (`@` → `185.158.133.1`) |
+| Preview (`id-preview--…`) shows changes immediately, but `lovable.app` / `www.pickyou.ca` don't | **You haven't clicked Publish → Update.** Only the preview auto-deploys; the published site requires a manual update. |
+| Logged in on one, logged out on the other | Auth tokens are stored per-origin in localStorage. `www.pickyou.ca` and `pickyou.lovable.app` are different origins → different sessions. This is browser-standard, not a bug. |
 
-1. **Open the preview in a new tab** (not the iframe) → DevTools → Application → Service Workers → **Unregister**
-2. Application → Storage → **Clear site data**
-3. Hard reload (Cmd/Ctrl + Shift + R)
+### What to do
 
-OR, simpler:
-- Open the preview URL in an **incognito window** — if it loads there, it's 100% the cached SW.
+1. **Click Publish → Update in the editor.** This is the #1 cause of "lovable.app is behind." Your recent dispatch / heartbeat / blank-screen fixes are sitting on preview but won't reach `lovable.app` or `www.pickyou.ca` until you publish.
+2. **Fix the apex `pickyou.ca` A record at SiteGround** (DNS Zone Editor → A record → Host `@` → `185.158.133.1`). Once active, the canonical redirect in `main.tsx` will forward it to `www.pickyou.ca` automatically.
+3. **For the cross-domain stale-cache issue**: hard-reload each domain once (Cmd/Ctrl + Shift + R) or open in incognito. The hardening fixes you just approved (skipWaiting + watchdog) will prevent this going forward, but only on builds shipped *after* you publish.
 
-## Code-level hardening (after you confirm the cache theory)
+### No code changes needed
+This is a deployment + DNS issue, not a code issue. Your `main.tsx` already correctly handles canonical redirection and stale-SW recovery. The fix is operational:
 
-Once the cache is confirmed as the culprit, I'd like to make the recovery automatic so this never strands you again:
-
-1. **Bump SW behavior in `vite.config.ts`**: add `clientsClaim: true` and `skipWaiting: true` to the `workbox` config so new SW versions activate immediately instead of waiting for all tabs to close.
-2. **Reset the chunk-reload guard in `ErrorBoundary.tsx`** after a successful mount (currently the sessionStorage flag is never cleared on success, so a second chunk error in the same session shows the fallback instead of auto-recovering).
-3. **Add a render-detection watchdog in `main.tsx`**: if `#root` is still empty 4s after `createRoot().render()`, force-unregister SWs and hard-reload once.
-
-That trio means: if a deploy ships and a user's tab has a stale SW, the page recovers itself instead of going blank.
-
-## Files I would touch
-
-- `vite.config.ts` — Workbox `clientsClaim`/`skipWaiting`
-- `src/components/ErrorBoundary.tsx` — clear `pickyou.chunk_reload_attempt` after successful render
-- `src/main.tsx` — add post-render watchdog for blank `#root`
-
-Approve and I'll implement these in default mode. In the meantime, please try the preview in an incognito window to confirm the diagnosis.
+- **Action 1**: Click **Publish → Update** in Lovable
+- **Action 2**: Add the missing A record at SiteGround for the apex domain
+- **Action 3**: Hard-refresh each URL once to flush stale SWs
 
