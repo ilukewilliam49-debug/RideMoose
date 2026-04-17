@@ -13,7 +13,10 @@ const RoleLayout = () => {
   const { profile } = useAuth();
   const { activeRole } = useActiveRole();
   const isRider = activeRole === "rider";
-  const isDriver = activeRole === "driver" && profile?.role === "driver";
+  // Driver mode applies when active role is driver AND user holds driver
+  // capability (covers legacy `role === 'driver'` and rider-primary users
+  // who later opted into driving via `is_driver`).
+  const isDriver = activeRole === "driver" && (profile?.role === "driver" || !!profile?.is_driver);
   const hasMobileNav = isRider || isDriver;
 
   return (
