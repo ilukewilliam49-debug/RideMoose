@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
+import { resolvePostAuthRoute, clearRoleIntentFromUrl } from "@/lib/post-auth-route";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 type AuthView = "main" | "email" | "phone-otp";
 
@@ -56,6 +58,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
+  const { activeRole } = useActiveRole();
   const { t } = useTranslation();
 
   // Password strength rules (only enforced on signup)
@@ -82,19 +85,13 @@ const Login = () => {
 
   useEffect(() => {
     if (!authLoading && user && profile) {
-      const wantedRole = searchParams.get("role");
-      const driverReady = (profile as any).driver_onboarding_complete;
-      let route: string;
-      if (profile.role === "admin") {
-        route = "/admin";
-      } else if (wantedRole === "driver" || (profile as any).is_driver) {
-        route = driverReady ? "/driver" : "/driver/onboarding";
-      } else {
-        route = "/rider";
-      }
+      const intent = searchParams.get("role");
+      const route = resolvePostAuthRoute(profile as any, { intent, activeRole });
+      // Strip the consumed ?role= param so it doesn't trigger repeat upgrades
+      clearRoleIntentFromUrl();
       navigate(route, { replace: true });
     }
-  }, [user, profile, authLoading, navigate, searchParams]);
+  }, [user, profile, authLoading, navigate, searchParams, activeRole]);
 
   // Auto-focus password when entering email login view with email pre-filled.
   useEffect(() => {
