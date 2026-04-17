@@ -35,6 +35,16 @@ class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidMount() {
+    // Successful mount → clear the one-shot chunk reload guard so a future
+    // stale-chunk error in the same session can auto-recover again.
+    try {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("ErrorBoundary caught:", error, info.componentStack);
 
