@@ -265,8 +265,10 @@ const RiderDashboard = () => {
       if (error) throw error;
 
       // Payment authorization for specific service types
+      // CRITICAL: private_hire MUST be included — capture-payment requires a
+      // PaymentIntent or it throws "No payment intent for this ride".
       const needsAuth = (state.serviceType === "personal_shopper" ||
-        (!isOrgBilling && state.serviceType === "taxi"));
+        (!isOrgBilling && (state.serviceType === "taxi" || state.serviceType === "private_hire")));
       if (needsAuth && rideData) {
         let authCents = estCents;
         if (state.serviceType === "personal_shopper") {
@@ -274,7 +276,13 @@ const RiderDashboard = () => {
           const shopperCents = state.estimatedItemCostCents ? Math.round(Number(state.estimatedItemCostCents) * 0.10) : 0;
           authCents = Math.round((Number(state.estimatedItemCostCents || 0) + deliveryCents + shopperCents) * 1.15);
         }
-        const { data: piData, error: piError } = await supabase.functions.invoke("create-payment-intent", { body: { ride_id: rideData.id, estimated_fare_cents: authCents } });
+        const { data: piData, error: piError } = await supabase.functions.invoke("create-payment-intent", {
+          body: {
+            ride_id: rideData.id,
+            estimated_fare_cents: authCents,
+            service_type: state.serviceType, // server adds surcharge+GST for private_hire
+          },
+        });
         if (piError) {
           await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
           throw new Error(piError.message || "Payment authorization failed");
