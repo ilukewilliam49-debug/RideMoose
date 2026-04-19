@@ -99,7 +99,10 @@ serve(async (req) => {
       computedDuration = Math.round((Date.now() - startMs) / 60000 * 10) / 10;
     }
 
-    // Build update payload
+    // Build update payload — note: financial columns are NOT trusted from
+    // the client. capture-payment recomputes final_fare_cents server-side
+    // from authoritative taxi_rates × distance_km. We accept distance_km
+    // and duration_min for routing/analytics only.
     const updatePayload: Record<string, unknown> = {
       status: "completed",
       completed_at: now,
@@ -107,9 +110,9 @@ serve(async (req) => {
       meter_ended_at: now,
     };
 
-    if (final_fare_cents !== undefined) updatePayload.final_fare_cents = final_fare_cents;
     if (distance_km !== undefined) updatePayload.distance_km = distance_km;
     if (computedDuration !== undefined) updatePayload.duration_min = computedDuration;
+    // final_fare_cents intentionally ignored — capture-payment is authoritative.
 
     // Atomic update with optimistic lock on status
     const { error: updateErr } = await admin

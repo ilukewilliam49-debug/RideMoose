@@ -310,6 +310,10 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
       return;
     }
 
+    // SECURITY: Drivers cannot write financial columns directly (RLS-locked).
+    // Only operational meter fields are updated here; capture-payment will
+    // recompute final_fare_cents, final_price, tax_cents, service_fee_cents
+    // from authoritative taxi_rates × distance_km on the server.
     const { error } = await supabase
       .from("rides")
       .update({
@@ -319,10 +323,6 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         completed_at: now.toISOString(),
         distance_km: Math.round(dist * 1000) / 1000,
         waiting_min: Math.round(wait * 100) / 100,
-        final_fare_cents: receipt.grossFareCents,
-        final_price: receipt.totalCents / 100,
-        service_fee_cents: receipt.serviceFeeCents,
-        tax_cents: receipt.taxCents,
       })
       .eq("id", rideId);
 
