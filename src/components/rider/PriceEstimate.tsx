@@ -98,6 +98,18 @@ const PriceEstimate = ({
             <span className="text-2xl font-mono font-bold">${estimatedPrice}</span>
           </div>
         </div>
+        {largeGroupSurcharge > 0 && (
+          <div className="space-y-1 pt-1 border-t border-border/50">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Fare</span>
+              <span>${fareBeforeSurcharge.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Large group ({passengerCount} pax)</span>
+              <span>${largeGroupSurcharge.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
         {directionsData && (
           <div className="space-y-1 pt-1 border-t border-border/50">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
