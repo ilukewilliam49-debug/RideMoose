@@ -48,20 +48,24 @@ const RoleSwitcher = () => {
           <button
             type="button"
             onClick={() => navigate("/signup/driver")}
-            className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            aria-label="Become a driver"
+            className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
           >
             <Car className="h-3.5 w-3.5" />
-            Become a driver
+            <span className="hidden sm:inline">Become a driver</span>
+            <span className="sm:hidden">Drive</span>
           </button>
         )}
-        {showBusinessUpgrade && !showDriverUpgrade && (
+        {showBusinessUpgrade && (
           <button
             type="button"
             onClick={() => navigate("/business/apply")}
-            className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            aria-label="Apply for business account"
+            className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10"
           >
             <Briefcase className="h-3.5 w-3.5" />
-            For business
+            <span className="hidden sm:inline">For business</span>
+            <span className="sm:hidden">Business</span>
           </button>
         )}
       </div>
