@@ -176,6 +176,8 @@ serve(async (req) => {
            stripe_fee_cents: 0,
            driver_earnings_cents: driverEarnings,
            tax_cents: taxCents,
+           final_fare_cents: grossFareCents,
+           final_price: riderTotalCents / 100,
         })
         .eq("id", ride_id);
 
