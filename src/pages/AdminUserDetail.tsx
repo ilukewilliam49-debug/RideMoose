@@ -321,7 +321,7 @@ export default function AdminUserDetail() {
                 id="admin-toggle"
                 checked={!!isUserAdmin}
                 onCheckedChange={(checked) => toggleAdmin(checked)}
-                disabled={saving}
+                disabled={saving || profile?.user_id === currentUserId}
               />
             </div>
           </CardContent>
