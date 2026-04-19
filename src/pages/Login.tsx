@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
-import { resolvePostAuthRoute, clearRoleIntentFromUrl } from "@/lib/post-auth-route";
+import { resolvePostAuthRoute, clearRoleIntentFromUrl, provisionCapabilityFromIntent } from "@/lib/post-auth-route";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 type AuthView = "main" | "email" | "phone-otp";
@@ -162,24 +162,14 @@ const Login = () => {
     setLoading(true);
     try {
       const wantedIntent = (searchParams.get("intent") || searchParams.get("role") || "").toLowerCase();
-      const capCol =
-        wantedIntent === "driver" ? "is_driver"
-        : wantedIntent === "business" ? "is_business"
-        : wantedIntent === "rider" ? "is_rider"
-        : null;
 
       if (isLogin) {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Provision the matching capability. Admin status is in user_roles
-        // and is unaffected by capability flags.
-        if (capCol && signInData.user) {
-          await supabase
-            .from("profiles")
-            .update({ [capCol]: true } as any)
-            .eq("user_id", signInData.user.id);
-        }
+        // Provision the matching capability via the shared helper. Admin
+        // status is in user_roles and is unaffected by capability flags.
+        await provisionCapabilityFromIntent(signInData.user?.id, wantedIntent);
 
         try {
           localStorage.setItem("pickyou.last_email", email);
@@ -233,12 +223,7 @@ const Login = () => {
               setLoading(false);
               return;
             }
-            if (capCol && signInData.user) {
-              await supabase
-                .from("profiles")
-                .update({ [capCol]: true } as any)
-                .eq("user_id", signInData.user.id);
-            }
+            await provisionCapabilityFromIntent(signInData.user?.id, wantedIntent);
             toast.success(t("auth.welcomeBack"));
           } else {
             throw error;
