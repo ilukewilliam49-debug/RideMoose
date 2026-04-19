@@ -21,6 +21,7 @@ import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
 import { useTranslation } from "react-i18next";
+import { useRideBooking } from "@/contexts/RideBookingContext";
 import SavedPlaceChips from "@/components/rider/SavedPlaceChips";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import CancelRideDialog from "@/components/rider/CancelRideDialog";
