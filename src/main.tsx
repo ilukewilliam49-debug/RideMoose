@@ -60,8 +60,10 @@ const runKillSwitchOnce = async () => {
 };
 
 const unregisterServiceWorkers = async () => {
-  const registrations = await navigator.serviceWorker?.getRegistrations();
-  await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
+  if (!("serviceWorker" in navigator)) return;
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  if (!registrations.length) return;
+  await Promise.all(registrations.map((registration) => registration.unregister()));
 };
 
 const clearBrowserCaches = async () => {
@@ -125,10 +127,6 @@ const bootstrap = async () => {
   await redirectToCanonicalHost();
   normalizePathname();
 
-  if (isPreviewHost || isInIframe) {
-    await unregisterServiceWorkers();
-  }
-
   if (shouldRecoverOAuthRoute()) {
     await Promise.allSettled([unregisterServiceWorkers(), clearBrowserCaches()]);
     window.location.replace(window.location.href);
@@ -146,6 +144,12 @@ const bootstrap = async () => {
     loader.classList.add("hidden");
     setTimeout(() => loader.remove(), 350);
   });
+
+  // Off the critical path: clean up any stale Service Workers in preview/iframe
+  // contexts. Runs after React has mounted so it doesn't delay first paint.
+  if (isPreviewHost || isInIframe) {
+    void unregisterServiceWorkers();
+  }
 
   // Blank-screen watchdog: if React fails to mount (stale SW, broken chunk,
   // etc.) and #root is still empty after 4s, force-unregister SWs, clear
