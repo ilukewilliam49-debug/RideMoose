@@ -51,29 +51,47 @@ export function routeDistanceKm(
   return total;
 }
 
-/** URL serialisation for stops (compact JSON, encoded). */
+/**
+ * URL serialisation for stops as compact JSON.
+ *
+ * IMPORTANT: do NOT URL-encode here. Both `URLSearchParams.set()` and
+ * react-router's `setSearchParams()` already percent-encode values, so
+ * pre-encoding causes double-encoding (`%5B` → `%255B`) which breaks
+ * round-tripping and shareable URLs.
+ */
 export function encodeStopsParam(stops: RideStop[]): string | null {
   if (!stops.length) return null;
-  return encodeURIComponent(JSON.stringify(stops));
+  return JSON.stringify(stops);
 }
 
 export function decodeStopsParam(raw: string | null): RideStop[] {
   if (!raw) return [];
+  // Tolerate legacy double-encoded values that may still live in shared URLs.
+  const candidates = [raw];
   try {
-    const parsed = JSON.parse(decodeURIComponent(raw));
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (s) =>
-          s &&
-          typeof s.address === "string" &&
-          typeof s.lat === "number" &&
-          typeof s.lng === "number"
-      )
-      .slice(0, MAX_INTERMEDIATE_STOPS);
+    const once = decodeURIComponent(raw);
+    if (once !== raw) candidates.push(once);
   } catch {
-    return [];
+    // ignore malformed escapes
   }
+  for (const c of candidates) {
+    try {
+      const parsed = JSON.parse(c);
+      if (!Array.isArray(parsed)) continue;
+      return parsed
+        .filter(
+          (s) =>
+            s &&
+            typeof s.address === "string" &&
+            typeof s.lat === "number" &&
+            typeof s.lng === "number"
+        )
+        .slice(0, MAX_INTERMEDIATE_STOPS);
+    } catch {
+      // try next candidate
+    }
+  }
+  return [];
 }
 
 /**
