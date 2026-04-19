@@ -163,35 +163,6 @@ export const DocumentUploadCard = ({
           </div>
         </div>
 
-        {previewSrc && (
-          <div className="shrink-0">
-            {isPdfPreview ? (
-              <a
-                href={previewSrc}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-14 w-14 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:text-foreground"
-                aria-label="View PDF"
-              >
-                <FileText className="h-6 w-6" />
-              </a>
-            ) : (
-              <a
-                href={previewSrc}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block h-14 w-14 overflow-hidden rounded-md border border-border bg-background"
-                aria-label="View document"
-              >
-                <img
-                  src={previewSrc}
-                  alt={doc.label}
-                  className="h-full w-full object-cover"
-                />
-              </a>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Tips — collapsed by default */}
