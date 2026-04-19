@@ -106,14 +106,8 @@ export const useRideQueries = ({
       : 0;
 
     if (svcType === "private_hire") {
-      const pricing = servicePricing?.find((p) => p.service_type === "private_hire");
-      if (!pickup || !dropoff || !routeKm || !pricing) return null;
-      let price =
-        Number(pricing.base_fare) +
-        routeKm * Number(pricing.per_km_rate) +
-        routeDurationMin * Number(pricing.per_min_rate);
-      price *= Number(pricing.surge_multiplier ?? 1);
-      return Math.max(Number(pricing.minimum_fare), price).toFixed(2);
+      if (!routeKm || !taxiRates) return null;
+      return ((taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100).toFixed(2);
     }
     if (svcType === "courier") {
       if (!routeKm) return null;
