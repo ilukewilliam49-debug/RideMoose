@@ -1,48 +1,76 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { useAuth, type Profile } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-type ActiveRole = "rider" | "driver" | "admin";
+export type ActiveRole = "rider" | "driver" | "business" | "admin";
 
 interface ActiveRoleContextType {
   activeRole: ActiveRole;
   setActiveRole: (role: ActiveRole) => void;
+  /** True when the user holds 2+ non-admin capabilities and can switch. */
   canSwitch: boolean;
-  dbRole: ActiveRole;
+  /** Default role inferred from capabilities + last_used_role. */
+  defaultRole: ActiveRole;
+  /** Capability set held by the user. */
+  capabilities: { rider: boolean; driver: boolean; business: boolean };
 }
 
 const ActiveRoleContext = createContext<ActiveRoleContextType | undefined>(undefined);
 
 const STORAGE_KEY = "pickyou-active-role";
 
+function inferDefaultRole(profile: any): ActiveRole {
+  if (!profile) return "rider";
+  if (profile.role === "admin") return "admin";
+  const last = profile.last_used_role;
+  if (last === "driver" && profile.is_driver) return "driver";
+  if (last === "business" && profile.is_business) return "business";
+  if (last === "rider" && profile.is_rider) return "rider";
+  // Fallback by capability — driver gets priority over business as it's a
+  // dedicated dashboard; rider is the universal default.
+  if (profile.is_driver) return "driver";
+  if (profile.is_business) return "business";
+  return "rider";
+}
+
 export function ActiveRoleProvider({ children }: { children: ReactNode }) {
   const { profile, user } = useAuth();
-  const dbRole: ActiveRole = (profile?.role as ActiveRole) || "rider";
-  // A user can switch into Driver mode only if they (a) hold the driver
-  // capability AND (b) have completed driver onboarding. Riders who have
-  // never opted in still see the regular rider UI.
-  const canSwitch =
-    !!profile?.is_driver &&
-    !!profile?.is_rider &&
-    !!profile?.driver_onboarding_complete &&
-    dbRole !== "admin";
+  const defaultRole: ActiveRole = inferDefaultRole(profile);
+
+  const capabilities = {
+    rider: !!profile?.is_rider,
+    driver: !!profile?.is_driver,
+    business: !!profile?.is_business,
+  };
+
+  const heldCapabilityCount =
+    (capabilities.rider ? 1 : 0) +
+    (capabilities.driver ? 1 : 0) +
+    (capabilities.business ? 1 : 0);
+
+  const canSwitch = profile?.role !== "admin" && heldCapabilityCount >= 2;
 
   const [activeRole, setActiveRoleState] = useState<ActiveRole>(() => {
-    if (typeof window === "undefined") return dbRole;
+    if (typeof window === "undefined") return defaultRole;
     const stored = localStorage.getItem(STORAGE_KEY) as ActiveRole | null;
-    return stored || dbRole;
+    return stored || defaultRole;
   });
 
   // Sync when profile loads or changes
   useEffect(() => {
     if (!profile) return;
     const stored = localStorage.getItem(STORAGE_KEY) as ActiveRole | null;
-    if (canSwitch && stored && (stored === "rider" || stored === "driver")) {
-      setActiveRoleState(stored);
+    const validStored =
+      stored &&
+      (stored === "rider" || stored === "driver" || stored === "business") &&
+      capabilities[stored];
+    if (canSwitch && validStored) {
+      setActiveRoleState(stored as ActiveRole);
     } else {
-      setActiveRoleState(dbRole);
-      localStorage.removeItem(STORAGE_KEY);
+      setActiveRoleState(defaultRole);
+      if (stored && !validStored) localStorage.removeItem(STORAGE_KEY);
     }
-  }, [profile?.id, dbRole, canSwitch]);
+  }, [profile?.id, defaultRole, canSwitch, capabilities.rider, capabilities.driver, capabilities.business]);
 
   // Clear on sign-out
   useEffect(() => {
@@ -52,13 +80,25 @@ export function ActiveRoleProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const setActiveRole = useCallback((role: ActiveRole) => {
-    if (!canSwitch && role !== dbRole) return;
+    if (role === "admin") return; // admin is not user-selectable
+    if (!canSwitch && role !== defaultRole) return;
+    if (role === "rider" && !capabilities.rider) return;
+    if (role === "driver" && !capabilities.driver) return;
+    if (role === "business" && !capabilities.business) return;
     setActiveRoleState(role);
     localStorage.setItem(STORAGE_KEY, role);
-  }, [canSwitch, dbRole]);
+    // Persist last_used_role for next session (best-effort, ignore errors)
+    if (profile?.user_id) {
+      supabase
+        .from("profiles")
+        .update({ last_used_role: role } as any)
+        .eq("user_id", profile.user_id)
+        .then(() => {});
+    }
+  }, [canSwitch, defaultRole, capabilities, profile?.user_id]);
 
   return (
-    <ActiveRoleContext.Provider value={{ activeRole, setActiveRole, canSwitch, dbRole }}>
+    <ActiveRoleContext.Provider value={{ activeRole, setActiveRole, canSwitch, defaultRole, capabilities }}>
       {children}
     </ActiveRoleContext.Provider>
   );

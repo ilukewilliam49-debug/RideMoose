@@ -1,103 +1,139 @@
 /**
  * Single source of truth for post-authentication routing.
  *
- * Resolves the correct landing route based on:
- *   - profile capabilities (admin / driver / rider)
- *   - URL intent (?role=driver from Drive CTA / OAuth round-trip)
- *   - current activeRole selection (for dual-capability users)
- *
- * Used by Login, AuthCallback, and Index to eliminate duplicate
- * redirect logic and inconsistent landing pages.
+ * Capability-based: a profile can independently hold any combination of
+ * `is_rider`, `is_driver`, `is_business`. The legacy `role` field is retained
+ * only for admins (exclusive). All routing decisions are driven by
+ * capabilities + intent + last_used_role, never by `role` for non-admins.
  */
 
-export type ActiveRole = "rider" | "driver" | "admin";
+export type ActiveRole = "rider" | "driver" | "business" | "admin";
 
 export interface RoutingProfile {
   role?: "rider" | "driver" | "admin" | null;
   is_driver?: boolean | null;
   is_rider?: boolean | null;
+  is_business?: boolean | null;
   driver_onboarding_complete?: boolean | null;
+  business_onboarding_complete?: boolean | null;
+  rider_onboarding_complete?: boolean | null;
+  last_used_role?: string | null;
 }
 
 export interface ResolveOptions {
-  /** Explicit role intent from URL (e.g. ?role=driver) */
+  /** Explicit role intent from URL (e.g. ?role=driver / ?intent=business) */
   intent?: string | null;
   /** User-selected active role from ActiveRoleContext */
   activeRole?: ActiveRole | null;
-  /** Explicit return path (e.g. ?returnTo=/business/apply). Wins over default
-   *  driver/rider routing UNLESS the user is an admin or the path targets an
-   *  area they cannot access. */
+  /** Explicit return path (e.g. ?returnTo=/business/apply). Honoured ahead
+   *  of default role routing for non-admins. */
   returnTo?: string | null;
 }
 
-/** Whether a `returnTo` path is safe to honour (same-origin path, no driver
- *  onboarding loop, no auth pages). */
+/** Whether a `returnTo` path is safe to honour (same-origin, not auth pages). */
 export function isSafeReturnTo(path: string | null | undefined): path is string {
   if (!path || typeof path !== "string") return false;
   if (!path.startsWith("/")) return false;
   if (path.startsWith("//")) return false;
-  // Don't bounce back into auth flows
   if (path.startsWith("/login") || path.startsWith("/auth")) return false;
   return true;
 }
 
 export const STORAGE_KEY_ACTIVE_ROLE = "pickyou-active-role";
 
+/** Normalise an intent value (accepts `role` or `intent` query params). */
+export function normalizeIntent(raw: string | null | undefined): "rider" | "driver" | "business" | null {
+  if (!raw) return null;
+  const v = raw.toLowerCase();
+  if (v === "rider" || v === "driver" || v === "business") return v;
+  return null;
+}
+
 /**
  * Resolve the post-auth route. Priority:
- *  1. Admins → /admin (always)
- *  2. Explicit ?role=driver intent → driver flow (onboarding or dashboard)
- *  3. Driver-capable + activeRole === 'driver' → driver flow
- *  4. Driver-capable + activeRole === 'rider' → /rider
- *  5. Default → /rider
+ *  1. Admins → /admin (always, exclusive)
+ *  2. Safe returnTo that targets a flow the user can access → honour it
+ *  3. Explicit intent → that flow's landing page
+ *  4. activeRole (in-session selection) → that flow if capability still held
+ *  5. last_used_role (from profile) → that flow if capability still held
+ *  6. Fallback → /rider
  */
 export function resolvePostAuthRoute(
   profile: RoutingProfile | null | undefined,
   options: ResolveOptions = {},
 ): string {
+  const intent = normalizeIntent(options.intent);
+
   if (!profile) {
-    // No profile yet — still honour an explicit returnTo when safe
     if (isSafeReturnTo(options.returnTo)) return options.returnTo;
+    if (intent === "business") return "/business/apply";
+    if (intent === "driver") return "/driver/onboarding";
     return "/rider";
   }
 
   // Admins are exclusive — never route them anywhere else
   if (profile.role === "admin") return "/admin";
 
-  const driverReady = !!profile.driver_onboarding_complete;
-  const driverRoute = driverReady ? "/driver" : "/driver/onboarding";
-  const isDriverCapable = !!profile.is_driver;
-
-  // Explicit return path wins over default role routing for non-admins. This
-  // prevents a dual-capable user (role=driver, is_rider=true) clicking
-  // "Apply for a business account" from being trapped in driver onboarding.
-  if (isSafeReturnTo(options.returnTo) && !options.returnTo.startsWith("/driver")) {
+  // Honour safe returnTo for non-admins. Skip when it points into a flow the
+  // user lacks the capability for AND can't acquire by visiting (we still
+  // allow /business/apply because that page handles its own auth/cap state).
+  if (isSafeReturnTo(options.returnTo)) {
     return options.returnTo;
   }
 
-  // Explicit URL intent always wins (even before profile flags update)
-  if (options.intent === "driver") return driverRoute;
-
-  if (isDriverCapable) {
-    // Dual-capable user: respect their last-selected mode
-    if (options.activeRole === "rider") return "/rider";
-    return driverRoute;
+  // Explicit intent wins over default routing
+  if (intent === "business") {
+    return profile.business_onboarding_complete ? "/rider" : "/business/apply";
+  }
+  if (intent === "driver") {
+    return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
+  }
+  if (intent === "rider") {
+    return "/rider";
   }
 
+  // activeRole selection (current session)
+  if (options.activeRole === "driver" && profile.is_driver) {
+    return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
+  }
+  if (options.activeRole === "business" && profile.is_business) {
+    return "/rider"; // Business uses rider UI for booking; no separate dashboard yet
+  }
+  if (options.activeRole === "rider") {
+    return "/rider";
+  }
+
+  // last_used_role hint
+  const last = profile.last_used_role;
+  if (last === "driver" && profile.is_driver) {
+    return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
+  }
+  if (last === "business" && profile.is_business) {
+    return "/rider";
+  }
+  if (last === "rider") {
+    return "/rider";
+  }
+
+  // Fallback
   return "/rider";
 }
 
 /**
  * Strip role-intent query params from the current URL after they've been
- * consumed. Prevents repeated profile upgrades on subsequent navigations
- * and keeps the address bar clean.
+ * consumed. Prevents repeated profile upgrades on subsequent navigations.
  */
 export function clearRoleIntentFromUrl() {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
-  if (!url.searchParams.has("role")) return;
-  url.searchParams.delete("role");
-  window.history.replaceState({}, "", url.toString());
+  let changed = false;
+  for (const key of ["role", "intent"]) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) window.history.replaceState({}, "", url.toString());
 }
 
 /** Clear all role-related localStorage keys. Call from signOut. */
@@ -108,4 +144,18 @@ export function clearActiveRoleStorage() {
   } catch {
     /* ignore */
   }
+}
+
+/**
+ * Given an intent, return the capability column to flip true.
+ * Used by Login/AuthCallback to provision capabilities on demand.
+ */
+export function intentToCapabilityColumn(
+  intent: string | null | undefined,
+): "is_driver" | "is_business" | "is_rider" | null {
+  const i = normalizeIntent(intent);
+  if (i === "driver") return "is_driver";
+  if (i === "business") return "is_business";
+  if (i === "rider") return "is_rider";
+  return null;
 }

@@ -1,7 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { resolvePostAuthRoute, clearRoleIntentFromUrl } from "@/lib/post-auth-route";
+import {
+  resolvePostAuthRoute,
+  clearRoleIntentFromUrl,
+  intentToCapabilityColumn,
+} from "@/lib/post-auth-route";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -17,28 +21,28 @@ const AuthCallback = () => {
           return;
         }
 
-        // Honour ?role=driver intent across the OAuth round-trip. We only flip
-        // the `is_driver` capability flag — we never overwrite the primary
-        // role (admins stay admin; existing riders keep their role too).
         const params = new URLSearchParams(window.location.search);
-        const roleParam = params.get("role");
+        const intent = params.get("intent") || params.get("role");
         const returnTo = params.get("returnTo");
-        if (roleParam === "driver") {
+
+        // Provision the matching capability without overwriting `role`.
+        // Admins are explicitly excluded so they never get downgraded.
+        const capCol = intentToCapabilityColumn(intent);
+        if (capCol) {
           await supabase
             .from("profiles")
-            .update({ is_driver: true } as any)
+            .update({ [capCol]: true } as any)
             .eq("user_id", session.user.id)
             .neq("role", "admin");
         }
 
-        // Fetch profile to determine role-based redirect
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role, is_driver, is_rider, driver_onboarding_complete")
+          .select("role, is_driver, is_rider, is_business, driver_onboarding_complete, business_onboarding_complete, rider_onboarding_complete, last_used_role")
           .eq("user_id", session.user.id)
           .single();
 
-        const route = resolvePostAuthRoute(profile as any, { intent: roleParam, returnTo });
+        const route = resolvePostAuthRoute(profile as any, { intent, returnTo });
         clearRoleIntentFromUrl();
         navigate(route, { replace: true });
       } catch (err) {

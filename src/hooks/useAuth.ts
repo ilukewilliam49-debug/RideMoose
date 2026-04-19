@@ -10,10 +10,15 @@ export interface Profile {
   phone: string | null;
   phone_verified: boolean;
   avatar_url: string | null;
+  /** Legacy field — used only to detect admin. For non-admins, use is_* caps. */
   role: "rider" | "driver" | "admin";
   is_rider: boolean;
   is_driver: boolean;
+  is_business: boolean;
+  rider_onboarding_complete: boolean;
   driver_onboarding_complete: boolean;
+  business_onboarding_complete: boolean;
+  last_used_role: string | null;
   is_available: boolean;
   latitude: number | null;
   longitude: number | null;
@@ -71,25 +76,26 @@ export const useAuth = () => {
           clearSessionExpired();
         }
 
-        if (event === "SIGNED_OUT") {
-          // Only show expired dialog if we had a user before (not manual sign-out)
-        }
-
         setUser(session?.user ?? null);
         if (session?.user) {
           clearSessionExpired();
 
-          // Handle role-intent from URL (?role=driver). We DO NOT overwrite the
-          // user's primary `role` (that would break admins and demote rider
-          // history). We only flip the `is_driver` capability flag so the
-          // routing layer continues the driver flow. Admins keep their role.
+          // Capability provisioning from URL intent. Intent NEVER overwrites
+          // the user's primary `role` (admins stay admin) — it only flips
+          // the corresponding capability flag if not already set. The
+          // resolver handles routing in the page-level effects.
           if (event === "SIGNED_IN") {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roleParam = urlParams.get("role");
-            if (roleParam === "driver") {
+            const params = new URLSearchParams(window.location.search);
+            const intent = (params.get("intent") || params.get("role") || "").toLowerCase();
+            const capCol =
+              intent === "driver" ? "is_driver"
+              : intent === "business" ? "is_business"
+              : intent === "rider" ? "is_rider"
+              : null;
+            if (capCol) {
               await supabase
                 .from("profiles")
-                .update({ is_driver: true } as any)
+                .update({ [capCol]: true } as any)
                 .eq("user_id", session.user.id)
                 .neq("role", "admin");
             }
@@ -105,7 +111,6 @@ export const useAuth = () => {
 
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error && error.message?.includes("refresh_token")) {
-        // Token refresh failed — session expired
         const lastEmail = user?.email;
         setExpiredEmail(lastEmail || undefined);
         setSessionExpired(true);
@@ -123,7 +128,6 @@ export const useAuth = () => {
       }
     });
 
-    // Listen for auth errors that indicate expired tokens
     const handleVisibility = async () => {
       if (document.visibilityState === "visible") {
         const { data: { session }, error } = await supabase.auth.getSession();
