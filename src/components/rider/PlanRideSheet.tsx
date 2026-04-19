@@ -207,7 +207,7 @@ export default function PlanRideSheet({
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-4">
           {/* Chip row — Uber-style action pills */}
           <div className="flex items-center gap-2">
-            <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
+            <Popover open={scheduleOpen} onOpenChange={setScheduleOpen} modal={false}>
               <PopoverTrigger asChild>
                 <button
                   className={cn(
@@ -222,7 +222,7 @@ export default function PlanRideSheet({
                   <ChevronDown className={cn("h-3.5 w-3.5 opacity-60 transition-transform", scheduleOpen && "rotate-180")} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-3" align="start">
+              <PopoverContent className="w-64 p-3 z-[1300]" align="start" sideOffset={8} onOpenAutoFocus={(e) => e.preventDefault()}>
                 {!showCustom ? (
                   <div className="space-y-1">
                     <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-between", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
@@ -262,7 +262,7 @@ export default function PlanRideSheet({
               </PopoverContent>
             </Popover>
 
-            <Popover open={riderOpen} onOpenChange={openRiderPopover}>
+            <Popover open={riderOpen} onOpenChange={openRiderPopover} modal={false}>
               <PopoverTrigger asChild>
                 <button
                   type="button"
@@ -282,7 +282,7 @@ export default function PlanRideSheet({
                   <ChevronDown className={cn("h-3.5 w-3.5 opacity-60 transition-transform", riderOpen && "rotate-180")} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 p-3" align="start">
+              <PopoverContent className="w-72 p-3 z-[1300]" align="start" sideOffset={8} onOpenAutoFocus={(e) => e.preventDefault()}>
                 <div className="space-y-1 mb-2">
                   <button
                     onClick={() => setDraftMode("me")}
