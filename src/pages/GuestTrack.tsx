@@ -28,6 +28,7 @@ interface TrackData {
     lng: number | null;
   } | null;
   eta_min: number | null;
+  route_polyline: string | null;
 }
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
