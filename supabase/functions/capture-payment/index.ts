@@ -164,47 +164,7 @@ serve(async (req) => {
       );
     }
 
-    // pay_driver: no Stripe, but track commission owed
-    if (ride.payment_option === "pay_driver") {
-      const driverEarnings = grossFareCents - commissionCents;
-
-      if (ride.driver_id) {
-        const { data: driverProfile } = await serviceClient
-          .from("profiles")
-          .select("driver_balance_cents")
-          .eq("id", ride.driver_id)
-          .single();
-
-        if (driverProfile) {
-          await serviceClient
-            .from("profiles")
-            .update({
-              driver_balance_cents: (driverProfile.driver_balance_cents || 0) + commissionCents,
-            })
-            .eq("id", ride.driver_id);
-        }
-      }
-
-      await serviceClient
-        .from("rides")
-        .update({
-          captured_amount_cents: 0,
-          outstanding_amount_cents: 0,
-          payment_status: "paid",
-          paid_at: new Date().toISOString(),
-          service_fee_cents: SERVICE_FEE_CENTS,
-          commission_cents: commissionCents,
-          stripe_fee_cents: 0,
-          driver_earnings_cents: driverEarnings,
-          tax_cents: taxCents,
-        })
-        .eq("id", ride_id);
-
-      return new Response(
-        JSON.stringify({ status: "paid_driver", driver_earnings_cents: driverEarnings, commission_cents: commissionCents }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
+    // (Removed legacy pay_driver branch — all rides now pay in-app via Stripe.)
 
     // in_app Stripe flow
     if (!ride.stripe_payment_intent_id) throw new Error("No payment intent for this ride");
