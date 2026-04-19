@@ -1,13 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, HelpCircle, LocateFixed, AlertTriangle } from "lucide-react";
-import { format, addMinutes } from "date-fns";
+import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, HelpCircle, LocateFixed, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -19,6 +15,9 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 import SupportChatDialog from "@/components/SupportChatDialog";
 import NearbyDriversMap from "@/components/rider/NearbyDriversMap";
 import PlanRideSheet from "@/components/rider/PlanRideSheet";
+import PickupTimeSelector from "@/components/rider/PickupTimeSelector";
+import RiderSelector from "@/components/rider/RiderSelector";
+import { useRideBooking } from "@/contexts/RideBookingContext";
 
 
 
