@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { format, addMinutes } from "date-fns";
-import { ArrowLeft, Clock, User, MapPin, LocateFixed, Map as MapIcon, ChevronRight, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Clock, User, MapPin, LocateFixed, Map as MapIcon, ChevronRight, CalendarIcon, ChevronDown, Check, UserPlus } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
