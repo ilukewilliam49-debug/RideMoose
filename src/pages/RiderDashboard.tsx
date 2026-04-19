@@ -30,6 +30,7 @@ import RideHistory from "@/components/rider/RideHistory";
 
 import ServiceSelector from "@/components/rider/ServiceSelector";
 import PassengerCountPicker from "@/components/rider/PassengerCountPicker";
+import RouteStopsEditor from "@/components/rider/RouteStopsEditor";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
 import DriverMatchingOverlay from "@/components/rider/DriverMatchingOverlay";
 import { useRideQueries } from "@/hooks/useRideQueries";
