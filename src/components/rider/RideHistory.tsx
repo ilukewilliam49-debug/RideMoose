@@ -25,7 +25,7 @@ const RideHistory = ({ rides, statusColor, onRate, onRefresh }: RideHistoryProps
         {rides?.map((ride) => {
           const grossFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
           const isPrivateHire = ride.service_type === "private_hire";
-          const surchargeCents = isPrivateHire ? 120 : 0; // $1.20 PickYou surcharge
+          const surchargeCents = isPrivateHire ? 299 : 0; // $2.99 PickYou surcharge
           const taxCents = ride.tax_cents || 0;
           const serviceFee = ride.service_fee_cents || 0;
           const totalFare = grossFare + surchargeCents + taxCents + serviceFee;

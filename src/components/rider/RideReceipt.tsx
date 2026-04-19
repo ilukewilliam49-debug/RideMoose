@@ -31,7 +31,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-const PICKYOU_SURCHARGE_CENTS = 120; // $1.20
+const PICKYOU_SURCHARGE_CENTS = 299; // $2.99
 
 export default function RideReceipt({ ride, driverName, vehicleMake, vehicleModel, vehicleYear, vehicleColor, licensePlate }: RideReceiptProps) {
   const { t } = useTranslation();
