@@ -106,7 +106,11 @@ export function resolvePostAuthRoute(
   // last_used_role hint
   const last = profile.last_used_role;
   if (last === "driver" && profile.is_driver) {
-    return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
+    if (profile.driver_onboarding_complete) return "/driver";
+    // Don't trap dual-role users in driver onboarding on every login —
+    // fall back to /rider if they also hold the rider capability.
+    if (profile.is_rider) return "/rider";
+    return "/driver/onboarding";
   }
   if (last === "business" && profile.is_business) {
     return "/business";
