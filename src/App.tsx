@@ -58,6 +58,10 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const DriveLanding = lazy(() => import("./pages/DriveLanding"));
 const BusinessLanding = lazy(() => import("./pages/BusinessLanding"));
+const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
+const BusinessMembers = lazy(() => import("./pages/BusinessMembers"));
+const BusinessInvoices = lazy(() => import("./pages/BusinessInvoices"));
+const BusinessRides = lazy(() => import("./pages/BusinessRides"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -155,6 +159,13 @@ const AppContent = () => {
           </Route>
           <Route path="/driver/onboarding" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboarding /></ProtectedRoute>} />
           <Route path="/driver/onboarding/pending" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboardingPending /></ProtectedRoute>} />
+
+          <Route path="/business" element={<ProtectedRoute allowedRoles={["business"]}><RoleLayout /></ProtectedRoute>}>
+            <Route index element={<BusinessDashboard />} />
+            <Route path="members" element={<BusinessMembers />} />
+            <Route path="invoices" element={<BusinessInvoices />} />
+            <Route path="rides" element={<BusinessRides />} />
+          </Route>
 
           <Route path="/rider" element={<ProtectedRoute allowedRoles={["rider", "driver"]}><RoleLayout /></ProtectedRoute>}>
             <Route index element={<DashboardHome />} />

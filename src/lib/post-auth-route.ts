@@ -83,7 +83,7 @@ export function resolvePostAuthRoute(
 
   // Explicit intent wins over default routing
   if (intent === "business") {
-    return profile.business_onboarding_complete ? "/rider" : "/business/apply";
+    return profile.is_business ? "/business" : "/business/apply";
   }
   if (intent === "driver") {
     return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
@@ -97,7 +97,7 @@ export function resolvePostAuthRoute(
     return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
   }
   if (options.activeRole === "business" && profile.is_business) {
-    return "/rider"; // Business uses rider UI for booking; no separate dashboard yet
+    return "/business";
   }
   if (options.activeRole === "rider") {
     return "/rider";
@@ -109,7 +109,7 @@ export function resolvePostAuthRoute(
     return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
   }
   if (last === "business" && profile.is_business) {
-    return "/rider";
+    return "/business";
   }
   if (last === "rider") {
     return "/rider";
