@@ -537,7 +537,7 @@ serve(async (req) => {
 
     const { data: ride } = await supabase
       .from("rides")
-      .select("id, rider_id, driver_id, service_type, pickup_address, dropoff_address")
+      .select("id, rider_id, driver_id, service_type, pickup_address, dropoff_address, booking_for, guest_name, guest_phone")
       .eq("id", ride_id)
       .single();
 
