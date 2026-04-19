@@ -12,6 +12,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import PushNotificationSetup from "@/components/PushNotificationSetup";
 import SupportChatDialog from "@/components/SupportChatDialog";
+import RoleSwitcher from "@/components/RoleSwitcher";
 import {
   Sidebar,
   SidebarContent,
@@ -159,6 +160,13 @@ export function AppSidebar() {
             {!collapsed && <NotificationBell />}
           </div>
         </div>
+
+        {/* Role switcher (Rider / Driver / Business) */}
+        {!collapsed && (
+          <div className="px-3 pb-2">
+            <RoleSwitcher />
+          </div>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>{t("nav.navigation")}</SidebarGroupLabel>
