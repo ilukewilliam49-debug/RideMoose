@@ -40,8 +40,10 @@ const driverIcon = new L.Icon({
 export interface MapMarker {
   lat: number;
   lng: number;
-  type: "pickup" | "dropoff" | "driver";
+  type: "pickup" | "dropoff" | "driver" | "stop";
   label?: string;
+  /** 1-based index for "stop" markers (rendered inside the badge). */
+  index?: number;
 }
 
 interface RideMapProps {
@@ -69,6 +71,23 @@ const decodePolyline = (encoded: string): [number, number][] => {
 };
 
 const iconMap = { pickup: pickupIcon, dropoff: dropoffIcon, driver: driverIcon };
+
+/** Build a numbered amber badge marker for an intermediate stop. */
+const stopBadgeIcon = (index: number) =>
+  L.divIcon({
+    html: `<div style="
+      display:flex;align-items:center;justify-content:center;
+      width:26px;height:26px;border-radius:9999px;
+      background:hsl(38 92% 50%);
+      color:#fff;
+      border:2px solid #fff;
+      box-shadow:0 2px 6px hsl(0 0% 0%/0.25);
+      font-size:12px;font-weight:800;font-family:system-ui,sans-serif;
+    ">${index}</div>`,
+    className: "",
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
 
 const RideMap = ({ markers, center = [62.454, -114.372], className = "", polyline, routeInfo }: RideMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +132,8 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
 
     // Add new markers
     markers.forEach((m) => {
-      const marker = L.marker([m.lat, m.lng], { icon: iconMap[m.type] }).addTo(map);
+      const icon = m.type === "stop" ? stopBadgeIcon(m.index ?? 1) : (iconMap as any)[m.type];
+      const marker = L.marker([m.lat, m.lng], { icon }).addTo(map);
       if (m.label) marker.bindPopup(m.label);
       markersRef.current.push(marker);
     });
