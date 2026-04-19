@@ -22,7 +22,7 @@ const AuthCallback = () => {
         }
 
         const params = new URLSearchParams(window.location.search);
-        const intent = params.get("intent") || params.get("role");
+        const intent = params.get("intent");
         const returnTo = params.get("returnTo");
 
         // Provision the matching capability via the shared helper. Admin
