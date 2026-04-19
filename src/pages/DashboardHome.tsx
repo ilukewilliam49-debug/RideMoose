@@ -608,6 +608,8 @@ const DashboardHome = () => {
         setDropoffCoords={setDropoffAddressCoords}
         setUserLocation={setUserLocation}
         savedPlaces={savedPlaces ?? []}
+        stops={stops}
+        setStops={setStops}
         onRequestMapPick={() => {
           setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
         }}
