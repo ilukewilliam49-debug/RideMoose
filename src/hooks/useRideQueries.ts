@@ -95,11 +95,18 @@ export const useRideQueries = ({
           waypoints: stops.length > 0 ? stops.map((s) => ({ lat: s.lat, lng: s.lng })) : undefined,
         },
       });
-      if (error) throw error;
+      if (error) {
+        // Don't crash the UI — let the Haversine fallback take over.
+        console.warn("[directions] edge function error:", error.message);
+        return null;
+      }
+      // Server returned a graceful fallback (ZERO_RESULTS / NOT_FOUND / NO_LEGS).
+      if (data && (data as any).fallback) return null;
       return data as { distance_km: number; duration_sec: number; duration_text: string; duration_in_traffic_sec: number; duration_in_traffic_text: string; polyline: string | null };
     },
     enabled: !!pickupCoords && !!dropoffCoords,
     staleTime: 60_000,
+    retry: false,
   });
 
   const trafficDelayMin = useMemo(() => {
