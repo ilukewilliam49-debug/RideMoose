@@ -256,6 +256,16 @@ export default function PlanRideSheet({
             {/* Connector */}
             <div className="ml-3 my-1 h-3 border-l-2 border-dashed border-border/60" />
 
+            {/* Intermediate stops editor */}
+            {setStops && (
+              <div className="my-2">
+                <RouteStopsEditor stops={stops ?? []} onChange={setStops} />
+              </div>
+            )}
+
+            {/* Connector before dropoff */}
+            <div className="ml-3 my-1 h-3 border-l-2 border-dashed border-border/60" />
+
             {/* Dropoff */}
             <div ref={dropoffRef} className="flex items-center gap-3">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center">
