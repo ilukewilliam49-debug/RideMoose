@@ -120,6 +120,20 @@ export default function PlanRideSheet({
       <SheetContent
         side="bottom"
         className="h-[100dvh] w-full max-w-full p-0 rounded-t-2xl flex flex-col gap-0 border-0 sm:max-w-full"
+        onPointerDownOutside={(e) => {
+          // Prevent sheet from closing when interacting with portaled popovers
+          // (PickupTimeSelector / RiderSelector live in a portal outside this sheet).
+          const target = e.target as HTMLElement | null;
+          if (target?.closest?.("[data-radix-popper-content-wrapper]")) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.closest?.("[data-radix-popper-content-wrapper]")) {
+            e.preventDefault();
+          }
+        }}
       >
         <SheetTitle className="sr-only">{t("rider.planYourRide", "Plan your ride")}</SheetTitle>
         <SheetDescription className="sr-only">
