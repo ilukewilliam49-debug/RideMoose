@@ -30,6 +30,7 @@ import RideHistory from "@/components/rider/RideHistory";
 
 import ServiceSelector from "@/components/rider/ServiceSelector";
 import PassengerCountPicker from "@/components/rider/PassengerCountPicker";
+import RouteStopsEditor from "@/components/rider/RouteStopsEditor";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
 import DriverMatchingOverlay from "@/components/rider/DriverMatchingOverlay";
 import { useRideQueries } from "@/hooks/useRideQueries";
@@ -67,6 +68,7 @@ const RiderDashboard = () => {
     distanceKm: state.distanceKm,
     passengerCount: state.passengerCount,
     estimatedItemCostCents: state.estimatedItemCostCents,
+    stops: state.stops,
   });
 
   const driverETAs = useNearestDriverETAs(state.userLocation);
@@ -133,6 +135,12 @@ const RiderDashboard = () => {
     if (now - lastSubmitTimeRef.current < 3000) return;
     lastSubmitTimeRef.current = now;
     if (!profile?.id || !state.pickup || !state.dropoff || !state.pickupCoords || !state.dropoffCoords) return;
+    // Block submission if any added stop is incomplete
+    const incompleteStop = (state.stops ?? []).find((s) => !s.address || !s.lat || !s.lng);
+    if (incompleteStop) {
+      toast.error(t("rider.completeAllStops", "Please complete or remove empty stops"));
+      return;
+    }
     if (state.serviceType === "retail_delivery" && !queries.riderOrgMembership) {
       toast.error(t("rider.businessAccountRequired"));
       return;
@@ -390,6 +398,23 @@ const RiderDashboard = () => {
           {/* Courier fields moved to dedicated /rider/courier page */}
 
           {/* Pickup & Dropoff – hidden; values come from URL params set on the home screen */}
+
+          {/* Intermediate stops – riders can add up to 3 stops between pickup and dropoff */}
+          {state.pickup && state.dropoff && (
+            <div className="rounded-xl border border-border/60 bg-card/40 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {t("rider.stopsTitle", "Stops along the way")}
+                </p>
+                {state.stops.length > 0 && (
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    {state.stops.length}/3
+                  </span>
+                )}
+              </div>
+              <RouteStopsEditor stops={state.stops} onChange={state.setStops} />
+            </div>
+          )}
 
           {/* Route info */}
           {queries.directionsData && state.pickupCoords && state.dropoffCoords && (

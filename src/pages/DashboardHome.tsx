@@ -18,6 +18,7 @@ import PlanRideSheet from "@/components/rider/PlanRideSheet";
 import PickupTimeSelector from "@/components/rider/PickupTimeSelector";
 import RiderSelector from "@/components/rider/RiderSelector";
 import { useRideBooking } from "@/contexts/RideBookingContext";
+import { encodeStopsParam, type RideStop } from "@/types/stops";
 
 
 
@@ -77,6 +78,7 @@ const DashboardHome = () => {
   const [pickupAddressCoords, setPickupAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffAddressCoords, setDropoffAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [planSheetOpen, setPlanSheetOpen] = useState(false);
+  const [stops, setStops] = useState<RideStop[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -606,6 +608,8 @@ const DashboardHome = () => {
         setDropoffCoords={setDropoffAddressCoords}
         setUserLocation={setUserLocation}
         savedPlaces={savedPlaces ?? []}
+        stops={stops}
+        setStops={setStops}
         onRequestMapPick={() => {
           setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
         }}
