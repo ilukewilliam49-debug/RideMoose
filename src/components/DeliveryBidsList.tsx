@@ -209,7 +209,7 @@ const DeliveryBidsList = ({ rideId }: DeliveryBidsListProps) => {
       const { data: drivers } = await supabase
         .from("profiles")
         .select("id")
-        .eq("role", "driver")
+        .eq("is_driver", true)
         .eq("is_available", true)
         .in("vehicle_type", ["SUV", "truck", "van"]);
 

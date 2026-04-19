@@ -57,7 +57,7 @@ export default function AdminLiveMap() {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, latitude, longitude, vehicle_type, vehicle_make, vehicle_model, license_plate, is_available")
-        .eq("role", "driver")
+        .eq("is_driver", true)
         .eq("is_available", true)
         .not("latitude", "is", null)
         .not("longitude", "is", null);
