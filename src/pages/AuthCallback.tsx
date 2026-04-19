@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   resolvePostAuthRoute,
   clearRoleIntentFromUrl,
-  intentToCapabilityColumn,
+  provisionCapabilityFromIntent,
 } from "@/lib/post-auth-route";
 
 const AuthCallback = () => {
@@ -25,15 +25,9 @@ const AuthCallback = () => {
         const intent = params.get("intent") || params.get("role");
         const returnTo = params.get("returnTo");
 
-        // Provision the matching capability. Admin status lives in
-        // user_roles and is unaffected by capability flags.
-        const capCol = intentToCapabilityColumn(intent);
-        if (capCol) {
-          await supabase
-            .from("profiles")
-            .update({ [capCol]: true } as any)
-            .eq("user_id", session.user.id);
-        }
+        // Provision the matching capability via the shared helper. Admin
+        // status lives in user_roles and is unaffected by capability flags.
+        await provisionCapabilityFromIntent(session.user.id, intent);
 
         const [{ data: profile }, { data: roles }] = await Promise.all([
           supabase
