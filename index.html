@@ -18,6 +18,30 @@
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
     <meta name="theme-color" content="#0B0F1A" />
 
+    <!-- Pre-mount paint: match app background immediately so reloads never
+         flash white before CSS/JS finish loading. Values mirror the
+         --background token in src/index.css (hsl(222 40% 7%)). -->
+    <style>
+      html, body { background-color: hsl(222, 40%, 7%); margin: 0; }
+      #root { min-height: 100vh; background-color: hsl(222, 40%, 7%); }
+      #initial-loader {
+        position: fixed; inset: 0; display: flex; align-items: center;
+        justify-content: center; background-color: hsl(222, 40%, 7%);
+        z-index: 9999; transition: opacity 0.3s ease-out;
+      }
+      #initial-loader.hidden { opacity: 0; pointer-events: none; }
+      #initial-loader .dot {
+        width: 10px; height: 10px; border-radius: 9999px;
+        background-color: hsl(213, 84%, 56%); margin: 0 4px;
+        animation: pickyou-pulse 1s infinite ease-in-out;
+      }
+      #initial-loader .dot:nth-child(2) { animation-delay: 0.2s; }
+      #initial-loader .dot:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes pickyou-pulse {
+        0%, 100% { opacity: 0.3; } 50% { opacity: 1; }
+      }
+    </style>
+
     <!-- Favicon & PWA -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
@@ -94,6 +118,9 @@
 
   <body>
     <div id="root"></div>
+    <div id="initial-loader" aria-hidden="true">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
     <noscript>
       <footer aria-label="Legal links" style="padding: 24px 20px; text-align: center; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; line-height: 1.5; color: hsl(215 16% 47%); background: hsl(222 47% 11%);">
         <a href="/privacy" style="color: inherit; text-decoration: underline; margin-right: 12px;">Privacy Policy</a>
