@@ -157,9 +157,17 @@ const RideSafetyActions = ({
       </Dialog>
 
       {/* Share Trip Button */}
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
-        {copied ? (
-          <Check className="h-4 w-4 text-green-500" />
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1.5"
+        onClick={handleShare}
+        disabled={sharing}
+      >
+        {sharing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : copied ? (
+          <Check className="h-4 w-4 text-primary" />
         ) : (
           <Share2 className="h-4 w-4" />
         )}
