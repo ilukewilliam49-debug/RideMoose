@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Loader2, Car, CheckCircle2, AlertCircle, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Car, CheckCircle2, AlertCircle, Star, Phone } from "lucide-react";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
+import { toast } from "sonner";
 
 interface TrackData {
   status: string;
@@ -43,6 +45,30 @@ export default function GuestTrack() {
   const [data, setData] = useState<TrackData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [calling, setCalling] = useState(false);
+
+  const handleCallDriver = async () => {
+    if (!token || calling) return;
+    setCalling(true);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/guest-call-driver`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ token }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Could not place call");
+      toast.success("We're calling your phone now to connect you with the driver.");
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't place the call");
+    } finally {
+      setCalling(false);
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -161,6 +187,24 @@ export default function GuestTrack() {
                   {data.driver.license_plate}
                 </p>
               )}
+              <Button
+                onClick={handleCallDriver}
+                disabled={calling}
+                size="sm"
+                className="w-full mt-2"
+              >
+                {calling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call driver
+                  </>
+                )}
+              </Button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                We'll call your phone and connect you. Your number stays private.
+              </p>
             </div>
           )}
         </Card>
