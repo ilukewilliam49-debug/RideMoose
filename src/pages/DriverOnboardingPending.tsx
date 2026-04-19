@@ -190,7 +190,7 @@ const DriverOnboardingPending = () => {
         <div className="text-center mb-6">
           <button
             type="button"
-            onClick={() => navigate("/?view=landing")}
+            onClick={() => navigate("/")}
             aria-label="Go to homepage"
             className="block mx-auto mb-4 rounded-xl transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
