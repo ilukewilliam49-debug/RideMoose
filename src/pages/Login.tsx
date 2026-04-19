@@ -23,7 +23,7 @@ type AuthView = "main" | "email" | "phone-otp";
 const Login = () => {
   const [searchParams] = useSearchParams();
   // Accept both the new `intent` param and the legacy `role` param.
-  const intentParam = (searchParams.get("intent") || searchParams.get("role") || "").toLowerCase();
+  const intentParam = (searchParams.get("intent") || "").toLowerCase();
   const preselectedRole: "rider" | "driver" | "business" =
     intentParam === "driver" ? "driver" : intentParam === "business" ? "business" : "rider";
   const preselectedSignup = intentParam === "driver" || intentParam === "business";
@@ -88,7 +88,7 @@ const Login = () => {
 
   useEffect(() => {
     if (!authLoading && user && profile) {
-      const intent = searchParams.get("intent") || searchParams.get("role");
+      const intent = searchParams.get("intent");
       const returnTo = searchParams.get("returnTo");
       const route = resolvePostAuthRoute(profile as any, { intent, activeRole, returnTo });
       // Strip the consumed intent param so it doesn't trigger repeat upgrades
@@ -161,7 +161,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const wantedIntent = (searchParams.get("intent") || searchParams.get("role") || "").toLowerCase();
+      const wantedIntent = (searchParams.get("intent") || "").toLowerCase();
 
       if (isLogin) {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -248,7 +248,7 @@ const Login = () => {
     try {
       // Preserve intent + returnTo across the OAuth round-trip so AuthCallback
       // can promote the profile capability and route to the right page.
-      const intentParam = searchParams.get("intent") || searchParams.get("role");
+      const intentParam = searchParams.get("intent");
       const returnToParam = searchParams.get("returnTo");
       const cbParams = new URLSearchParams();
       if (intentParam) cbParams.set("intent", intentParam);

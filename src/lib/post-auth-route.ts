@@ -132,14 +132,10 @@ export function resolvePostAuthRoute(
 export function clearRoleIntentFromUrl() {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
-  let changed = false;
-  for (const key of ["role", "intent"]) {
-    if (url.searchParams.has(key)) {
-      url.searchParams.delete(key);
-      changed = true;
-    }
+  if (url.searchParams.has("intent")) {
+    url.searchParams.delete("intent");
+    window.history.replaceState({}, "", url.toString());
   }
-  if (changed) window.history.replaceState({}, "", url.toString());
 }
 
 /** Clear all role-related localStorage keys. Call from signOut. */
