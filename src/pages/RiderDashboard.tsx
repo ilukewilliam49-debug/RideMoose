@@ -338,8 +338,7 @@ const RiderDashboard = () => {
       </div>
 
 
-      {/* Discovery: promote driver / business roles for rider-only users */}
-      {!queries.activeRide && !state.paymentClientSecret && <RoleUpgradeChips />}
+
 
       {/* Active ride map */}
       {showActiveMap && !state.paymentClientSecret && (
