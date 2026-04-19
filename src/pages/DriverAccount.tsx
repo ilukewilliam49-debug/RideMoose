@@ -294,7 +294,7 @@ const DriverAccount = () => {
 
   const services = [
     { key: "can_taxi", label: "Taxi", icon: Car, enabled: profile?.can_taxi },
-    { key: "can_private_hire", label: "Private Hire", icon: Briefcase, enabled: profile?.can_private_hire },
+    { key: "can_private_hire", label: "PickYou", icon: Briefcase, enabled: profile?.can_private_hire },
     { key: "can_shuttle", label: "Shuttle", icon: Bus, enabled: profile?.can_shuttle },
     { key: "can_courier", label: "Courier", icon: Package, enabled: profile?.can_courier },
   ].filter((s) => s.enabled);

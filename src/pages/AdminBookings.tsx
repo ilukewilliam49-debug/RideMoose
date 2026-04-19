@@ -156,7 +156,7 @@ const AdminBookings = () => {
             <SelectContent>
               <SelectItem value="all">All services</SelectItem>
               <SelectItem value="taxi">Taxi</SelectItem>
-              <SelectItem value="private_hire">Private hire</SelectItem>
+              <SelectItem value="private_hire">PickYou</SelectItem>
               <SelectItem value="shuttle">Shuttle</SelectItem>
               <SelectItem value="courier">Courier</SelectItem>
               

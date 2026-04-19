@@ -383,7 +383,7 @@ export default function AdminUserDetail() {
                 { field: "can_taxi", label: "Taxi", icon: Car },
                 { field: "can_courier", label: "Courier", icon: Package },
                 { field: "can_shuttle", label: "Shuttle", icon: Bus },
-                { field: "can_private_hire", label: "Private Hire", icon: Briefcase },
+                { field: "can_private_hire", label: "PickYou", icon: Briefcase },
               ].map(({ field, label, icon: Icon }) => (
                 <div key={field} className="flex items-center justify-between">
                   <Label className="flex items-center gap-2">

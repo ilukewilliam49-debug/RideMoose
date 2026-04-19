@@ -37,7 +37,7 @@ export const DRIVER_DOCUMENTS: DocumentSpec[] = [
     type: "chauffeurs_permit",
     label: "Chauffeur's Permit",
     optional: true,
-    helper: "Required only if you'll be driving Taxi service in Yellowknife. Skip for courier or private hire.",
+    helper: "Required only if you'll be driving Taxi service in Yellowknife. Skip for Courier or PickYou.",
     tips: [
       "Issued by the City of Yellowknife",
       "Skip this if you're only doing courier or private hire",
