@@ -604,8 +604,6 @@ const DashboardHome = () => {
         setDestination={setDestination}
         dropoffCoords={dropoffAddressCoords}
         setDropoffCoords={setDropoffAddressCoords}
-        scheduledAt={scheduledAt}
-        setScheduledAt={setScheduledAt}
         setUserLocation={setUserLocation}
         savedPlaces={savedPlaces ?? []}
         onRequestMapPick={() => {
