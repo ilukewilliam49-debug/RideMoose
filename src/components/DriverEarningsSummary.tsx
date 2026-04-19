@@ -100,7 +100,7 @@ const DriverEarningsSummary = () => {
   return (
     <div className="space-y-4">
       {/* Promo Banner */}
-      {profile?.role === "driver" && (
+      {profile?.is_driver && (
         <Card className={cn(inPromo ? "border-green-500/30 bg-green-500/5" : "")}>
           <CardContent className="py-3 px-4 flex items-center justify-between">
             <div className="flex items-center gap-2">

@@ -47,7 +47,7 @@ export default function RideEventsTimeline({ rideId }: RideEventsTimelineProps) 
       if (actorIds.length === 0) return [];
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, role")
+        .select("id, full_name, is_driver")
         .in("id", actorIds);
       if (error) throw error;
       return data;
@@ -154,7 +154,7 @@ export default function RideEventsTimeline({ rideId }: RideEventsTimelineProps) 
                   {actor && (
                     <p className="text-xs text-muted-foreground mt-1">
                       By: <span className="font-medium text-foreground">{actor.full_name}</span>
-                      <span className="ml-1 capitalize">({actor.role})</span>
+                      <span className="ml-1 capitalize">({actor.is_driver ? "driver" : "rider"})</span>
                     </p>
                   )}
 

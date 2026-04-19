@@ -10,15 +10,11 @@ import BottomTabBar from "@/components/BottomTabBar";
 import DriverBottomTabBar from "@/components/DriverBottomTabBar";
 
 const RoleLayout = () => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const { activeRole } = useActiveRole();
   const isRider = activeRole === "rider";
-  // Driver mode applies when active role is driver AND user holds driver
-  // capability (covers legacy `role === 'driver'` and rider-primary users
-  // who later opted into driving via `is_driver`).
-  const isDriver = activeRole === "driver" && (profile?.role === "driver" || !!profile?.is_driver);
+  const isDriver = activeRole === "driver" && !!profile?.is_driver;
   const isBusiness = activeRole === "business" && !!profile?.is_business;
-  const isAdmin = profile?.role === "admin";
   const hasMobileNav = isRider || isDriver;
 
   const headerLabel = isAdmin

@@ -198,7 +198,7 @@ const RiderAccount = () => {
             </div>
           )}
           <p className="text-sm text-muted-foreground capitalize">
-            {profile?.role || "rider"}
+            {profile?.is_driver ? "driver" : profile?.is_business ? "business" : "rider"}
           </p>
         </div>
         <NotificationBell />

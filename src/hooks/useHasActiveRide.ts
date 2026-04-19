@@ -13,7 +13,7 @@ const ACTIVE_STATUSES = ["accepted", "arrived", "in_progress"] as const satisfie
 export const useHasActiveRide = (profile: Profile | null): boolean => {
   const queryClient = useQueryClient();
   const profileId = profile?.id;
-  const role = profile?.role;
+  const role: "driver" | "rider" = profile?.is_driver ? "driver" : "rider";
 
   const { data } = useQuery({
     queryKey: ["has-active-ride", profileId, role],

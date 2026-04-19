@@ -126,8 +126,8 @@ const DriverOnboarding = () => {
   // This prevents users from being "stuck" on the onboarding form after completion.
   useEffect(() => {
     if (!profile) return;
-    if (profile.role !== "driver") {
-      navigate(profile.role === "admin" ? "/admin" : "/rider", { replace: true });
+    if (!profile.is_driver) {
+      navigate("/rider", { replace: true });
       return;
     }
     if (verifications === undefined) return; // wait for fetch
@@ -266,10 +266,16 @@ const DriverOnboarding = () => {
       });
       if (insertError) throw insertError;
 
-      const { data: admins } = await supabase
-        .from("profiles")
-        .select("id")
+      const { data: adminRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
         .eq("role", "admin");
+      const { data: admins } = adminRoles && adminRoles.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id")
+            .in("user_id", adminRoles.map((r: any) => r.user_id))
+        : { data: [] as Array<{ id: string }> };
       if (admins && admins.length > 0) {
         await supabase.from("notifications").insert(
           admins.map((a: any) => ({
