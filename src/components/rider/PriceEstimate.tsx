@@ -41,8 +41,14 @@ const PriceEstimate = ({
         <div className="space-y-1 pt-1 border-t border-border/50">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Fare</span>
-            <span>${estimatedPrice}</span>
+            <span>${fareBeforeSurcharge.toFixed(2)}</span>
           </div>
+          {largeGroupSurcharge > 0 && (
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Large group ({passengerCount} pax)</span>
+              <span>${largeGroupSurcharge.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>PickYou Surcharge</span>
             <span>${surcharge.toFixed(2)}</span>
