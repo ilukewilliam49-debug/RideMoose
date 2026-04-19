@@ -56,6 +56,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const DriveLanding = lazy(() => import("./pages/DriveLanding"));
+const BusinessLanding = lazy(() => import("./pages/BusinessLanding"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,6 +117,7 @@ const AppContent = () => {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/drive" element={<DriveLanding />} />
+          <Route path="/business" element={<BusinessLanding />} />
 
           <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
