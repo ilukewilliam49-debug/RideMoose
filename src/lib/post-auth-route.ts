@@ -151,13 +151,16 @@ export function clearActiveRoleStorage() {
 /**
  * Given an intent, return the capability column to flip true.
  * Used by Login/AuthCallback to provision capabilities on demand.
+ *
+ * NOTE: `is_business` is intentionally NOT auto-provisioned — business
+ * access requires admin approval via the /business/apply flow. We only
+ * auto-grant `is_driver` and `is_rider`.
  */
 export function intentToCapabilityColumn(
   intent: string | null | undefined,
-): "is_driver" | "is_business" | "is_rider" | null {
+): "is_driver" | "is_rider" | null {
   const i = normalizeIntent(intent);
   if (i === "driver") return "is_driver";
-  if (i === "business") return "is_business";
   if (i === "rider") return "is_rider";
   return null;
 }
@@ -168,9 +171,9 @@ export function intentToCapabilityColumn(
  * sign-in/sign-up flows ONLY (Login.tsx, AuthCallback.tsx). Never call
  * from token-refresh handlers.
  *
- * No-op when intent is missing/unknown or when userId is falsy.
- * Errors are swallowed and logged; provisioning failures should not block
- * the auth flow.
+ * No-op for business intent (admin-approval gated), missing/unknown intent,
+ * or falsy userId. Errors are swallowed and logged; provisioning failures
+ * should not block the auth flow.
  */
 export async function provisionCapabilityFromIntent(
   userId: string | null | undefined,
