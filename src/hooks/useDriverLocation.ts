@@ -41,22 +41,21 @@ export const useDriverLocation = (
       );
     }
 
-    // Heartbeat: every 60s, write a no-op coordinate to refresh last_seen_at.
-    // We re-write the existing latitude (which trips the trigger on change),
-    // so we instead just force the trigger by writing a tiny jitter when needed.
-    // Simpler: poll a single position read and reuse updateLocation.
+    // Heartbeat: every 60s, refresh last_seen_at via a benign update so the
+    // server-side cron doesn't mark this driver offline. If GPS is allowed, we
+    // re-write the live position; if denied, we call a SECURITY DEFINER RPC
+    // that touches last_seen_at directly.
     heartbeatRef.current = window.setInterval(() => {
-      if (!("geolocation" in navigator)) return;
+      if (!("geolocation" in navigator)) {
+        supabase.rpc("touch_driver_seen").then(() => undefined);
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         updateLocation,
         () => {
-          // If GPS denied, still touch last_seen_at via a benign update so the
-          // server-side cron doesn't mark this driver offline.
-          supabase
-            .from("profiles")
-            .update({ updated_at: new Date().toISOString() } as never)
-            .eq("id", profileId)
-            .then(() => undefined);
+          // GPS denied/unavailable — touch last_seen_at via RPC so the
+          // auto-offline cron doesn't kick this driver offline.
+          supabase.rpc("touch_driver_seen").then(() => undefined);
         },
         { enableHighAccuracy: false, maximumAge: 30_000, timeout: 10_000 }
       );

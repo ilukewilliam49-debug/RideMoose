@@ -58,6 +58,20 @@ const DriverDashboard = () => {
   // ─── Toggle online / offline ───
   const toggleAvailability = useCallback(async () => {
     if (!profile?.id) return;
+
+    // Block going online if onboarding is incomplete (defense-in-depth;
+    // ProtectedRoute also gates the page, but this prevents a stale UI from
+    // letting a driver flip online after their docs were revoked).
+    const profileAny = profile as any;
+    if (!isOnline && profileAny?.driver_onboarding_complete === false) {
+      toast.error(
+        "Finish driver onboarding before going online",
+        { description: "Upload license, insurance & registration to start accepting trips." }
+      );
+      navigate("/driver/onboarding");
+      return;
+    }
+
     setTogglingAvailability(true);
     try {
       const newStatus = !isOnline;
@@ -103,7 +117,7 @@ const DriverDashboard = () => {
     } finally {
       setTogglingAvailability(false);
     }
-  }, [profile, isOnline, queryClient]);
+  }, [profile, isOnline, queryClient, navigate]);
 
   // ─── Dashboard stats ───
   const { data: stats, isLoading: statsLoading } = useQuery({
