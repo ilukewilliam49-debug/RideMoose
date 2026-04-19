@@ -327,10 +327,13 @@ export default function AdminRideDetail() {
                     .update({
                       status: "cancelled" as any,
                       cancellation_reason: "Force cancelled by admin",
+                      cancellation_fee_cents: 0,
+                      dispatched_to_driver_id: null,
+                      dispatch_expires_at: null,
                     } as any)
                     .eq("id", id!);
                   if (error) throw error;
-                  await logAdminAction("force_cancel", "ride", id!, { previous_status: ride?.status });
+                  await logAdminAction("force_cancel", "ride", id!, { previous_status: ride?.status, previous_driver_id: ride?.driver_id });
                   toast.success("Ride force-cancelled");
                   refetch();
                 } catch (err: any) {
@@ -414,15 +417,41 @@ export default function AdminRideDetail() {
               onClick={async () => {
                 setActionLoading(true);
                 try {
+                  // Verify the chosen driver is still online before reassigning
+                  const { data: drv } = await supabase
+                    .from("profiles")
+                    .select("is_available, last_seen_at")
+                    .eq("id", selectedDriverId)
+                    .maybeSingle();
+                  if (!drv?.is_available) {
+                    throw new Error("Selected driver is no longer online");
+                  }
+
+                  const previousDriverId = ride?.driver_id;
                   const { error } = await supabase
                     .from("rides")
                     .update({
                       driver_id: selectedDriverId,
                       status: "accepted" as any,
+                      // Clear any pending dispatch state so the new assignment sticks
+                      dispatched_to_driver_id: null,
+                      dispatch_expires_at: null,
                     } as any)
                     .eq("id", id!);
                   if (error) throw error;
-                  await logAdminAction("reassign_driver", "ride", id!, { new_driver_id: selectedDriverId, previous_driver_id: ride?.driver_id });
+
+                  // Notify the previous driver they were unassigned (best-effort)
+                  if (previousDriverId && previousDriverId !== selectedDriverId) {
+                    await supabase.from("notifications").insert({
+                      user_id: previousDriverId,
+                      title: "Ride reassigned",
+                      body: "An admin has reassigned this ride to another driver.",
+                      type: "ride_reassigned",
+                      ride_id: id,
+                    });
+                  }
+
+                  await logAdminAction("reassign_driver", "ride", id!, { new_driver_id: selectedDriverId, previous_driver_id: previousDriverId });
                   toast.success("Driver reassigned");
                   setSelectedDriverId("");
                   setDriverSearch("");
