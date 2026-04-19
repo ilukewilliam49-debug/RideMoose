@@ -187,6 +187,24 @@ export default function GuestTrack() {
                   {data.driver.license_plate}
                 </p>
               )}
+              <Button
+                onClick={handleCallDriver}
+                disabled={calling}
+                size="sm"
+                className="w-full mt-2"
+              >
+                {calling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call driver
+                  </>
+                )}
+              </Button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                We'll call your phone and connect you. Your number stays private.
+              </p>
             </div>
           )}
         </Card>
