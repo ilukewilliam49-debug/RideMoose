@@ -48,6 +48,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
+  const [stopsEditorOpen, setStopsEditorOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const state = useRideBookingState();
@@ -454,12 +455,27 @@ const RiderDashboard = () => {
 
           {/* Pickup & Dropoff – hidden; values come from URL params set on the home screen */}
 
-          {/* Trip summary – pickup, stops, dropoff at a glance */}
+          {/* Trip summary – pickup, stops, dropoff at a glance, with inline stop editing */}
           {(state.pickup || state.dropoff) && (
             <div className="rounded-xl border border-border/60 bg-card/40 p-3 space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                {t("rider.tripSummary", "Your trip")}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {t("rider.tripSummary", "Your trip")}
+                </p>
+                {state.pickup && (
+                  <button
+                    type="button"
+                    onClick={() => setStopsEditorOpen((v) => !v)}
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    {stopsEditorOpen
+                      ? t("common.done", "Done")
+                      : state.stops.length > 0
+                      ? t("rider.editStops", "Edit stops ({{n}}/3)", { n: state.stops.length })
+                      : t("rider.addStop", "Add a stop")}
+                  </button>
+                )}
+              </div>
               <div className="relative space-y-2.5">
                 {/* Vertical connector line */}
                 <div
@@ -518,24 +534,13 @@ const RiderDashboard = () => {
                   </div>
                 )}
               </div>
-            </div>
-          )}
 
-          {/* Intermediate stops – riders can add up to 3 stops between pickup and dropoff.
-              Always rendered when at least pickup is set so riders can build multi-stop trips. */}
-          {state.pickup && (
-            <div className="rounded-xl border border-border/60 bg-card/40 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {t("rider.stopsTitle", "Stops along the way")}
-                </p>
-                {state.stops.length > 0 && (
-                  <span className="text-[10px] font-medium text-muted-foreground">
-                    {state.stops.length}/3
-                  </span>
-                )}
-              </div>
-              <RouteStopsEditor stops={state.stops} onChange={state.setStops} />
+              {/* Inline stops editor – only shown when user taps Add/Edit */}
+              {state.pickup && stopsEditorOpen && (
+                <div className="pt-2 border-t border-border/60">
+                  <RouteStopsEditor stops={state.stops} onChange={state.setStops} />
+                </div>
+              )}
             </div>
           )}
 
