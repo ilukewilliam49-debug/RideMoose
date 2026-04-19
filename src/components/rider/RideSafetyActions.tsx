@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldAlert, Share2, Phone, Copy, Check } from "lucide-react";
+import { ShieldAlert, Share2, Phone, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RideSafetyActionsProps {
   rideId: string;
