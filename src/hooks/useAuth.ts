@@ -10,8 +10,6 @@ export interface Profile {
   phone: string | null;
   phone_verified: boolean;
   avatar_url: string | null;
-  /** Legacy field — used only to detect admin. For non-admins, use is_* caps. */
-  role: "rider" | "driver" | "admin";
   is_rider: boolean;
   is_driver: boolean;
   is_business: boolean;
@@ -50,6 +48,7 @@ export interface Profile {
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [expiredEmail, setExpiredEmail] = useState<string | undefined>();
@@ -60,13 +59,13 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    const fetchProfile = async (userId: string) => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-      setProfile(data as Profile | null);
+    const fetchProfileAndRoles = async (userId: string) => {
+      const [{ data: profileData }, { data: rolesData }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", userId).single(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+      ]);
+      setProfile(profileData as Profile | null);
+      setIsAdmin(!!rolesData?.some((r) => r.role === "admin"));
       setLoading(false);
     };
 
@@ -80,10 +79,9 @@ export const useAuth = () => {
         if (session?.user) {
           clearSessionExpired();
 
-          // Capability provisioning from URL intent. Intent NEVER overwrites
-          // the user's primary `role` (admins stay admin) — it only flips
-          // the corresponding capability flag if not already set. The
-          // resolver handles routing in the page-level effects.
+          // Capability provisioning from URL intent. Intent only flips the
+          // corresponding capability flag if not already set; admin status
+          // lives in user_roles and is unaffected.
           if (event === "SIGNED_IN") {
             const params = new URLSearchParams(window.location.search);
             const intent = (params.get("intent") || params.get("role") || "").toLowerCase();
@@ -96,14 +94,14 @@ export const useAuth = () => {
               await supabase
                 .from("profiles")
                 .update({ [capCol]: true } as any)
-                .eq("user_id", session.user.id)
-                .neq("role", "admin");
+                .eq("user_id", session.user.id);
             }
           }
 
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          setTimeout(() => fetchProfileAndRoles(session.user.id), 0);
         } else {
           setProfile(null);
+          setIsAdmin(false);
           setLoading(false);
         }
       }
@@ -116,13 +114,14 @@ export const useAuth = () => {
         setSessionExpired(true);
         setUser(null);
         setProfile(null);
+        setIsAdmin(false);
         setLoading(false);
         return;
       }
 
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfileAndRoles(session.user.id);
       } else {
         setLoading(false);
       }
@@ -136,6 +135,7 @@ export const useAuth = () => {
           setSessionExpired(true);
           setUser(null);
           setProfile(null);
+          setIsAdmin(false);
         }
       }
     };
@@ -154,7 +154,8 @@ export const useAuth = () => {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setIsAdmin(false);
   };
 
-  return { user, profile, loading, signOut, sessionExpired, expiredEmail, clearSessionExpired };
+  return { user, profile, isAdmin, loading, signOut, sessionExpired, expiredEmail, clearSessionExpired };
 };
