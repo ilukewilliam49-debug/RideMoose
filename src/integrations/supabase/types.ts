@@ -1198,6 +1198,7 @@ export type Database = {
           stairs_involved: boolean
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
+          stops: Json
           store_id: string | null
           store_name: string | null
           stripe_fee_cents: number
@@ -1277,6 +1278,7 @@ export type Database = {
           stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          stops?: Json
           store_id?: string | null
           store_name?: string | null
           stripe_fee_cents?: number
@@ -1356,6 +1358,7 @@ export type Database = {
           stairs_involved?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
+          stops?: Json
           store_id?: string | null
           store_name?: string | null
           stripe_fee_cents?: number

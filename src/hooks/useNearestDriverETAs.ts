@@ -22,13 +22,13 @@ export function useNearestDriverETAs(userLocation: { lat: number; lng: number } 
       const { data, error } = await supabase
         .from("profiles")
         .select("id, latitude, longitude, can_taxi, can_private_hire, can_courier")
-        .eq("role", "driver")
+        .eq("is_driver", true)
         .eq("is_available", true)
         .not("latitude", "is", null)
         .not("longitude", "is", null)
         .limit(50);
       if (error) throw error;
-      return (data ?? []) as DriverRow[];
+      return (data ?? []) as unknown as DriverRow[];
     },
     refetchInterval: 30000,
   });

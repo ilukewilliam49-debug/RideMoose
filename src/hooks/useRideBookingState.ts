@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { decodeStopsParam, type RideStop } from "@/types/stops";
 
 export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
 
@@ -11,6 +12,7 @@ export const useRideBookingState = () => {
   const [dropoff, setDropoff] = useState("");
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [stops, setStops] = useState<RideStop[]>(() => decodeStopsParam(searchParams.get("stops")));
   const [loading, setLoading] = useState(false);
   const [serviceType, setServiceType] = useState<ServiceType>(
     serviceParam === "private_hire" ? "private_hire" : serviceParam === "courier" ? "courier" : "taxi"
@@ -99,23 +101,31 @@ export const useRideBookingState = () => {
     }
   }, []);
 
-  // Calculate distance
+  // Calculate distance through pickup → stops → dropoff (Haversine fallback).
   const distanceKm = useMemo(() => {
     if (!pickupCoords || !dropoffCoords) return null;
     const R = 6371;
-    const dLat = ((dropoffCoords.lat - pickupCoords.lat) * Math.PI) / 180;
-    const dLon = ((dropoffCoords.lng - pickupCoords.lng) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos((pickupCoords.lat * Math.PI) / 180) * Math.cos((dropoffCoords.lat * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }, [pickupCoords, dropoffCoords]);
+    const points = [pickupCoords, ...stops.map((s) => ({ lat: s.lat, lng: s.lng })), dropoffCoords];
+    let total = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLon = ((b.lng - a.lng) * Math.PI) / 180;
+      const x = Math.sin(dLat / 2) ** 2 +
+        Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+      total += R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+    }
+    return total;
+  }, [pickupCoords, dropoffCoords, stops]);
 
   const resetBookingForm = () => {
     setPickup("");
     setDropoff("");
     setPickupCoords(null);
     setDropoffCoords(null);
+    setStops([]);
     setPassengerCount(1);
     setBillToOrg(false);
     setPoNumber("");
@@ -126,6 +136,7 @@ export const useRideBookingState = () => {
     searchParams, mode, serviceParam,
     pickup, setPickup, dropoff, setDropoff,
     pickupCoords, setPickupCoords, dropoffCoords, setDropoffCoords,
+    stops, setStops,
     loading, setLoading,
     serviceType, setServiceType,
     paymentOption, setPaymentOption,

@@ -2,6 +2,7 @@ import { useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ServiceType } from "./useRideBookingState";
+import { PER_STOP_FEE_CENTS, type RideStop } from "@/types/stops";
 
 interface UseRideQueriesParams {
   profileId?: string;
@@ -14,13 +15,22 @@ interface UseRideQueriesParams {
   distanceKm: number | null;
   passengerCount: number;
   estimatedItemCostCents: number | "";
+  /** Intermediate stops between pickup and dropoff (max 3). */
+  stops?: RideStop[];
 }
 
 export const useRideQueries = ({
   profileId, userId, serviceType, pickupCoords, dropoffCoords,
-  pickup, dropoff, distanceKm, passengerCount, estimatedItemCostCents,
+  pickup, dropoff, distanceKm, passengerCount, estimatedItemCostCents, stops = [],
 }: UseRideQueriesParams) => {
   const queryClient = useQueryClient();
+  const stopCount = stops.length;
+  // Stable key for waypoints so the directions query doesn't refetch on
+  // every render — only when coordinates actually change.
+  const stopsKey = useMemo(
+    () => stops.map((s) => `${s.lat.toFixed(5)},${s.lng.toFixed(5)}`).join("|"),
+    [stops]
+  );
 
   const { data: savedPlaces } = useQuery({
     queryKey: ["saved-places-rider", userId],
@@ -73,11 +83,17 @@ export const useRideQueries = ({
   });
 
   const { data: directionsData, isFetching: directionsFetching } = useQuery({
-    queryKey: ["directions-traffic", pickupCoords?.lat, pickupCoords?.lng, dropoffCoords?.lat, dropoffCoords?.lng],
+    queryKey: ["directions-traffic", pickupCoords?.lat, pickupCoords?.lng, dropoffCoords?.lat, dropoffCoords?.lng, stopsKey],
     queryFn: async () => {
       if (!pickupCoords || !dropoffCoords) return null;
       const { data, error } = await supabase.functions.invoke("directions", {
-        body: { origin_lat: pickupCoords.lat, origin_lng: pickupCoords.lng, dest_lat: dropoffCoords.lat, dest_lng: dropoffCoords.lng },
+        body: {
+          origin_lat: pickupCoords.lat,
+          origin_lng: pickupCoords.lng,
+          dest_lat: dropoffCoords.lat,
+          dest_lng: dropoffCoords.lng,
+          waypoints: stops.length > 0 ? stops.map((s) => ({ lat: s.lat, lng: s.lng })) : undefined,
+        },
       });
       if (error) throw error;
       return data as { distance_km: number; duration_sec: number; duration_text: string; duration_in_traffic_sec: number; duration_in_traffic_text: string; polyline: string | null };
@@ -106,11 +122,13 @@ export const useRideQueries = ({
       : 0;
 
     const largeGroupSurcharge = passengerCount >= 5 ? 6 : 0;
+    // Multi-stop surcharge — applied to all metered/distance-based services.
+    const stopsSurcharge = (stopCount * PER_STOP_FEE_CENTS) / 100;
 
     if (svcType === "private_hire") {
       if (!routeKm || !taxiRates) return null;
       const meterFare = (taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100;
-      return (meterFare + largeGroupSurcharge).toFixed(2);
+      return (meterFare + largeGroupSurcharge + stopsSurcharge).toFixed(2);
     }
     if (svcType === "courier") {
       if (!routeKm) return null;
@@ -121,38 +139,38 @@ export const useRideQueries = ({
       const minimum = Number(courierPricing.minimum_fare);
       const surge = Number(courierPricing.surge_multiplier) || 1;
       const computed = (base + routeKm * perKm) * surge;
-      return Math.max(minimum, computed).toFixed(2);
+      return (Math.max(minimum, computed) + stopsSurcharge).toFixed(2);
     }
     if (svcType === "large_delivery") {
       if (!routeKm) return null;
-      return (Math.max(3000, 2500 + Math.round(routeKm * 200)) / 100).toFixed(2);
+      return ((Math.max(3000, 2500 + Math.round(routeKm * 200)) + stopCount * PER_STOP_FEE_CENTS) / 100).toFixed(2);
     }
     if (svcType === "retail_delivery") {
       if (!routeKm) return null;
-      return (Math.max(1200, 1000 + Math.round(routeKm * 150)) / 100).toFixed(2);
+      return ((Math.max(1200, 1000 + Math.round(routeKm * 150)) + stopCount * PER_STOP_FEE_CENTS) / 100).toFixed(2);
     }
     if (svcType === "personal_shopper") {
       if (!routeKm) return null;
       const deliveryFeeCents = Math.max(1200, 1200 + Math.round(routeKm * 150));
       const shopperFeeCents = estimatedItemCostCents ? Math.round(Number(estimatedItemCostCents) * 0.10) : 0;
-      const totalCents = deliveryFeeCents + shopperFeeCents + Number(estimatedItemCostCents || 0);
+      const totalCents = deliveryFeeCents + shopperFeeCents + Number(estimatedItemCostCents || 0) + stopCount * PER_STOP_FEE_CENTS;
       return (totalCents / 100).toFixed(2);
     }
     if (svcType === "taxi") {
       if (!routeKm || !taxiRates) return null;
       const meterFare = (taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100;
-      return (meterFare + largeGroupSurcharge).toFixed(2);
+      return (meterFare + largeGroupSurcharge + stopsSurcharge).toFixed(2);
     }
     if (!distanceKm || !currentPricing) return null;
     let price = Number(currentPricing.base_fare) + distanceKm * Number(currentPricing.per_km_rate);
     if (currentPricing.per_seat_rate) price += passengerCount * Number(currentPricing.per_seat_rate);
     price *= Number(currentPricing.surge_multiplier);
-    return Math.max(Number(currentPricing.minimum_fare), price).toFixed(2);
+    return (Math.max(Number(currentPricing.minimum_fare), price) + stopsSurcharge).toFixed(2);
   };
 
   // Dynamic price estimate for current service
   const estimatedPrice = useMemo(() => computePrice(serviceType),
-    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, directionsData, estimatedItemCostCents, servicePricing]);
+    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, directionsData, estimatedItemCostCents, servicePricing, stopCount]);
 
   // All main service prices for the selection cards
   const allServicePrices = useMemo(() => {
@@ -165,7 +183,7 @@ export const useRideQueries = ({
       private_hire: pickyouTotal,
       courier: computePrice("courier"),
     };
-  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing, passengerCount]);
+  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing, passengerCount, stopCount]);
 
   // Active ride
   const { data: activeRide } = useQuery({

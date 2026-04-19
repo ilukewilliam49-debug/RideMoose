@@ -12,6 +12,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import SavedPlaceChips from "@/components/rider/SavedPlaceChips";
+import RouteStopsEditor from "@/components/rider/RouteStopsEditor";
+import { encodeStopsParam, type RideStop } from "@/types/stops";
 import type { SavedPlace } from "@/types/rider";
 
 interface PlanRideSheetProps {
@@ -30,6 +32,9 @@ interface PlanRideSheetProps {
   setUserLocation: (l: { lat: number; lng: number } | null) => void;
   savedPlaces?: SavedPlace[];
   onRequestMapPick?: () => void;
+  /** Optional intermediate stops between pickup and dropoff (max 3). */
+  stops?: RideStop[];
+  setStops?: (stops: RideStop[]) => void;
 }
 
 export default function PlanRideSheet({
@@ -48,6 +53,8 @@ export default function PlanRideSheet({
   setUserLocation,
   savedPlaces = [],
   onRequestMapPick,
+  stops,
+  setStops,
 }: PlanRideSheetProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -119,6 +126,13 @@ export default function PlanRideSheet({
     if (destination && dropoffCoords) {
       const sep = params ? "&" : "?";
       params += `${sep}dropoff=${encodeURIComponent(destination)}&dlat=${dropoffCoords.lat}&dlng=${dropoffCoords.lng}`;
+    }
+    if (stops && stops.length > 0) {
+      const validStops = stops.filter((s) => s.address && s.lat && s.lng);
+      if (validStops.length > 0) {
+        const sep = params ? "&" : "?";
+        params += `${sep}stops=${encodeStopsParam(validStops)}`;
+      }
     }
     if (scheduledAt) {
       const sep = params ? "&" : "?";
@@ -240,6 +254,16 @@ export default function PlanRideSheet({
             </div>
 
             {/* Connector */}
+            <div className="ml-3 my-1 h-3 border-l-2 border-dashed border-border/60" />
+
+            {/* Intermediate stops editor */}
+            {setStops && (
+              <div className="my-2">
+                <RouteStopsEditor stops={stops ?? []} onChange={setStops} />
+              </div>
+            )}
+
+            {/* Connector before dropoff */}
             <div className="ml-3 my-1 h-3 border-l-2 border-dashed border-border/60" />
 
             {/* Dropoff */}
