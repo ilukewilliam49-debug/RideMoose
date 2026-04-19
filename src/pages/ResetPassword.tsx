@@ -64,7 +64,9 @@ const ResetPassword = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md text-center">
-          <img src={logoImg} alt="PickYou" className="h-12 rounded mx-auto mb-6" />
+          <button type="button" onClick={() => navigate("/")} aria-label="PickYou home" className="block mx-auto mb-6 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <img src={logoImg} alt="PickYou" className="h-12 rounded mx-auto" />
+          </button>
           <p className="text-muted-foreground">{t("auth.invalidResetLink")}</p>
           <Button className="mt-4" onClick={() => navigate("/login")}>
             {t("auth.backToLogin")}
@@ -78,7 +80,9 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={logoImg} alt="PickYou" className="h-12 rounded mx-auto mb-4" />
+          <button type="button" onClick={() => navigate("/")} aria-label="PickYou home" className="block mx-auto mb-4 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <img src={logoImg} alt="PickYou" className="h-12 rounded mx-auto" />
+          </button>
           <p className="text-muted-foreground">{t("auth.setNewPassword")}</p>
         </div>
 

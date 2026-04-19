@@ -334,11 +334,18 @@ const Login = () => {
         >
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <img
-              src={logoImg}
-              alt="PickYou"
-              className="h-16 rounded-xl object-contain"
-            />
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              aria-label="PickYou home"
+              className="rounded-xl transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <img
+                src={logoImg}
+                alt="PickYou"
+                className="h-16 rounded-xl object-contain"
+              />
+            </button>
           </div>
 
           {preselectedSignup && view === "main" && (

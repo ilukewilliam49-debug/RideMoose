@@ -148,7 +148,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="flex items-center justify-between px-4 py-4">
-          <img src={logoImg} alt="PickYou" className="h-7 object-contain shrink-0" />
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            aria-label="PickYou home"
+            className="shrink-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <img src={logoImg} alt="PickYou" className="h-7 object-contain" />
+          </button>
           <div className="flex items-center gap-2">
             {!isOnline && (
               <div className="flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">

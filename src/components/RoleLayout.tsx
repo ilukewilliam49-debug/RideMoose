@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 import logoImg from "@/assets/logo.png";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -37,7 +37,9 @@ const RoleLayout = () => {
               <SidebarTrigger className="mr-4" />
             </div>
             {hasMobileNav && (
-              <img src={logoImg} alt="PickYou" className="h-6 object-contain md:hidden" />
+              <Link to="/" aria-label="PickYou home" className="md:hidden rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                <img src={logoImg} alt="PickYou" className="h-6 object-contain" />
+              </Link>
             )}
             <span className={`text-sm font-semibold ${hasMobileNav ? "hidden md:inline" : ""}`}>
               {headerLabel}
