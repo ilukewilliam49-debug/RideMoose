@@ -454,6 +454,73 @@ const RiderDashboard = () => {
 
           {/* Pickup & Dropoff – hidden; values come from URL params set on the home screen */}
 
+          {/* Trip summary – pickup, stops, dropoff at a glance */}
+          {(state.pickup || state.dropoff) && (
+            <div className="rounded-xl border border-border/60 bg-card/40 p-3 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {t("rider.tripSummary", "Your trip")}
+              </p>
+              <div className="relative space-y-2.5">
+                {/* Vertical connector line */}
+                <div
+                  aria-hidden
+                  className="absolute left-[11px] top-5 bottom-5 w-px bg-border"
+                />
+
+                {/* Pickup */}
+                {state.pickup && (
+                  <div className="relative flex items-start gap-3">
+                    <span className="relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary ring-2 ring-background">
+                      <MapPin className="h-3 w-3 text-primary-foreground" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("rider.pickup", "Pickup")}
+                      </p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {state.pickup}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stops */}
+                {state.stops.map((stop, idx) => (
+                  <div key={idx} className="relative flex items-start gap-3">
+                    <span className="relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground ring-2 ring-background">
+                      {idx + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("rider.stopN", "Stop {{n}}", { n: idx + 1 })}
+                      </p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {stop.address || t("rider.stopUnnamed", "Unnamed stop")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Dropoff */}
+                {state.dropoff && (
+                  <div className="relative flex items-start gap-3">
+                    <span className="relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary ring-2 ring-background">
+                      <MapPin className="h-3 w-3 text-primary-foreground" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("rider.dropoff", "Dropoff")}
+                      </p>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {state.dropoff}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Intermediate stops – riders can add up to 3 stops between pickup and dropoff.
               Always rendered when at least pickup is set so riders can build multi-stop trips. */}
           {state.pickup && (
