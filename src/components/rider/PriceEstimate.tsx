@@ -1,4 +1,4 @@
-import { DollarSign, Briefcase, Car, Clock, AlertTriangle } from "lucide-react";
+import { DollarSign, Briefcase, Car, Clock, AlertTriangle, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface PriceEstimateProps {
@@ -7,16 +7,19 @@ interface PriceEstimateProps {
   directionsData: any;
   trafficDelayMin: number;
   directionsFetching: boolean;
+  passengerCount?: number;
 }
 
 const PriceEstimate = ({
-  serviceType, estimatedPrice, directionsData, trafficDelayMin, directionsFetching,
+  serviceType, estimatedPrice, directionsData, trafficDelayMin, directionsFetching, passengerCount = 1,
 }: PriceEstimateProps) => {
   const { t } = useTranslation();
 
   if (!estimatedPrice) return null;
 
   const priceNum = parseFloat(estimatedPrice);
+  const largeGroupSurcharge = passengerCount >= 5 ? 6 : 0;
+  const fareBeforeSurcharge = priceNum - largeGroupSurcharge;
 
   if (serviceType === "private_hire") {
     const surcharge = 2.99;
