@@ -78,6 +78,7 @@ const DashboardHome = () => {
   const [pickupAddressCoords, setPickupAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffAddressCoords, setDropoffAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [planSheetOpen, setPlanSheetOpen] = useState(false);
+  const [stops, setStops] = useState<RideStop[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
