@@ -764,7 +764,6 @@ export type Database = {
           rider_average_rating: number | null
           rider_onboarding_complete: boolean
           rider_total_ratings: number | null
-          role: Database["public"]["Enums"]["user_role"]
           role_in_org: string | null
           seat_capacity: number | null
           sms_notifications_enabled: boolean
@@ -812,7 +811,6 @@ export type Database = {
           rider_average_rating?: number | null
           rider_onboarding_complete?: boolean
           rider_total_ratings?: number | null
-          role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null
           sms_notifications_enabled?: boolean
@@ -860,7 +858,6 @@ export type Database = {
           rider_average_rating?: number | null
           rider_onboarding_complete?: boolean
           rider_total_ratings?: number | null
-          role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
           seat_capacity?: number | null
           sms_notifications_enabled?: boolean
@@ -1622,6 +1619,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       verifications: {
         Row: {
           created_at: string
@@ -1959,9 +1977,16 @@ export type Database = {
         Returns: Json
       }
       get_total_revenue: { Args: never; Returns: number }
+      has_app_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["user_role"]
+          _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
@@ -1989,6 +2014,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       ride_status:
         | "requested"
         | "dispatched"
@@ -2007,7 +2033,6 @@ export type Database = {
         | "personal_shopper"
         | "food_delivery"
         | "pet_transport"
-      user_role: "rider" | "driver" | "admin"
       verification_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -2136,6 +2161,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       ride_status: [
         "requested",
         "dispatched",
@@ -2156,7 +2182,6 @@ export const Constants = {
         "food_delivery",
         "pet_transport",
       ],
-      user_role: ["rider", "driver", "admin"],
       verification_status: ["pending", "approved", "rejected"],
     },
   },

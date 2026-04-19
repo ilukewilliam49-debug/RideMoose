@@ -2,15 +2,13 @@
  * Single source of truth for post-authentication routing.
  *
  * Capability-based: a profile can independently hold any combination of
- * `is_rider`, `is_driver`, `is_business`. The legacy `role` field is retained
- * only for admins (exclusive). All routing decisions are driven by
- * capabilities + intent + last_used_role, never by `role` for non-admins.
+ * `is_rider`, `is_driver`, `is_business`. Admin privileges are tracked in
+ * the separate `user_roles` table and passed in explicitly via `isAdmin`.
  */
 
 export type ActiveRole = "rider" | "driver" | "business" | "admin";
 
 export interface RoutingProfile {
-  role?: "rider" | "driver" | "admin" | null;
   is_driver?: boolean | null;
   is_rider?: boolean | null;
   is_business?: boolean | null;
@@ -28,6 +26,8 @@ export interface ResolveOptions {
   /** Explicit return path (e.g. ?returnTo=/business/apply). Honoured ahead
    *  of default role routing for non-admins. */
   returnTo?: string | null;
+  /** Whether the user has the admin role in user_roles. */
+  isAdmin?: boolean;
 }
 
 /** Whether a `returnTo` path is safe to honour (same-origin, not auth pages). */
@@ -72,7 +72,7 @@ export function resolvePostAuthRoute(
   }
 
   // Admins are exclusive — never route them anywhere else
-  if (profile.role === "admin") return "/admin";
+  if (options.isAdmin) return "/admin";
 
   // Honour safe returnTo for non-admins. Skip when it points into a flow the
   // user lacks the capability for AND can't acquire by visiting (we still

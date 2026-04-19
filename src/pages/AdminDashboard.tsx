@@ -48,7 +48,7 @@ const AdminDashboard = () => {
         supabase
           .from("profiles")
           .select("id", { count: "exact", head: true })
-          .eq("role", "driver")
+          .eq("is_driver", true)
           .eq("is_available", true),
       ]);
 

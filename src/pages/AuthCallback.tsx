@@ -25,24 +25,30 @@ const AuthCallback = () => {
         const intent = params.get("intent") || params.get("role");
         const returnTo = params.get("returnTo");
 
-        // Provision the matching capability without overwriting `role`.
-        // Admins are explicitly excluded so they never get downgraded.
+        // Provision the matching capability. Admin status lives in
+        // user_roles and is unaffected by capability flags.
         const capCol = intentToCapabilityColumn(intent);
         if (capCol) {
           await supabase
             .from("profiles")
             .update({ [capCol]: true } as any)
-            .eq("user_id", session.user.id)
-            .neq("role", "admin");
+            .eq("user_id", session.user.id);
         }
 
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role, is_driver, is_rider, is_business, driver_onboarding_complete, business_onboarding_complete, rider_onboarding_complete, last_used_role")
-          .eq("user_id", session.user.id)
-          .single();
+        const [{ data: profile }, { data: roles }] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("is_driver, is_rider, is_business, driver_onboarding_complete, business_onboarding_complete, rider_onboarding_complete, last_used_role")
+            .eq("user_id", session.user.id)
+            .single(),
+          supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id),
+        ]);
 
-        const route = resolvePostAuthRoute(profile as any, { intent, returnTo });
+        const isAdmin = !!roles?.some((r: any) => r.role === "admin");
+        const route = resolvePostAuthRoute(profile as any, { intent, returnTo, isAdmin });
         clearRoleIntentFromUrl();
         navigate(route, { replace: true });
       } catch (err) {

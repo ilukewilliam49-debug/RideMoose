@@ -172,14 +172,13 @@ const Login = () => {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Provision the matching capability without touching `role`.
-        // Admins are excluded so they're never modified.
+        // Provision the matching capability. Admin status is in user_roles
+        // and is unaffected by capability flags.
         if (capCol && signInData.user) {
           await supabase
             .from("profiles")
             .update({ [capCol]: true } as any)
-            .eq("user_id", signInData.user.id)
-            .neq("role", "admin");
+            .eq("user_id", signInData.user.id);
         }
 
         try {

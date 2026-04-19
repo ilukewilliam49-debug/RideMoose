@@ -19,7 +19,7 @@ const REQUIRED_DOC_TYPES = ["drivers_license", "vehicle_insurance", "vehicle_reg
  * user from being trapped in driver onboarding when trying to use other flows.
  */
 const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, isAdmin, loading } = useAuth();
   const location = useLocation();
   const { activeRole, defaultRole } = useActiveRole();
 
@@ -51,7 +51,6 @@ const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
   if (!user) return <Navigate to="/login" replace />;
 
   // Capability checks. Admin is exclusive.
-  const isAdmin = profile?.role === "admin";
   const hasRiderAccess = isAdmin || !!profile?.is_rider;
   const hasDriverAccess = isAdmin || !!profile?.is_driver;
   const hasBusinessAccess = isAdmin || !!profile?.is_business;

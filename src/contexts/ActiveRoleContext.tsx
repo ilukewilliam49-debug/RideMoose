@@ -19,9 +19,9 @@ const ActiveRoleContext = createContext<ActiveRoleContextType | undefined>(undef
 
 const STORAGE_KEY = "pickyou-active-role";
 
-function inferDefaultRole(profile: any): ActiveRole {
+function inferDefaultRole(profile: any, isAdmin: boolean): ActiveRole {
   if (!profile) return "rider";
-  if (profile.role === "admin") return "admin";
+  if (isAdmin) return "admin";
   const last = profile.last_used_role;
   if (last === "driver" && profile.is_driver) return "driver";
   if (last === "business" && profile.is_business) return "business";
@@ -34,8 +34,8 @@ function inferDefaultRole(profile: any): ActiveRole {
 }
 
 export function ActiveRoleProvider({ children }: { children: ReactNode }) {
-  const { profile, user } = useAuth();
-  const defaultRole: ActiveRole = inferDefaultRole(profile);
+  const { profile, user, isAdmin } = useAuth();
+  const defaultRole: ActiveRole = inferDefaultRole(profile, isAdmin);
 
   const capabilities = {
     rider: !!profile?.is_rider,
@@ -48,7 +48,7 @@ export function ActiveRoleProvider({ children }: { children: ReactNode }) {
     (capabilities.driver ? 1 : 0) +
     (capabilities.business ? 1 : 0);
 
-  const canSwitch = profile?.role !== "admin" && heldCapabilityCount >= 2;
+  const canSwitch = !isAdmin && heldCapabilityCount >= 2;
 
   const [activeRole, setActiveRoleState] = useState<ActiveRole>(() => {
     if (typeof window === "undefined") return defaultRole;

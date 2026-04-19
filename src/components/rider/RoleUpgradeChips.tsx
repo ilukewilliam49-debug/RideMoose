@@ -13,11 +13,11 @@ import { useAuth } from "@/hooks/useAuth";
  *  - user already holds either driver OR business capability
  */
 const RoleUpgradeChips = () => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   if (!profile) return null;
-  if (profile.role === "admin") return null;
+  if (isAdmin) return null;
   // Already a driver or business — no upgrade needed
   if (profile.is_driver || profile.is_business) return null;
 

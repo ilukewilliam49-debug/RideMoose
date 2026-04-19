@@ -15,10 +15,9 @@ import { cn } from "@/lib/utils";
  */
 const RoleSwitcher = () => {
   const { activeRole, setActiveRole, canSwitch, capabilities } = useActiveRole();
-  const { profile } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const isAdmin = profile?.role === "admin";
   if (isAdmin) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">

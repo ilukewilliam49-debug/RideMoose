@@ -65,7 +65,7 @@ export default function AdminRideDetail() {
       let query = supabase
         .from("profiles")
         .select("id, full_name, vehicle_type, vehicle_make, vehicle_model, license_plate, is_available, latitude, longitude")
-        .eq("role", "driver")
+        .eq("is_driver", true)
         .eq("is_available", true)
         .limit(10);
       if (driverSearch.trim()) {
