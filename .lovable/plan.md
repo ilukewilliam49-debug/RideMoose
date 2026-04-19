@@ -1,4 +1,4 @@
 
-The user is asking whether the "Stops along the way" editor section is redundant now that we have a "Your trip" summary panel above it that already shows pickup, stops, and dropoff.
+The user wants a better loading experience when refreshing/reloading pages instead of a white screen flash.
 
-Let me check the current layout in RiderDashboard.
+Let me check the current setup.
