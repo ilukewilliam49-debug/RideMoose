@@ -31,10 +31,14 @@ describe("normalizeIntent", () => {
 });
 
 describe("intentToCapabilityColumn", () => {
-  it("maps each intent to the correct column", () => {
+  it("maps each self-provisionable intent to the correct column", () => {
     expect(intentToCapabilityColumn("driver")).toBe("is_driver");
-    expect(intentToCapabilityColumn("business")).toBe("is_business");
     expect(intentToCapabilityColumn("rider")).toBe("is_rider");
+  });
+  it("business is admin-approval gated and never auto-provisioned", () => {
+    expect(intentToCapabilityColumn("business")).toBeNull();
+  });
+  it("returns null for unknown / empty intents", () => {
     expect(intentToCapabilityColumn(null)).toBeNull();
   });
 });
