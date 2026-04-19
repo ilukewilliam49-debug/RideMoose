@@ -106,7 +106,7 @@ const NearbyDriversMap = ({ activeTab, userLocation, height = 200, className }: 
       let query = supabase
         .from("profiles")
         .select("id, full_name, latitude, longitude, can_taxi, can_private_hire, can_courier, can_shuttle, vehicle_type")
-        .eq("role", "driver")
+        .eq("is_driver", true)
         .eq("is_available", true)
         .not("latitude", "is", null)
         .not("longitude", "is", null);

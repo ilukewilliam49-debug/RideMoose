@@ -166,14 +166,16 @@ export function intentToCapabilityColumn(
 }
 
 /**
- * Provision the capability flag matching `intent` on the user's profile.
- * Single source of truth for capability provisioning — call from explicit
- * sign-in/sign-up flows ONLY (Login.tsx, AuthCallback.tsx). Never call
- * from token-refresh handlers.
+ * Provision the capability flag matching `intent` for the *currently
+ * authenticated* user via the SECURITY DEFINER `provision_capability` RPC.
  *
- * No-op for business intent (admin-approval gated), missing/unknown intent,
- * or falsy userId. Errors are swallowed and logged; provisioning failures
- * should not block the auth flow.
+ * The RPC enforces:
+ *   - the caller must be authenticated (uses auth.uid() server-side)
+ *   - only `rider` and `driver` are accepted; `business` is a no-op
+ *
+ * Errors are swallowed and logged; provisioning failures should not block
+ * the auth flow. The `userId` parameter is kept for backward compatibility
+ * but is informational only — the server uses auth.uid().
  */
 export async function provisionCapabilityFromIntent(
   userId: string | null | undefined,
@@ -183,12 +185,13 @@ export async function provisionCapabilityFromIntent(
   const capCol = intentToCapabilityColumn(intent);
   if (!capCol) return;
   try {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ [capCol]: true } as any)
-      .eq("user_id", userId);
+    // The RPC return type isn't in the generated types yet; cast to any to
+    // avoid TS2589 ("excessively deep") on the rpc generic union.
+    const { error } = await (supabase.rpc as any)("provision_capability", {
+      _intent: intent,
+    });
     if (error) {
-      console.error("provisionCapabilityFromIntent failed:", error.message);
+      console.error("provisionCapabilityFromIntent RPC failed:", error.message);
     }
   } catch (err) {
     console.error("provisionCapabilityFromIntent unexpected error:", err);

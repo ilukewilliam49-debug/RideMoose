@@ -2004,6 +2004,7 @@ export type Database = {
         }
         Returns: number
       }
+      provision_capability: { Args: { _intent: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

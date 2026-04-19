@@ -31,10 +31,14 @@ describe("normalizeIntent", () => {
 });
 
 describe("intentToCapabilityColumn", () => {
-  it("maps each intent to the correct column", () => {
+  it("maps each self-provisionable intent to the correct column", () => {
     expect(intentToCapabilityColumn("driver")).toBe("is_driver");
-    expect(intentToCapabilityColumn("business")).toBe("is_business");
     expect(intentToCapabilityColumn("rider")).toBe("is_rider");
+  });
+  it("business is admin-approval gated and never auto-provisioned", () => {
+    expect(intentToCapabilityColumn("business")).toBeNull();
+  });
+  it("returns null for unknown / empty intents", () => {
     expect(intentToCapabilityColumn(null)).toBeNull();
   });
 });
@@ -197,5 +201,119 @@ describe("resolvePostAuthRoute — fallbacks", () => {
         {},
       ),
     ).toBe("/rider");
+  });
+});
+
+// ============================================================
+// Full role × state × entry-path matrix.
+// Catches regressions in any cell of the multi-role grid.
+// ============================================================
+type ProfileShape = "rider-only" | "driver-only" | "driver-incomplete" | "business-only" | "dual-rider-driver" | "triple";
+
+const profiles: Record<ProfileShape, RoutingProfile | null> = {
+  "rider-only": { ...baseProfile, is_rider: true, is_driver: false, is_business: false },
+  "driver-only": {
+    ...baseProfile,
+    is_rider: false,
+    is_driver: true,
+    is_business: false,
+    driver_onboarding_complete: true,
+    last_used_role: "driver",
+  },
+  "driver-incomplete": {
+    ...baseProfile,
+    is_rider: false,
+    is_driver: true,
+    driver_onboarding_complete: false,
+    last_used_role: "driver",
+  },
+  "business-only": {
+    ...baseProfile,
+    is_rider: false,
+    is_business: true,
+    last_used_role: "business",
+  },
+  "dual-rider-driver": {
+    ...baseProfile,
+    is_rider: true,
+    is_driver: true,
+    driver_onboarding_complete: true,
+  },
+  "triple": {
+    ...baseProfile,
+    is_rider: true,
+    is_driver: true,
+    is_business: true,
+    driver_onboarding_complete: true,
+  },
+};
+
+describe("Routing matrix — driver intent never bounces capable users", () => {
+  it.each<[ProfileShape, string]>([
+    ["rider-only", "/driver/onboarding"], // capability flipped server-side, then routed
+    ["driver-only", "/driver"],
+    ["driver-incomplete", "/driver/onboarding"],
+    ["dual-rider-driver", "/driver"],
+    ["triple", "/driver"],
+  ])("driver intent: %s → %s", (shape, expected) => {
+    expect(resolvePostAuthRoute(profiles[shape], { intent: "driver" })).toBe(expected);
+  });
+});
+
+describe("Routing matrix — business intent always lands on a business surface", () => {
+  it.each<[ProfileShape, string]>([
+    ["rider-only", "/business/apply"],
+    ["driver-only", "/business/apply"],
+    ["business-only", "/business"],
+    ["dual-rider-driver", "/business/apply"],
+    ["triple", "/business"],
+  ])("business intent: %s → %s", (shape, expected) => {
+    expect(resolvePostAuthRoute(profiles[shape], { intent: "business" })).toBe(expected);
+  });
+});
+
+describe("Routing matrix — rider intent always lands on /rider", () => {
+  it.each<ProfileShape>([
+    "rider-only",
+    "driver-only",
+    "driver-incomplete",
+    "business-only",
+    "dual-rider-driver",
+    "triple",
+  ])("rider intent: %s → /rider", (shape) => {
+    expect(resolvePostAuthRoute(profiles[shape], { intent: "rider" })).toBe("/rider");
+  });
+});
+
+describe("Routing matrix — admin overrides every shape + intent", () => {
+  it.each<[ProfileShape, string | null]>([
+    ["rider-only", "driver"],
+    ["driver-only", "business"],
+    ["business-only", "rider"],
+    ["triple", null],
+  ])("admin: shape=%s intent=%s → /admin", (shape, intent) => {
+    expect(
+      resolvePostAuthRoute(profiles[shape], { isAdmin: true, intent, returnTo: "/business/apply" }),
+    ).toBe("/admin");
+  });
+});
+
+describe("Routing matrix — safe returnTo always honoured for non-admins", () => {
+  it.each<ProfileShape>([
+    "rider-only",
+    "driver-only",
+    "business-only",
+    "dual-rider-driver",
+    "triple",
+  ])("returnTo=/business/apply: %s → honoured", (shape) => {
+    expect(
+      resolvePostAuthRoute(profiles[shape], { returnTo: "/business/apply" }),
+    ).toBe("/business/apply");
+  });
+});
+
+describe("Capability provisioning — business is never auto-flipped", () => {
+  it("intentToCapabilityColumn no longer maps business (admin-approval gated)", () => {
+    expect(intentToCapabilityColumn("business")).toBeNull();
   });
 });
