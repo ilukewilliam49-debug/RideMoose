@@ -160,7 +160,7 @@ const BusinessDashboard = () => {
         ) : (
           <Card>
             <CardContent className="pt-6 text-center space-y-4">
-              <p>Apply to set up corporate billing for your team.</p>
+              <p>Apply to set up business billing for your team.</p>
               <Button asChild>
                 <Link to="/business/apply">Apply for business account</Link>
               </Button>

@@ -311,11 +311,11 @@ const RiderAccount = () => {
       {/* Navigation links */}
       <div className="space-y-1">
         <button
-          onClick={() => navigate("/rider/corporate-apply")}
+          onClick={() => navigate("/business/apply")}
           className="flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left hover:bg-accent/30 transition-colors"
         >
           <span className="text-[15px] font-semibold">
-            {t("nav.corporate")}
+            {t("nav.business")}
           </span>
           <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
         </button>
