@@ -187,6 +187,12 @@ export default function AdminUserDetail() {
 
   const toggleAdmin = async (grant: boolean) => {
     if (!profile?.user_id) return;
+    // Hard block on self-revoke — last admin lockout protection.
+    // (DB trigger also blocks revoking the very last admin.)
+    if (!grant && profile.user_id === currentUserId) {
+      toast.error("You cannot revoke your own admin access");
+      return;
+    }
     setSaving(true);
     if (grant) {
       const { error } = await supabase
