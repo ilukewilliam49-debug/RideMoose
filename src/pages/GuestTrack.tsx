@@ -133,7 +133,11 @@ export default function GuestTrack() {
                 {statusInfo.label}
               </p>
               {data.status === "accepted" && (
-                <p className="text-xs text-muted-foreground">Heading to your pickup</p>
+                <p className="text-xs text-muted-foreground">
+                  {data.eta_min != null
+                    ? `Arriving in ${data.eta_min} min`
+                    : "Heading to your pickup"}
+                </p>
               )}
             </div>
           </div>
