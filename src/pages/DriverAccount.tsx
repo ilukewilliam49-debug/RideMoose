@@ -229,10 +229,14 @@ const DriverAccount = () => {
       if (insertError) throw insertError;
 
       // Notify all admin users about the re-upload
-      const { data: admins } = await supabase
-        .from("profiles")
-        .select("id")
+      const { data: adminRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
         .eq("role", "admin");
+      const adminUserIds = (adminRoles || []).map((r) => r.user_id);
+      const { data: admins } = adminUserIds.length
+        ? await supabase.from("profiles").select("id").in("user_id", adminUserIds)
+        : { data: [] as { id: string }[] };
 
       if (admins && admins.length > 0) {
         await supabase.from("notifications").insert(
