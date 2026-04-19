@@ -1,5 +1,6 @@
-import { DollarSign, Briefcase, Car, Clock, AlertTriangle, Users } from "lucide-react";
+import { DollarSign, Briefcase, Car, Clock, AlertTriangle, Users, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PER_STOP_FEE_CENTS } from "@/types/stops";
 
 interface PriceEstimateProps {
   serviceType: string;
@@ -8,10 +9,12 @@ interface PriceEstimateProps {
   trafficDelayMin: number;
   directionsFetching: boolean;
   passengerCount?: number;
+  /** Number of intermediate stops (for surcharge display). */
+  stopCount?: number;
 }
 
 const PriceEstimate = ({
-  serviceType, estimatedPrice, directionsData, trafficDelayMin, directionsFetching, passengerCount = 1,
+  serviceType, estimatedPrice, directionsData, trafficDelayMin, directionsFetching, passengerCount = 1, stopCount = 0,
 }: PriceEstimateProps) => {
   const { t } = useTranslation();
 
@@ -19,7 +22,8 @@ const PriceEstimate = ({
 
   const priceNum = parseFloat(estimatedPrice);
   const largeGroupSurcharge = passengerCount >= 5 ? 6 : 0;
-  const fareBeforeSurcharge = priceNum - largeGroupSurcharge;
+  const stopsSurcharge = (stopCount * PER_STOP_FEE_CENTS) / 100;
+  const fareBeforeSurcharge = priceNum - largeGroupSurcharge - stopsSurcharge;
 
   if (serviceType === "private_hire") {
     const surcharge = 2.99;
@@ -47,6 +51,12 @@ const PriceEstimate = ({
             <div className="flex justify-between text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Large group ({passengerCount} pax)</span>
               <span>${largeGroupSurcharge.toFixed(2)}</span>
+            </div>
+          )}
+          {stopsSurcharge > 0 && (
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Stops ({stopCount} × $2.00)</span>
+              <span>${stopsSurcharge.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -87,6 +97,7 @@ const PriceEstimate = ({
   }
 
   if (serviceType === "taxi") {
+    const showBreakdown = largeGroupSurcharge > 0 || stopsSurcharge > 0;
     return (
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
         <div className="flex items-center justify-between">
@@ -98,16 +109,24 @@ const PriceEstimate = ({
             <span className="text-2xl font-mono font-bold">${estimatedPrice}</span>
           </div>
         </div>
-        {largeGroupSurcharge > 0 && (
+        {showBreakdown && (
           <div className="space-y-1 pt-1 border-t border-border/50">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Fare</span>
               <span>${fareBeforeSurcharge.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Large group ({passengerCount} pax)</span>
-              <span>${largeGroupSurcharge.toFixed(2)}</span>
-            </div>
+            {largeGroupSurcharge > 0 && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Large group ({passengerCount} pax)</span>
+                <span>${largeGroupSurcharge.toFixed(2)}</span>
+              </div>
+            )}
+            {stopsSurcharge > 0 && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Stops ({stopCount} × $2.00)</span>
+                <span>${stopsSurcharge.toFixed(2)}</span>
+              </div>
+            )}
           </div>
         )}
         {directionsData && (

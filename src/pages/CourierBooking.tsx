@@ -18,6 +18,8 @@ import { useTranslation } from "react-i18next";
 import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import PaymentConfirmation from "@/components/PaymentConfirmation";
+import RouteStopsEditor from "@/components/rider/RouteStopsEditor";
+import { decodeStopsParam, PER_STOP_FEE_CENTS, routeDistanceKm, type RideStop } from "@/types/stops";
 
 const CourierBooking = () => {
   const { profile } = useAuth();
@@ -39,6 +41,9 @@ const CourierBooking = () => {
       : null
   );
 
+  // Intermediate stops (max 3) hydrated from URL
+  const [stops, setStops] = useState<RideStop[]>(() => decodeStopsParam(searchParams.get("stops")));
+
   // Courier-specific fields
   const [packageSize, setPackageSize] = useState<"small" | "medium" | "large">("small");
   const [itemDescription, setItemDescription] = useState("");
@@ -53,19 +58,11 @@ const CourierBooking = () => {
   const [pendingRideId, setPendingRideId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Distance
-  const distanceKm = useMemo(() => {
-    if (!pickupCoords || !dropoffCoords) return null;
-    const R = 6371;
-    const dLat = ((dropoffCoords.lat - pickupCoords.lat) * Math.PI) / 180;
-    const dLng = ((dropoffCoords.lng - pickupCoords.lng) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((pickupCoords.lat * Math.PI) / 180) *
-        Math.cos((dropoffCoords.lat * Math.PI) / 180) *
-        Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }, [pickupCoords, dropoffCoords]);
+  // Distance through pickup → stops → dropoff (Haversine fallback)
+  const distanceKm = useMemo(
+    () => routeDistanceKm(pickupCoords, stops, dropoffCoords),
+    [pickupCoords, dropoffCoords, stops]
+  );
 
   const queries = useRideQueries({
     profileId: profile?.id,
@@ -78,10 +75,14 @@ const CourierBooking = () => {
     distanceKm,
     passengerCount: 1,
     estimatedItemCostCents: 0,
+    stops,
   });
 
   const mapMarkers: MapMarker[] = [
     ...(pickupCoords ? [{ lat: pickupCoords.lat, lng: pickupCoords.lng, type: "pickup" as const, label: t("rider.pickup") }] : []),
+    ...stops
+      .filter((s) => s.lat && s.lng)
+      .map((s, i) => ({ lat: s.lat, lng: s.lng, type: "stop" as const, label: `${i + 1}` })),
     ...(dropoffCoords ? [{ lat: dropoffCoords.lat, lng: dropoffCoords.lng, type: "dropoff" as const, label: t("rider.dropoff") }] : []),
   ];
 
@@ -94,6 +95,7 @@ const CourierBooking = () => {
     if (!profile?.id || !pickup || !dropoff || !pickupCoords || !dropoffCoords) return;
     setLoading(true);
     try {
+      const validStops = stops.filter((s) => s.address && s.lat && s.lng);
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
         pickup_address: pickup,
@@ -102,6 +104,7 @@ const CourierBooking = () => {
         pickup_lng: pickupCoords.lng,
         dropoff_lat: dropoffCoords.lat,
         dropoff_lng: dropoffCoords.lng,
+        stops: validStops as any,
         estimated_price: parseFloat(queries.allServicePrices.courier || "0"),
         distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
         service_type: "courier" as const,
