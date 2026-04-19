@@ -27,6 +27,7 @@ import CancelRideDialog from "@/components/rider/CancelRideDialog";
 import ActiveRideMap from "@/components/rider/ActiveRideMap";
 import ActiveRideCard from "@/components/rider/ActiveRideCard";
 import RideHistory from "@/components/rider/RideHistory";
+import RoleUpgradeChips from "@/components/rider/RoleUpgradeChips";
 import ServiceSelector from "@/components/rider/ServiceSelector";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
 import DriverMatchingOverlay from "@/components/rider/DriverMatchingOverlay";
@@ -336,6 +337,9 @@ const RiderDashboard = () => {
         )}
       </div>
 
+
+      {/* Discovery: promote driver / business roles for rider-only users */}
+      {!queries.activeRide && !state.paymentClientSecret && <RoleUpgradeChips />}
 
       {/* Active ride map */}
       {showActiveMap && !state.paymentClientSecret && (
