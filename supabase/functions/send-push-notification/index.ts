@@ -691,8 +691,27 @@ serve(async (req) => {
         await writeNotification(supabase, ride.rider_id, cfg.heading, cfg.body, cfg.type, ride_id);
         results.push({ target: ride.rider_id, ...r });
 
+        // ── Guest SMS: notify the actual passenger if booking_for='guest' ──
+        if (ride.booking_for === "guest" && ride.guest_phone) {
+          const guestName = ride.guest_name?.split(" ")[0] || "there";
+          const guestMessages: Record<string, string> = {
+            accepted: `Hi ${guestName}, your PickYou driver has been assigned and is heading to ${ride.pickup_address}. Track or contact via the booking confirmation.`,
+            arrived: `Hi ${guestName}, your PickYou driver has arrived at ${ride.pickup_address}.`,
+            completed: `Hi ${guestName}, your PickYou trip is complete. Thanks for riding!`,
+          };
+          const guestMsg = guestMessages[event];
+          const smsOk = await sendSmsFallback(ride.guest_phone, guestMsg);
+          await logNotification(supabase, {
+            ride_id, event, method: "sms_guest",
+            status: smsOk ? "delivered" : "failed",
+            error_message: smsOk ? undefined : "Guest SMS delivery failed",
+            metadata: { guest_phone: ride.guest_phone, guest_name: ride.guest_name, message: guestMsg },
+          });
+          results.push({ target: `guest:${ride.guest_phone}`, method: "sms", success: smsOk });
+        }
+
         const elapsed = Date.now() - startTime;
-        console.log(`[ride_event:${event}] ride=${ride_id} rider=${ride.rider_id} elapsed=${elapsed}ms`);
+        console.log(`[ride_event:${event}] ride=${ride_id} rider=${ride.rider_id} guest=${ride.booking_for === "guest"} elapsed=${elapsed}ms`);
 
         return jsonRes({ results, elapsed_ms: elapsed });
       }
