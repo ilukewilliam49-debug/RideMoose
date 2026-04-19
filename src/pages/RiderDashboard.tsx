@@ -48,6 +48,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const RiderDashboard = () => {
   const { profile } = useAuth();
+  const [stopsEditorOpen, setStopsEditorOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const state = useRideBookingState();
