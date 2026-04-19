@@ -51,6 +51,7 @@ const RiderDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const state = useRideBookingState();
+  const rideBooking = useRideBooking();
   const [matchingInProgress, setMatchingInProgress] = useState(false);
   const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
   const [tripCompleteRide, setTripCompleteRide] = useState<any>(null);
