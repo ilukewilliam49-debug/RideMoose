@@ -58,16 +58,29 @@ export const useAuth = () => {
     setExpiredEmail(undefined);
   }, []);
 
+  const fetchProfileAndRoles = useCallback(async (userId: string) => {
+    const [{ data: profileData }, { data: rolesData }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("user_id", userId).single(),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+    ]);
+    setProfile(profileData as Profile | null);
+    setIsAdmin(!!rolesData?.some((r) => r.role === "admin"));
+    setLoading(false);
+    return profileData as Profile | null;
+  }, []);
+
+  /**
+   * Force a fresh read of profile + roles from the database. Use this after
+   * server-side mutations (e.g. capability provisioning) so the UI reflects
+   * the latest state without a full page reload.
+   */
+  const refreshProfile = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+    return fetchProfileAndRoles(session.user.id);
+  }, [fetchProfileAndRoles]);
+
   useEffect(() => {
-    const fetchProfileAndRoles = async (userId: string) => {
-      const [{ data: profileData }, { data: rolesData }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", userId).single(),
-        supabase.from("user_roles").select("role").eq("user_id", userId),
-      ]);
-      setProfile(profileData as Profile | null);
-      setIsAdmin(!!rolesData?.some((r) => r.role === "admin"));
-      setLoading(false);
-    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
