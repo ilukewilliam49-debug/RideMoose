@@ -15,6 +15,7 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
 
 const VEHICLE_TYPES = ["sedan", "SUV", "van", "truck"] as const;
 
