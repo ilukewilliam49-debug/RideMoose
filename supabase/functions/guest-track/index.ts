@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
       .from("rides")
       .select(`
         id, status, service_type, pickup_address, dropoff_address,
+        pickup_lat, pickup_lng, dropoff_lat, dropoff_lng,
         guest_name, scheduled_at, started_at, completed_at,
         driver_id,
         driver:profiles!rides_driver_id_fkey (
@@ -46,7 +47,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Compute approximate ETA using haversine if driver location available and en route
     let etaMin: number | null = null;
     const driver: any = ride.driver;
     const isEnRoute = ride.status === "accepted";
@@ -56,7 +56,11 @@ Deno.serve(async (req) => {
       status: ride.status,
       service_type: ride.service_type,
       pickup_address: ride.pickup_address,
+      pickup_lat: ride.pickup_lat,
+      pickup_lng: ride.pickup_lng,
       dropoff_address: ride.dropoff_address,
+      dropoff_lat: ride.dropoff_lat,
+      dropoff_lng: ride.dropoff_lng,
       guest_name: ride.guest_name,
       scheduled_at: ride.scheduled_at,
       started_at: ride.started_at,

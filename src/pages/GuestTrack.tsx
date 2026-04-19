@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Loader2, MapPin, Car, CheckCircle2, AlertCircle, Star } from "lucide-react";
+import { Loader2, Car, CheckCircle2, AlertCircle, Star } from "lucide-react";
+import RideMap, { type MapMarker } from "@/components/map/MapContainer";
 
 interface TrackData {
   status: string;
   service_type: string;
   pickup_address: string;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
   dropoff_address: string;
+  dropoff_lat: number | null;
+  dropoff_lng: number | null;
   guest_name: string | null;
   scheduled_at: string | null;
   started_at: string | null;
@@ -155,6 +160,30 @@ export default function GuestTrack() {
             </div>
           )}
         </Card>
+
+        {(() => {
+          const markers: MapMarker[] = [];
+          if (data.pickup_lat != null && data.pickup_lng != null) {
+            markers.push({ lat: data.pickup_lat, lng: data.pickup_lng, type: "pickup", label: "Pickup" });
+          }
+          if (data.dropoff_lat != null && data.dropoff_lng != null) {
+            markers.push({ lat: data.dropoff_lat, lng: data.dropoff_lng, type: "dropoff", label: "Dropoff" });
+          }
+          if (!isFinal && data.driver?.lat != null && data.driver?.lng != null) {
+            markers.push({ lat: data.driver.lat, lng: data.driver.lng, type: "driver", label: data.driver.name });
+          }
+          if (markers.length === 0) return null;
+          return (
+            <Card className="p-2 overflow-hidden">
+              <RideMap markers={markers} />
+              {!isFinal && data.driver?.lat == null && (
+                <p className="text-[11px] text-center text-muted-foreground py-2">
+                  Driver location will appear once they're on the way.
+                </p>
+              )}
+            </Card>
+          );
+        })()}
 
         <Card className="p-5 space-y-3">
           <div className="flex gap-3">
