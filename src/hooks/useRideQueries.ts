@@ -183,7 +183,7 @@ export const useRideQueries = ({
       private_hire: pickyouTotal,
       courier: computePrice("courier"),
     };
-  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing, passengerCount]);
+  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing, passengerCount, stopCount]);
 
   // Active ride
   const { data: activeRide } = useQuery({
