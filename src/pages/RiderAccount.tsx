@@ -13,6 +13,7 @@ import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, C
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import SupportChatDialog from "@/components/SupportChatDialog";
+import RoleSwitcher from "@/components/RoleSwitcher";
 import { toast } from "sonner";
 
 const RiderAccount = () => {
@@ -335,19 +336,15 @@ const RiderAccount = () => {
 
       {/* Settings */}
       <div className="space-y-2 pt-2">
-        {canSwitch ? (
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-3 h-12 rounded-xl"
-            onClick={() => {
-              setActiveRole("driver");
-              navigate("/driver");
-            }}
-          >
-            <Car className="h-4 w-4" />
-            Switch to Driver
-          </Button>
-        ) : (
+        {/* Role switcher (Rider / Driver / Business) */}
+        <div className="rounded-xl border border-border/40 p-4 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Switch mode
+          </p>
+          <RoleSwitcher />
+        </div>
+
+        {!canSwitch && (
           <SupportChatDialog
             trigger={
               <Button
