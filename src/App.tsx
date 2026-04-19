@@ -47,7 +47,7 @@ const DriverOnboardingPending = lazy(() => import("./pages/DriverOnboardingPendi
 const DashboardHome = lazy(() => import("./pages/DashboardHome"));
 const RiderDashboard = lazy(() => import("./pages/RiderDashboard"));
 const CourierBooking = lazy(() => import("./pages/CourierBooking"));
-const CorporateApply = lazy(() => import("./pages/CorporateApply"));
+const BusinessApply = lazy(() => import("./pages/BusinessApply"));
 const RiderActivity = lazy(() => import("./pages/RiderActivity"));
 const RiderAccount = lazy(() => import("./pages/RiderAccount"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -124,7 +124,7 @@ const AppContent = () => {
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/drive" element={<DriveLanding />} />
           <Route path="/business" element={<BusinessLanding />} />
-          <Route path="/business/apply" element={<CorporateApply />} />
+          <Route path="/business/apply" element={<BusinessApply />} />
 
           {/* Signup intent shims — make role-aware signup links work from
               anywhere. They forward to /login with intent=... + returnTo, or
