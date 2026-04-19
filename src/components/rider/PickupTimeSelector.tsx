@@ -83,7 +83,7 @@ export default function PickupTimeSelector({ className }: { className?: string }
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-64 p-3 z-[1300]"
+        className="w-64 p-3 z-[1400]"
         align="start"
         sideOffset={8}
         onOpenAutoFocus={(e) => e.preventDefault()}
