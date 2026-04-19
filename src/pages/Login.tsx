@@ -86,7 +86,8 @@ const Login = () => {
   useEffect(() => {
     if (!authLoading && user && profile) {
       const intent = searchParams.get("role");
-      const route = resolvePostAuthRoute(profile as any, { intent, activeRole });
+      const returnTo = searchParams.get("returnTo");
+      const route = resolvePostAuthRoute(profile as any, { intent, activeRole, returnTo });
       // Strip the consumed ?role= param so it doesn't trigger repeat upgrades
       clearRoleIntentFromUrl();
       navigate(route, { replace: true });
@@ -257,12 +258,15 @@ const Login = () => {
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
-      // Preserve ?role=driver across the OAuth round-trip so AuthCallback can
-      // promote the profile to driver before routing.
+      // Preserve ?role=driver and ?returnTo=... across the OAuth round-trip
+      // so AuthCallback can promote the profile and route to the right page.
       const roleParam = searchParams.get("role");
-      const redirectUri = `${window.location.origin}/auth/callback${
-        roleParam ? `?role=${encodeURIComponent(roleParam)}` : ""
-      }`;
+      const returnToParam = searchParams.get("returnTo");
+      const cbParams = new URLSearchParams();
+      if (roleParam) cbParams.set("role", roleParam);
+      if (returnToParam) cbParams.set("returnTo", returnToParam);
+      const cbQs = cbParams.toString();
+      const redirectUri = `${window.location.origin}/auth/callback${cbQs ? `?${cbQs}` : ""}`;
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: redirectUri,
       });

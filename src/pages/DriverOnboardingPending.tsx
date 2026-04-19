@@ -69,7 +69,10 @@ const DriverOnboardingPending = () => {
 
   const earliestSubmission = useMemo(() => {
     if (!verifications || verifications.length === 0) return null;
-    const dates = verifications.map((v: any) => new Date(v.created_at).getTime());
+    const dates = verifications
+      .map((v: any) => new Date(v.created_at).getTime())
+      .filter((n) => Number.isFinite(n));
+    if (dates.length === 0) return null;
     return new Date(Math.min(...dates)).toISOString();
   }, [verifications]);
 

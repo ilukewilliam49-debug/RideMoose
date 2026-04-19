@@ -24,6 +24,21 @@ export interface ResolveOptions {
   intent?: string | null;
   /** User-selected active role from ActiveRoleContext */
   activeRole?: ActiveRole | null;
+  /** Explicit return path (e.g. ?returnTo=/business/apply). Wins over default
+   *  driver/rider routing UNLESS the user is an admin or the path targets an
+   *  area they cannot access. */
+  returnTo?: string | null;
+}
+
+/** Whether a `returnTo` path is safe to honour (same-origin path, no driver
+ *  onboarding loop, no auth pages). */
+export function isSafeReturnTo(path: string | null | undefined): path is string {
+  if (!path || typeof path !== "string") return false;
+  if (!path.startsWith("/")) return false;
+  if (path.startsWith("//")) return false;
+  // Don't bounce back into auth flows
+  if (path.startsWith("/login") || path.startsWith("/auth")) return false;
+  return true;
 }
 
 export const STORAGE_KEY_ACTIVE_ROLE = "pickyou-active-role";
@@ -40,7 +55,11 @@ export function resolvePostAuthRoute(
   profile: RoutingProfile | null | undefined,
   options: ResolveOptions = {},
 ): string {
-  if (!profile) return "/rider";
+  if (!profile) {
+    // No profile yet — still honour an explicit returnTo when safe
+    if (isSafeReturnTo(options.returnTo)) return options.returnTo;
+    return "/rider";
+  }
 
   // Admins are exclusive — never route them anywhere else
   if (profile.role === "admin") return "/admin";
@@ -48,6 +67,13 @@ export function resolvePostAuthRoute(
   const driverReady = !!profile.driver_onboarding_complete;
   const driverRoute = driverReady ? "/driver" : "/driver/onboarding";
   const isDriverCapable = !!profile.is_driver;
+
+  // Explicit return path wins over default role routing for non-admins. This
+  // prevents a dual-capable user (role=driver, is_rider=true) clicking
+  // "Apply for a business account" from being trapped in driver onboarding.
+  if (isSafeReturnTo(options.returnTo) && !options.returnTo.startsWith("/driver")) {
+    return options.returnTo;
+  }
 
   // Explicit URL intent always wins (even before profile flags update)
   if (options.intent === "driver") return driverRoute;

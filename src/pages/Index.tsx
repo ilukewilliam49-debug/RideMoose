@@ -25,8 +25,10 @@ const Index = () => {
 
   useEffect(() => {
     if (loading || !user || showPublicLanding) return;
-    const intent = new URLSearchParams(location.search).get("role");
-    const route = resolvePostAuthRoute(profile as any, { intent, activeRole });
+    const params = new URLSearchParams(location.search);
+    const intent = params.get("role");
+    const returnTo = params.get("returnTo");
+    const route = resolvePostAuthRoute(profile as any, { intent, activeRole, returnTo });
     clearRoleIntentFromUrl();
     navigate(route, { replace: true });
   }, [user, profile, loading, navigate, showPublicLanding, activeRole, location.search]);

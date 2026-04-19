@@ -112,12 +112,14 @@ const AppContent = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth" element={<Navigate to="/login" replace />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/corporate-apply" element={<Navigate to="/rider/corporate-apply" replace />} />
+          <Route path="/corporate-apply" element={<Navigate to="/business/apply" replace />} />
+          <Route path="/rider/corporate-apply" element={<Navigate to="/business/apply" replace />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/drive" element={<DriveLanding />} />
           <Route path="/business" element={<BusinessLanding />} />
+          <Route path="/business/apply" element={<CorporateApply />} />
 
           <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
@@ -152,7 +154,6 @@ const AppContent = () => {
             <Route path="courier" element={<CourierBooking />} />
             <Route path="activity" element={<RiderActivity />} />
             <Route path="account" element={<RiderAccount />} />
-            <Route path="corporate-apply" element={<CorporateApply />} />
           </Route>
 
           <Route path="/dashboard/*" element={<Navigate to="/rider" replace />} />

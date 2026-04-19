@@ -80,7 +80,7 @@ const BusinessLanding = () => {
     t("business.benefit6", "Cancel anytime — no contracts"),
   ];
 
-  const handleApply = () => navigate("/rider/corporate-apply");
+  const handleApply = () => navigate("/business/apply");
 
   return (
     <>

@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ArrowLeft, CheckCircle, Clock, XCircle, AlertTriangle } from "lucide-react";
+import { Building2, ArrowLeft, CheckCircle, Clock, XCircle, AlertTriangle, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const CorporateApply = () => {
-  const { profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -100,10 +100,51 @@ const CorporateApply = () => {
     needs_info: <AlertTriangle className="h-5 w-5 text-orange-500" />,
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex justify-center py-20">
         <div className="animate-pulse w-8 h-8 rounded-full bg-primary" />
+      </div>
+    );
+  }
+
+  // Public access — if not signed in, prompt sign-in but keep the form
+  // reachable from the marketing site without forcing role-based gating.
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 py-16 bg-background">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md text-center space-y-5 rounded-2xl border border-border/40 bg-card/40 p-8"
+        >
+          <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Building2 className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-bold">Apply for a business account</h1>
+          <p className="text-sm text-muted-foreground">
+            Sign in or create an account to submit your corporate application. It only takes a minute.
+          </p>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button
+              size="lg"
+              className="h-12 rounded-xl text-sm font-bold"
+              onClick={() =>
+                navigate(`/login?returnTo=${encodeURIComponent("/business/apply")}`)
+              }
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Sign in to continue
+            </Button>
+            <Button
+              variant="ghost"
+              className="h-11 rounded-xl text-sm"
+              onClick={() => navigate("/business")}
+            >
+              Back to business overview
+            </Button>
+          </div>
+        </motion.div>
       </div>
     );
   }

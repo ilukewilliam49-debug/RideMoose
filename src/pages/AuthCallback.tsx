@@ -22,6 +22,7 @@ const AuthCallback = () => {
         // role (admins stay admin; existing riders keep their role too).
         const params = new URLSearchParams(window.location.search);
         const roleParam = params.get("role");
+        const returnTo = params.get("returnTo");
         if (roleParam === "driver") {
           await supabase
             .from("profiles")
@@ -37,7 +38,7 @@ const AuthCallback = () => {
           .eq("user_id", session.user.id)
           .single();
 
-        const route = resolvePostAuthRoute(profile as any, { intent: roleParam });
+        const route = resolvePostAuthRoute(profile as any, { intent: roleParam, returnTo });
         clearRoleIntentFromUrl();
         navigate(route, { replace: true });
       } catch (err) {
