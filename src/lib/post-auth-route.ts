@@ -6,6 +6,8 @@
  * the separate `user_roles` table and passed in explicitly via `isAdmin`.
  */
 
+import { supabase } from "@/integrations/supabase/client";
+
 export type ActiveRole = "rider" | "driver" | "business" | "admin";
 
 export interface RoutingProfile {
