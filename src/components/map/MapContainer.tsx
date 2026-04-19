@@ -93,6 +93,8 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const driverMarkerRef = useRef<L.Marker | null>(null);
+  const driverAnimRef = useRef<number | null>(null);
   const polylineRef = useRef<L.Polyline | null>(null);
   const labelRef = useRef<L.Marker | null>(null);
 
@@ -116,29 +118,33 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
     }).addTo(mapRef.current);
 
     return () => {
+      if (driverAnimRef.current != null) {
+        cancelAnimationFrame(driverAnimRef.current);
+        driverAnimRef.current = null;
+      }
       mapRef.current?.remove();
       mapRef.current = null;
     };
   }, []);
 
-  // Update markers
+  // Update markers (pickup, dropoff, stops) — driver handled separately for smooth animation
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Clear old markers
+    // Clear old static markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Add new markers
-    markers.forEach((m) => {
+    const staticMarkers = markers.filter((m) => m.type !== "driver");
+    staticMarkers.forEach((m) => {
       const icon = m.type === "stop" ? stopBadgeIcon(m.index ?? 1) : (iconMap as any)[m.type];
       const marker = L.marker([m.lat, m.lng], { icon }).addTo(map);
       if (m.label) marker.bindPopup(m.label);
       markersRef.current.push(marker);
     });
 
-    // Fit bounds tightly to pickup + dropoff
+    // Fit bounds to ALL markers (including driver) on first add or when set changes
     if (markers.length === 1) {
       map.setView([markers[0].lat, markers[0].lng], 15);
     } else if (markers.length > 1) {
@@ -146,6 +152,82 @@ const RideMap = ({ markers, center = [62.454, -114.372], className = "", polylin
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
     }
   }, [markers]);
+
+  // Smoothly animate driver marker between location updates
+  const driver = markers.find((m) => m.type === "driver");
+  const driverLat = driver?.lat;
+  const driverLng = driver?.lng;
+  const driverLabel = driver?.label;
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Driver gone — remove marker
+    if (driverLat == null || driverLng == null) {
+      if (driverAnimRef.current != null) {
+        cancelAnimationFrame(driverAnimRef.current);
+        driverAnimRef.current = null;
+      }
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.remove();
+        driverMarkerRef.current = null;
+      }
+      return;
+    }
+
+    // First time we see the driver — drop the marker in place
+    if (!driverMarkerRef.current) {
+      const marker = L.marker([driverLat, driverLng], { icon: driverIcon }).addTo(map);
+      if (driverLabel) marker.bindPopup(driverLabel);
+      driverMarkerRef.current = marker;
+      return;
+    }
+
+    // Update popup if label changed
+    if (driverLabel) {
+      driverMarkerRef.current.bindPopup(driverLabel);
+    }
+
+    // Animate from current position to new position
+    if (driverAnimRef.current != null) {
+      cancelAnimationFrame(driverAnimRef.current);
+      driverAnimRef.current = null;
+    }
+
+    const start = driverMarkerRef.current.getLatLng();
+    const endLat = driverLat;
+    const endLng = driverLng;
+
+    // Skip animation for tiny movements (< ~1m) to avoid jitter
+    const dLat = endLat - start.lat;
+    const dLng = endLng - start.lng;
+    if (Math.abs(dLat) < 1e-5 && Math.abs(dLng) < 1e-5) {
+      driverMarkerRef.current.setLatLng([endLat, endLng]);
+      return;
+    }
+
+    const duration = 1500; // ms — tween over 1.5s, well under the 10s polling cadence
+    const startTime = performance.now();
+    // ease-out cubic for a natural slow-to-stop
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const k = ease(t);
+      const lat = start.lat + dLat * k;
+      const lng = start.lng + dLng * k;
+      driverMarkerRef.current?.setLatLng([lat, lng]);
+      if (t < 1) {
+        driverAnimRef.current = requestAnimationFrame(step);
+      } else {
+        driverAnimRef.current = null;
+      }
+    };
+    driverAnimRef.current = requestAnimationFrame(step);
+  }, [driverLat, driverLng, driverLabel]);
+
 
   // Draw route polyline with animation
   useEffect(() => {
