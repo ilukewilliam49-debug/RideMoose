@@ -451,8 +451,9 @@ const RiderDashboard = () => {
 
           {/* Pickup & Dropoff – hidden; values come from URL params set on the home screen */}
 
-          {/* Intermediate stops – riders can add up to 3 stops between pickup and dropoff */}
-          {state.pickup && state.dropoff && (
+          {/* Intermediate stops – riders can add up to 3 stops between pickup and dropoff.
+              Always rendered when at least pickup is set so riders can build multi-stop trips. */}
+          {state.pickup && (
             <div className="rounded-xl border border-border/60 bg-card/40 p-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
