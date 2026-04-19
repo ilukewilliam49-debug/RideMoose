@@ -1,63 +1,56 @@
 
+Looking at the codebase, both terms are currently used interchangeably:
 
-## Root cause — confirmed via DB lookup
+- **Routes**: `/business`, `/business/apply`, `/business/dashboard` (URL uses "business")
+- **Pages**: `BusinessLanding.tsx`, `BusinessDashboard.tsx`, `BusinessMembers.tsx`, `BusinessInvoices.tsx`, `BusinessRides.tsx`, but also `CorporateApply.tsx`
+- **Profile column**: `is_business`
+- **Active role**: `"business"`
+- **DB tables**: `organization_applications`, `organizations` (uses "organization" internally)
+- **UI copy**: mixes "Corporate Account Application", "business account", "corporate application"
+- **Memory**: `mem://features/corporate-billing`
 
-`hybronx@gmail.com` (user_id `12b3372c…`) signed in with Google **using a driver-intent link in the past**. The `handle_new_user()` trigger ran with `raw_user_meta_data.role = 'driver'`, which set:
+This inconsistency is a real UX/naming smell — users see "Business" in the nav but land on a "Corporate Account Application" page.
 
-```
-role: driver
-is_driver: true
-is_rider: true
-driver_onboarding_complete: false
-```
+## Recommendation: Standardize on "Business" everywhere user-facing
 
-When they later clicked **"Apply for a business account"**, three things conspired to send them to driver onboarding instead of the apply form:
+**Why "Business" wins:**
+1. **Already the URL/route standard** (`/business/*`) — changing routes breaks SEO, bookmarks, and the existing memory entries.
+2. **Already the capability flag** (`is_business`, `ActiveRole = "business"`) — changing breaks the multi-role refactor we just stabilized.
+3. **More inclusive** — "Corporate" implies large enterprises; "Business" covers sole proprietors, small shops, and corporates alike. Better for Yellowknife's small-business market.
+4. **Shorter, friendlier**, matches industry norm (Uber for Business, Lyft Business).
+5. **Keep "Organization" as the internal data model term** (DB tables, edge functions) — that's a standard backend convention and users never see it.
 
-### Bug 1 — Business CTA is gated behind a driver-only route
-`BusinessLanding.tsx` line 83: `handleApply = () => navigate("/rider/corporate-apply")`.
-That nested route is wrapped in `<ProtectedRoute allowedRoles={["rider", "driver"]}>` → forces login.
+## Proposed naming convention
 
-### Bug 2 — `ProtectedRoute` driver-onboarding gate fires on `/rider/*` for driver-capable users (the actual trap)
-In `ProtectedRoute.tsx` the onboarding gate **only** checks `isDriverRoute`, but the user's primary `role` is `'driver'`. `resolvePostAuthRoute` therefore sends them to `/driver/onboarding` immediately after Google sign-in — **before** they ever reach `/rider/corporate-apply`. The redirect intent (`/rider/corporate-apply`) is dropped because login does not preserve a `returnTo`.
+| Layer | Term | Example |
+|---|---|---|
+| User-facing UI/copy | **Business** | "Business account", "Apply for Business" |
+| Routes | **business** | `/business`, `/business/apply` |
+| Capability/role | **business** | `is_business`, `activeRole: "business"` |
+| Internal data model | **organization** | `organizations` table, `organization_applications` |
+| Billing context only | **Corporate billing** OK as a feature name | invoice descriptions, admin reports |
 
-### Bug 3 — `DriverOnboardingPending` crashes with `RangeError: Invalid time value`
-Because the user has zero `verifications` rows, `earliestSubmission` calls `Math.min(...[])` → `Infinity` → `new Date(Infinity).toISOString()` throws. ErrorBoundary catches it → "Something went wrong." Visible in the console logs you shared. They likely got bounced into `/driver/onboarding/pending` (current route confirms this), then crashed.
+## Concrete changes (small, surgical)
 
-### Bug 4 — No public/unauthenticated path to apply
-The application form requires auth and is mounted under `/rider/*`. A first-time business owner has no way to apply without first being routed through driver/rider gates.
+1. **`src/pages/CorporateApply.tsx`** → rename to `BusinessApply.tsx`; update import in `App.tsx`.
+2. **UI copy sweep** in that file:
+   - "Corporate Account Application" → "Business Account Application"
+   - "Apply for a business account" stays
+   - "Corporate Application" header → "Business Application"
+3. **`AdminCorporate.tsx`** — keep filename (admin-only, "Corporate accounts" is clearer for the admin reviewing high-value billing relationships), but ensure user-facing emails/notifications say "Business".
+4. **Email template** `corporate-application-notification.tsx` — keep filename (internal), but verify subject/body uses consistent terminology.
+5. **i18n keys** in `en.json`/`fr.json` — audit any `corporate.*` keys used in rider-facing UI and rename to `business.*` (keep admin keys as-is).
+6. **Memory update** — adjust `mem://features/corporate-billing` description to clarify: "User-facing term is Business; Corporate is reserved for admin/billing internals."
 
----
+## What stays "Corporate"
+- Admin pages (`AdminCorporate.tsx`, admin nav label) — admins manage "corporate accounts" as a billing concept
+- Internal DB schema (`organizations`, `organization_applications`)
+- Generated invoice numbers / accounting language where "corporate" is industry-standard
 
-## Fix plan
+## Out of scope (don't change)
+- Database schema/columns
+- Route paths
+- `ActiveRole` type
+- `is_business` profile column
 
-**A. Fix the crash (`DriverOnboardingPending.tsx`)**
-Guard `earliestSubmission` against empty arrays:
-```ts
-if (!verifications?.length) return null;
-const times = verifications.map(v => new Date(v.created_at).getTime()).filter(Number.isFinite);
-return times.length ? new Date(Math.min(...times)).toISOString() : null;
-```
-
-**B. Make business apply reachable for anyone**
-Move the apply page out of `/rider/*` to a top-level `/business/apply` route that is **public** (renders the form if logged in, otherwise prompts a quick sign-in/up that returns to `/business/apply`). Update `BusinessLanding` CTAs to navigate there. Keep `/rider/corporate-apply` as a redirect alias for backwards compatibility.
-
-**C. Preserve return path on login**
-Add `?returnTo=` support in `Login` + `AuthCallback` so a logged-out user clicking "Apply" lands back on the apply form after Google OAuth instead of being thrown into driver onboarding.
-
-**D. Don't force `/driver/onboarding` when the user is heading somewhere else**
-In `Index.tsx` and `AuthCallback.tsx`, if a `returnTo` is present and points to a non-driver route, honour it ahead of the driver-onboarding redirect for users whose primary `role='driver'` but who are dual-capable.
-
-**E. Optional cleanup for hybronx specifically**
-Since this account never started driver onboarding (zero verifications, no vehicle info) but their primary `role` got set to `driver` by the original Google intent, downgrade them to `role='rider'`, keep `is_driver=true` so they can opt in later. This is a one-row admin update, not a migration.
-
----
-
-## Files to change
-
-- `src/pages/DriverOnboardingPending.tsx` — guard empty array in `earliestSubmission`
-- `src/pages/BusinessLanding.tsx` — point CTA to `/business/apply`
-- `src/App.tsx` — add public `/business/apply` route, redirect `/rider/corporate-apply` to it
-- `src/pages/CorporateApply.tsx` — render sign-in prompt when `!user` instead of relying on `ProtectedRoute`
-- `src/pages/Login.tsx` + `src/pages/AuthCallback.tsx` + `src/lib/post-auth-route.ts` — honour `returnTo` query param
-- One-off DB update for `hybronx@gmail.com`: `UPDATE profiles SET role='rider' WHERE user_id='12b3372c-902d-4d0e-8b74-aef268d6dc1c'`
-
+Net result: **one consistent user-facing term ("Business")**, internal data model unchanged, admin "Corporate" terminology preserved where it adds clarity.
