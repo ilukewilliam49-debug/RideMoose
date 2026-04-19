@@ -277,7 +277,9 @@ export function AppSidebar() {
               className="w-full gap-1.5"
               onClick={() => {
                 setActiveRole(next as any);
-                navigate(next === "driver" ? "/driver" : "/rider");
+                if (next === "driver") navigate("/driver");
+                else if (next === "business") navigate("/business");
+                else navigate("/rider");
                 setOpenMobile(false);
               }}
             >
