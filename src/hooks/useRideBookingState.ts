@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { decodeStopsParam, type RideStop } from "@/types/stops";
+import { decodeStopsParam, encodeStopsParam, type RideStop } from "@/types/stops";
 
 export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
 
 export const useRideBookingState = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const serviceParam = searchParams.get("service");
 
   const [pickup, setPickup] = useState("");
