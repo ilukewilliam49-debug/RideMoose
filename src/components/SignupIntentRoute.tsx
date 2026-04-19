@@ -10,14 +10,20 @@ const SignupIntentRoute = ({ role }: { role: "rider" | "driver" | "business" }) 
   const [search] = useSearchParams();
   const existingReturn = search.get("returnTo");
 
+  // Preserve the intent across the entire signup journey, including for
+  // business — /business/apply checks the intent param to know which flow
+  // brought the user in, and login round-trips need it too.
+  const returnTo =
+    existingReturn ||
+    (role === "driver" ? "/driver" : role === "business" ? "/business/apply" : "/rider");
+  const params = new URLSearchParams({ intent: role, returnTo });
+
   if (role === "business") {
     // Business apply page handles its own auth state + returnTo, so go
-    // straight there. The page will prompt sign-in if needed.
-    return <Navigate to="/business/apply" replace />;
+    // straight there with the intent preserved.
+    return <Navigate to={`/business/apply?${params.toString()}`} replace />;
   }
 
-  const returnTo = existingReturn || (role === "driver" ? "/driver" : "/rider");
-  const params = new URLSearchParams({ intent: role, returnTo });
   return <Navigate to={`/login?${params.toString()}`} replace />;
 };
 

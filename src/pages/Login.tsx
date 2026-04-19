@@ -86,15 +86,49 @@ const Login = () => {
 
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
+  // Track whether we've already kicked off the upgrade for this auth session
+  // so we don't loop while the profile refetches.
+  const upgradedForUserRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!authLoading && user && profile) {
-      const intent = searchParams.get("intent");
-      const returnTo = searchParams.get("returnTo");
-      const route = resolvePostAuthRoute(profile as any, { intent, activeRole, returnTo });
-      // Strip the consumed intent param so it doesn't trigger repeat upgrades
-      clearRoleIntentFromUrl();
-      navigate(route, { replace: true });
+    if (authLoading || !user || !profile) return;
+    const intent = searchParams.get("intent");
+    const returnTo = searchParams.get("returnTo");
+
+    // If a logged-in user lands on /login?intent=driver|rider, provision the
+    // capability BEFORE routing so ProtectedRoute doesn't bounce them.
+    // Business is intentionally NOT auto-provisioned — it requires admin
+    // approval via /business/apply.
+    const normalized = (intent || "").toLowerCase();
+    const needsUpgrade =
+      (normalized === "driver" && !profile.is_driver) ||
+      (normalized === "rider" && !profile.is_rider);
+
+    if (needsUpgrade && upgradedForUserRef.current !== user.id) {
+      upgradedForUserRef.current = user.id;
+      (async () => {
+        await provisionCapabilityFromIntent(user.id, normalized);
+        // Force a fresh profile read so the next route resolution sees the
+        // newly-flipped capability flag.
+        const { data: refreshed } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+        const route = resolvePostAuthRoute((refreshed ?? profile) as any, {
+          intent: normalized,
+          activeRole,
+          returnTo,
+        });
+        clearRoleIntentFromUrl();
+        navigate(route, { replace: true });
+      })();
+      return;
     }
+
+    const route = resolvePostAuthRoute(profile as any, { intent, activeRole, returnTo });
+    clearRoleIntentFromUrl();
+    navigate(route, { replace: true });
   }, [user, profile, authLoading, navigate, searchParams, activeRole]);
 
   // Auto-focus password when entering email login view with email pre-filled.
