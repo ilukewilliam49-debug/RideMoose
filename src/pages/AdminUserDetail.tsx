@@ -319,7 +319,7 @@ export default function AdminUserDetail() {
         </Card>
 
         {/* Driver Capabilities */}
-        {profile?.role === "driver" && (
+        {profile?.is_driver && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">Driver Capabilities</CardTitle>
@@ -409,7 +409,7 @@ export default function AdminUserDetail() {
         )}
 
         {/* Verifications (Driver only) */}
-        {profile?.role === "driver" && verifications && verifications.length > 0 && (
+        {profile?.is_driver && verifications && verifications.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">Verifications</CardTitle>
@@ -432,12 +432,12 @@ export default function AdminUserDetail() {
           <Card className="md:col-span-2">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                <span>{profile?.role === "driver" ? "Driver Ratings" : "Rider Ratings"}</span>
+                <span>{profile?.is_driver ? "Driver Ratings" : "Rider Ratings"}</span>
                 <div className="flex items-center gap-2">
                   {(() => {
                     const p = profile as any;
-                    const avg = profile?.role === "driver" ? p?.average_rating : p?.rider_average_rating;
-                    const count = profile?.role === "driver" ? p?.total_ratings : p?.rider_total_ratings;
+                    const avg = profile?.is_driver ? p?.average_rating : p?.rider_average_rating;
+                    const count = profile?.is_driver ? p?.total_ratings : p?.rider_total_ratings;
                     if (avg == null) return null;
                     return (
                       <>
@@ -498,7 +498,7 @@ export default function AdminUserDetail() {
         )}
 
         {/* Recent Rides */}
-        <Card className={profile?.role !== "driver" ? "md:col-span-2" : ""}>
+        <Card className={!profile?.is_driver ? "md:col-span-2" : ""}>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Recent Rides</CardTitle>
           </CardHeader>
