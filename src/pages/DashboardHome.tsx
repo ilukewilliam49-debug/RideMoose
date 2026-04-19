@@ -635,6 +635,27 @@ const DashboardHome = () => {
           }
         />
       </motion.div>
+
+      {/* Mobile-only: full-screen "Plan your ride" sheet */}
+      <PlanRideSheet
+        open={planSheetOpen}
+        onOpenChange={setPlanSheetOpen}
+        pickupAddress={pickupAddress}
+        setPickupAddress={setPickupAddress}
+        pickupCoords={pickupAddressCoords}
+        setPickupCoords={setPickupAddressCoords}
+        destination={destination}
+        setDestination={setDestination}
+        dropoffCoords={dropoffAddressCoords}
+        setDropoffCoords={setDropoffAddressCoords}
+        scheduledAt={scheduledAt}
+        setScheduledAt={setScheduledAt}
+        setUserLocation={setUserLocation}
+        savedPlaces={savedPlaces ?? []}
+        onRequestMapPick={() => {
+          setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+        }}
+      />
     </div>
   );
 };
