@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { MapPin, CreditCard, Banknote, Clock } from "lucide-react";
+import { MapPin, CreditCard, Clock } from "lucide-react";
 import { serviceLabels } from "@/lib/driver-constants";
 
 interface RideConfirmSheetProps {

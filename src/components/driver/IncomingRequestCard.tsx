@@ -7,7 +7,6 @@ import {
   Plane,
   Users,
   Clock,
-  Banknote,
 } from "lucide-react";
 import ServiceIcon from "@/components/driver/ServiceIcon";
 import DriverBidForm from "@/components/DriverBidForm";

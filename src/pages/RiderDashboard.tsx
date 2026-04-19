@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Clock, AlertTriangle, CreditCard, Banknote, Building2,
+  ArrowLeft, Clock, AlertTriangle, CreditCard, Building2,
   Package, ShoppingBag, MapPinned, MapPin, LocateFixed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -204,7 +204,7 @@ const RiderDashboard = () => {
 
       // Payment authorization for specific service types
       const needsAuth = (state.serviceType === "personal_shopper" ||
-        (!isOrgBilling && state.paymentOption === "in_app" && state.serviceType === "taxi"));
+        (!isOrgBilling && state.serviceType === "taxi"));
       if (needsAuth && rideData) {
         let authCents = estCents;
         if (state.serviceType === "personal_shopper") {
