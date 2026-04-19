@@ -309,7 +309,7 @@ const AdminPricing = () => {
       {/* Service Pricing Cards */}
       <div>
         <h2 className="text-lg font-semibold mb-3">{t("pricing.generalPricing")}</h2>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {pricingRows?.map((row) => {
             const cfg = serviceConfig[row.service_type as keyof typeof serviceConfig];
             const edited = getEdited(row);
