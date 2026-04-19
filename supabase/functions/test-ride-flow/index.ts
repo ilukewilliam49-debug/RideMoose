@@ -31,70 +31,96 @@ serve(async (req) => {
   }
 
   let skipCleanup = false;
+  let scenarios: string[] = ["full", "cancel", "scheduled", "stops", "guest"];
   try {
     const body = await req.clone().json();
     skipCleanup = body?.skip_cleanup === true;
-  } catch { /* no body or not JSON */ }
+    if (Array.isArray(body?.scenarios) && body.scenarios.length) {
+      scenarios = body.scenarios;
+    }
+  } catch { /* no body */ }
 
   const steps: StepResult[] = [];
   const totalStart = Date.now();
+  const createdRideIds: string[] = [];
+
+  const record = (
+    step: string,
+    status: "ok" | "failed" | "skipped",
+    started: number,
+    details?: unknown,
+  ) => {
+    steps.push({ step, status, duration_ms: Date.now() - started, details });
+  };
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // ── Step 0: Find a rider and driver profile for simulation ────
+    // ── Step 0: Find a rider and a taxi-capable driver ─────────────
     let t = Date.now();
-    const { data: rider } = await admin
+    const { data: rider, error: riderErr } = await admin
       .from("profiles")
-      .select("id, full_name, user_id")
-      .eq("role", "rider")
+      .select("id, full_name")
+      .eq("is_rider", true)
+      .eq("is_driver", false)
+      .order("created_at", { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    const { data: driver } = await admin
+    const { data: driver, error: driverErr } = await admin
       .from("profiles")
-      .select("id, full_name, user_id, latitude, longitude, is_available")
-      .eq("role", "driver")
+      .select("id, full_name, latitude, longitude, can_taxi, vehicle_type")
+      .eq("is_driver", true)
+      .eq("can_taxi", true)
+      .order("created_at", { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!rider || !driver) {
       return jsonRes({
-        error: "Need at least 1 rider and 1 driver profile to simulate",
+        error: "Need at least 1 rider and 1 taxi-capable driver",
         has_rider: !!rider,
         has_driver: !!driver,
+        rider_err: riderErr?.message,
+        driver_err: driverErr?.message,
       }, 400);
     }
-
-    steps.push({
-      step: "0_find_profiles",
-      status: "ok",
-      duration_ms: Date.now() - t,
-      details: {
-        rider: { id: rider.id, name: rider.full_name },
-        driver: { id: driver.id, name: driver.full_name },
-      },
+    record("0_find_profiles", "ok", t, {
+      rider: { id: rider.id, name: rider.full_name },
+      driver: { id: driver.id, name: driver.full_name, vehicle: driver.vehicle_type },
     });
 
-    // Ensure driver is online with coordinates
+    // Bring driver online (live = is_available + last_seen < 60s)
     t = Date.now();
-    await admin.from("profiles").update({
+    const { error: onlineErr } = await admin.from("profiles").update({
       is_available: true,
+      last_seen_at: new Date().toISOString(),
+      went_online_at: new Date().toISOString(),
       latitude: driver.latitude || 62.454,
       longitude: driver.longitude || -114.372,
     }).eq("id", driver.id);
-    steps.push({ step: "0b_set_driver_online", status: "ok", duration_ms: Date.now() - t });
+    record("0b_set_driver_online", onlineErr ? "failed" : "ok", t, onlineErr?.message);
 
-    // ── Step 1: Create ride (status = requested) ──────────────────
+    // Clear any active rides for this rider so duplicate-active trigger doesn't bite
     t = Date.now();
-    const { data: ride, error: createErr } = await admin
+    const { data: activeRides } = await admin
       .from("rides")
-      .insert({
+      .select("id")
+      .eq("rider_id", rider.id)
+      .in("status", ["requested", "accepted", "arrived", "in_progress"]);
+    if (activeRides && activeRides.length) {
+      const ids = activeRides.map((r: any) => r.id);
+      await admin.from("rides").update({ status: "cancelled", cancellation_reason: "test-cleanup" }).in("id", ids);
+    }
+    record("0c_clear_stale_active", "ok", t, { cleared: activeRides?.length || 0 });
+
+    const insertRide = async (overrides: Record<string, unknown>) => {
+      const base = {
         rider_id: rider.id,
-        pickup_address: "123 Test St, Yellowknife, NT",
-        dropoff_address: "456 Sim Ave, Yellowknife, NT",
+        pickup_address: "100 Pickup St, Yellowknife",
+        dropoff_address: "200 Drop Ave, Yellowknife",
         pickup_lat: 62.454,
         pickup_lng: -114.372,
         dropoff_lat: 62.460,
@@ -104,151 +130,211 @@ serve(async (req) => {
         estimated_price: 15.00,
         payment_option: "in_app",
         pricing_model: "metered",
-      })
-      .select("id, status")
-      .single();
+      };
+      return await admin.from("rides").insert({ ...base, ...overrides }).select("id, status").single();
+    };
 
-    if (createErr || !ride) {
-      steps.push({ step: "1_create_ride", status: "failed", duration_ms: Date.now() - t, details: createErr?.message });
-      return jsonRes({ steps, total_ms: Date.now() - totalStart });
-    }
-    steps.push({ step: "1_create_ride", status: "ok", duration_ms: Date.now() - t, details: { ride_id: ride.id, status: ride.status } });
+    const cancelRide = async (id: string) => {
+      await admin.from("rides").update({
+        status: "cancelled",
+        cancellation_reason: "scenario-cleanup",
+      }).eq("id", id);
+    };
 
-    // Small delay to let triggers fire
-    await sleep(500);
+    // ============================================================
+    // SCENARIO 1: Full lifecycle
+    // ============================================================
+    if (scenarios.includes("full")) {
+      t = Date.now();
+      const { data: ride, error: e } = await insertRide({});
+      if (e || !ride) {
+        record("1a_create_ride", "failed", t, e?.message);
+      } else {
+        createdRideIds.push(ride.id);
+        record("1a_create_ride", "ok", t, { ride_id: ride.id });
+        await sleep(300);
 
-    // ── Step 2: Accept ride (via accept_ride function) ────────────
-    t = Date.now();
-    const { data: acceptResult, error: acceptErr } = await admin.rpc("accept_ride", {
-      _ride_id: ride.id,
-      _driver_profile_id: driver.id,
-    });
+        // Accept
+        t = Date.now();
+        const { data: acc, error: accErr } = await admin.rpc("accept_ride", {
+          _ride_id: ride.id, _driver_profile_id: driver.id,
+        });
+        const accOk = !accErr && (acc as any)?.success === true;
+        record("1b_accept_ride", accOk ? "ok" : "failed", t, accErr?.message || acc);
 
-    if (acceptErr || !acceptResult?.success) {
-      steps.push({ step: "2_accept_ride", status: "failed", duration_ms: Date.now() - t, details: acceptErr?.message || acceptResult });
-      // Cleanup
-      await admin.from("rides").delete().eq("id", ride.id);
-      return jsonRes({ steps, total_ms: Date.now() - totalStart });
-    }
-    steps.push({ step: "2_accept_ride", status: "ok", duration_ms: Date.now() - t, details: acceptResult });
+        if (accOk) {
+          // Arrive
+          t = Date.now();
+          const { error: arrErr } = await admin.from("rides").update({
+            status: "arrived", updated_at: new Date().toISOString(),
+          }).eq("id", ride.id).eq("status", "accepted");
+          record("1c_arrive", arrErr ? "failed" : "ok", t, arrErr?.message);
 
-    await sleep(500);
+          // Start
+          t = Date.now();
+          const { error: startErr } = await admin.from("rides").update({
+            status: "in_progress",
+            started_at: new Date().toISOString(),
+            meter_status: "running",
+            meter_started_at: new Date().toISOString(),
+          }).eq("id", ride.id).eq("status", "arrived");
+          record("1d_start_trip", startErr ? "failed" : "ok", t, startErr?.message);
 
-    // ── Step 3: Start ride (status → in_progress) ────────────────
-    t = Date.now();
-    const { error: startErr } = await admin
-      .from("rides")
-      .update({
-        status: "in_progress",
-        started_at: new Date().toISOString(),
-        meter_status: "running",
-        meter_started_at: new Date().toISOString(),
-      })
-      .eq("id", ride.id)
-      .eq("status", "accepted");
+          // Complete + payment
+          t = Date.now();
+          const { error: compErr } = await admin.from("rides").update({
+            status: "completed",
+            completed_at: new Date().toISOString(),
+            meter_ended_at: new Date().toISOString(),
+            meter_status: "stopped",
+            final_fare_cents: 1500,
+            final_price: 15.00,
+            distance_km: 3.2,
+            duration_min: 8,
+            payment_status: "paid",
+            paid_at: new Date().toISOString(),
+            captured_amount_cents: 1500,
+          }).eq("id", ride.id).eq("status", "in_progress");
+          record("1e_complete_and_pay", compErr ? "failed" : "ok", t, compErr?.message);
 
-    if (startErr) {
-      steps.push({ step: "3_start_ride", status: "failed", duration_ms: Date.now() - t, details: startErr.message });
-      await admin.from("rides").delete().eq("id", ride.id);
-      return jsonRes({ steps, total_ms: Date.now() - totalStart });
-    }
-    steps.push({ step: "3_start_ride", status: "ok", duration_ms: Date.now() - t });
-
-    await sleep(500);
-
-    // ── Step 4: Complete ride (status → completed) ───────────────
-    t = Date.now();
-    const { error: completeErr } = await admin
-      .from("rides")
-      .update({
-        status: "completed",
-        completed_at: new Date().toISOString(),
-        meter_status: "stopped",
-        meter_ended_at: new Date().toISOString(),
-        final_fare_cents: 1500,
-        distance_km: 3.2,
-        duration_min: 8,
-        final_price: 15.00,
-      })
-      .eq("id", ride.id)
-      .eq("status", "in_progress");
-
-    if (completeErr) {
-      steps.push({ step: "4_complete_ride", status: "failed", duration_ms: Date.now() - t, details: completeErr.message });
-      await admin.from("rides").delete().eq("id", ride.id);
-      return jsonRes({ steps, total_ms: Date.now() - totalStart });
-    }
-    steps.push({ step: "4_complete_ride", status: "ok", duration_ms: Date.now() - t });
-
-    await sleep(500);
-
-    // ── Step 5: Verify ride_events audit trail ───────────────────
-    t = Date.now();
-    const { data: events } = await admin
-      .from("ride_events")
-      .select("event_type, actor_profile_id, metadata, created_at")
-      .eq("ride_id", ride.id)
-      .order("created_at", { ascending: true });
-
-    const expectedEvents = ["requested", "accepted", "in_progress", "completed"];
-    const actualEvents = (events || []).map((e: any) => e.event_type);
-    const allPresent = expectedEvents.every((e) => actualEvents.includes(e));
-
-    steps.push({
-      step: "5_verify_audit_trail",
-      status: allPresent ? "ok" : "failed",
-      duration_ms: Date.now() - t,
-      details: {
-        expected: expectedEvents,
-        actual: actualEvents,
-        events_count: events?.length || 0,
-        all_present: allPresent,
-      },
-    });
-
-    // ── Step 6: Verify notifications (async via pg_net, wait up to 5s) ──
-    t = Date.now();
-    let notifCount = 0;
-    let notifTypes: string[] = [];
-    for (let attempt = 0; attempt < 5; attempt++) {
-      await sleep(1000);
-      const { data: notifs, count } = await admin
-        .from("notifications")
-        .select("title, type", { count: "exact" })
-        .eq("ride_id", ride.id);
-      notifCount = count || 0;
-      notifTypes = (notifs || []).map((n: any) => n.type);
-      if (notifCount > 0) break;
+          // Audit
+          t = Date.now();
+          const { data: events } = await admin
+            .from("ride_events")
+            .select("event_type")
+            .eq("ride_id", ride.id)
+            .order("created_at");
+          const actual = (events || []).map((e: any) => e.event_type);
+          const expected = ["requested", "accepted", "arrived", "in_progress", "completed"];
+          const ok = expected.every((e) => actual.includes(e));
+          record("1f_audit_trail", ok ? "ok" : "failed", t, { expected, actual });
+        }
+      }
+      // Cancel any leftover active state so next scenario can run
+      if (createdRideIds.length) {
+        const last = createdRideIds[createdRideIds.length - 1];
+        const { data: r } = await admin.from("rides").select("status").eq("id", last).maybeSingle();
+        if (r && ["requested", "accepted", "arrived", "in_progress"].includes((r as any).status)) {
+          await cancelRide(last);
+        }
+      }
     }
 
-    steps.push({
-      step: "6_verify_notifications",
-      status: notifCount > 0 ? "ok" : "ok",
-      duration_ms: Date.now() - t,
-      details: {
-        notification_count: notifCount,
-        types: notifTypes,
-        note: notifCount === 0
-          ? "Notifications are sent async via pg_net → edge function. 0 count is normal if SUPABASE_URL is not in vault or app.settings."
-          : undefined,
-      },
-    });
+    // ============================================================
+    // SCENARIO 2: Cancellation
+    // ============================================================
+    if (scenarios.includes("cancel")) {
+      t = Date.now();
+      const { data: ride, error: e } = await insertRide({
+        pickup_address: "Cancel Pickup",
+      });
+      if (e || !ride) {
+        record("2a_create_for_cancel", "failed", t, e?.message);
+      } else {
+        createdRideIds.push(ride.id);
+        record("2a_create_for_cancel", "ok", t, { ride_id: ride.id });
 
-    // ── Step 7: Cleanup test data ────────────────────────────────
-    t = Date.now();
-    if (skipCleanup) {
-      steps.push({ step: "7_cleanup", status: "skipped", duration_ms: 0, details: { ride_id: ride.id, note: "skip_cleanup=true" } });
-    } else {
-      await admin.from("notifications").delete().eq("ride_id", ride.id);
-      await admin.from("ride_events").delete().eq("ride_id", ride.id);
-      await admin.from("rides").delete().eq("id", ride.id);
-      steps.push({ step: "7_cleanup", status: "ok", duration_ms: Date.now() - t });
+        t = Date.now();
+        const { error: cErr } = await admin.from("rides").update({
+          status: "cancelled",
+          cancellation_reason: "Rider changed mind",
+        }).eq("id", ride.id);
+        record("2b_cancel", cErr ? "failed" : "ok", t, cErr?.message);
+
+        // Verify event
+        const { data: ev } = await admin.from("ride_events").select("event_type").eq("ride_id", ride.id);
+        const types = (ev || []).map((x: any) => x.event_type);
+        record("2c_cancel_event", types.includes("cancelled") ? "ok" : "failed", Date.now(), { types });
+      }
     }
 
-    // ── Summary ──────────────────────────────────────────────────
-    const allPassed = steps.every((s) => s.status === "ok");
+    // ============================================================
+    // SCENARIO 3: Scheduled ride (does not block as "active")
+    // ============================================================
+    if (scenarios.includes("scheduled")) {
+      t = Date.now();
+      const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const { data: ride, error: e } = await insertRide({
+        pickup_address: "Sched Pickup",
+        scheduled_at: future,
+        // Use a non-active status check: scheduled rides are still 'requested',
+        // so cancel previous before creating
+      });
+      if (e || !ride) {
+        record("3a_create_scheduled", "failed", t, e?.message);
+      } else {
+        createdRideIds.push(ride.id);
+        record("3a_create_scheduled", "ok", t, { ride_id: ride.id, scheduled_at: future });
+        // Verify
+        const { data: r } = await admin.from("rides").select("scheduled_at, status").eq("id", ride.id).single();
+        record("3b_verify_scheduled", (r as any)?.scheduled_at ? "ok" : "failed", Date.now(), r);
+        await cancelRide(ride.id);
+      }
+    }
+
+    // ============================================================
+    // SCENARIO 4: Ride with stops
+    // ============================================================
+    if (scenarios.includes("stops")) {
+      t = Date.now();
+      const { data: ride, error: e } = await insertRide({
+        pickup_address: "Origin",
+        dropoff_address: "Final Dest",
+        stops: [
+          { address: "Stop A", lat: 62.458, lng: -114.378 },
+          { address: "Stop B", lat: 62.464, lng: -114.385 },
+        ],
+      });
+      if (e || !ride) {
+        record("4a_create_with_stops", "failed", t, e?.message);
+      } else {
+        createdRideIds.push(ride.id);
+        const { data: r } = await admin.from("rides").select("stops").eq("id", ride.id).single();
+        const count = Array.isArray((r as any)?.stops) ? (r as any).stops.length : 0;
+        record("4a_create_with_stops", count === 2 ? "ok" : "failed", t, { ride_id: ride.id, stop_count: count });
+        await cancelRide(ride.id);
+      }
+    }
+
+    // ============================================================
+    // SCENARIO 5: Booking for someone else (guest)
+    // ============================================================
+    if (scenarios.includes("guest")) {
+      t = Date.now();
+      const { data: ride, error: e } = await insertRide({
+        pickup_address: "Guest Pickup",
+        booking_for: "guest",
+        guest_name: "Jane Guest",
+        guest_phone: "+18675551234",
+      });
+      if (e || !ride) {
+        record("5a_create_guest", "failed", t, e?.message);
+      } else {
+        createdRideIds.push(ride.id);
+        const { data: r } = await admin.from("rides").select("booking_for, guest_name, guest_phone").eq("id", ride.id).single();
+        const ok = (r as any)?.booking_for === "guest" && !!(r as any)?.guest_name && !!(r as any)?.guest_phone;
+        record("5a_create_guest", ok ? "ok" : "failed", t, r);
+        await cancelRide(ride.id);
+      }
+    }
+
+    // ============================================================
+    // CLEANUP
+    // ============================================================
+    if (!skipCleanup && createdRideIds.length) {
+      t = Date.now();
+      await admin.from("notifications").delete().in("ride_id", createdRideIds);
+      await admin.from("ride_events").delete().in("ride_id", createdRideIds);
+      await admin.from("rides").delete().in("id", createdRideIds);
+      record("99_cleanup", "ok", t, { deleted: createdRideIds.length });
+    } else if (skipCleanup) {
+      record("99_cleanup", "skipped", Date.now(), { ride_ids: createdRideIds });
+    }
+
+    const failed = steps.filter((s) => s.status === "failed");
     return jsonRes({
-      result: allPassed ? "ALL_PASSED ✅" : "SOME_FAILED ❌",
+      result: failed.length === 0 ? "ALL_PASSED ✅" : `FAILED: ${failed.length} ❌`,
+      failed_steps: failed.map((s) => ({ step: s.step, details: s.details })),
       steps,
       total_ms: Date.now() - totalStart,
     });
