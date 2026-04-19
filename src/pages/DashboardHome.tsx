@@ -296,12 +296,12 @@ const DashboardHome = () => {
         </div>
 
 
-        {/* Get-a-ride card (below map on mobile, left on desktop) */}
+        {/* Get-a-ride card (desktop only — mobile uses PlanRideSheet trigger) */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="order-3 lg:order-1 rounded-2xl bg-card p-4 lg:p-5 lg:sticky lg:top-4"
+          className="hidden lg:block order-3 lg:order-1 rounded-2xl bg-card p-4 lg:p-5 lg:sticky lg:top-4"
           style={{ boxShadow: "0 1px 4px 0 hsl(0 0% 0%/0.15)" }}
         >
           <h2 className="hidden lg:block text-base font-black tracking-tight mb-3">
