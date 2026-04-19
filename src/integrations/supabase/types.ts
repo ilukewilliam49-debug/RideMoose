@@ -1133,6 +1133,7 @@ export type Database = {
           authorized_amount_cents: number | null
           bidding_ends_at: string | null
           billed_to: string
+          booking_for: string
           cancellation_fee_cents: number
           cancellation_reason: string | null
           captured_amount_cents: number | null
@@ -1157,6 +1158,8 @@ export type Database = {
           final_fare_cents: number | null
           final_item_cost_cents: number | null
           final_price: number | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           invoice_id: string | null
           invoiced: boolean
@@ -1213,6 +1216,7 @@ export type Database = {
           authorized_amount_cents?: number | null
           bidding_ends_at?: string | null
           billed_to?: string
+          booking_for?: string
           cancellation_fee_cents?: number
           cancellation_reason?: string | null
           captured_amount_cents?: number | null
@@ -1237,6 +1241,8 @@ export type Database = {
           final_fare_cents?: number | null
           final_item_cost_cents?: number | null
           final_price?: number | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           invoice_id?: string | null
           invoiced?: boolean
@@ -1293,6 +1299,7 @@ export type Database = {
           authorized_amount_cents?: number | null
           bidding_ends_at?: string | null
           billed_to?: string
+          booking_for?: string
           cancellation_fee_cents?: number
           cancellation_reason?: string | null
           captured_amount_cents?: number | null
@@ -1317,6 +1324,8 @@ export type Database = {
           final_fare_cents?: number | null
           final_item_cost_cents?: number | null
           final_price?: number | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           invoice_id?: string | null
           invoiced?: boolean
