@@ -11,7 +11,7 @@ import { Building2, ArrowLeft, CheckCircle, Clock, XCircle, AlertTriangle, LogIn
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
-const CorporateApply = () => {
+const BusinessApply = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -123,7 +123,7 @@ const CorporateApply = () => {
           </div>
           <h1 className="text-2xl font-bold">Apply for a business account</h1>
           <p className="text-sm text-muted-foreground">
-            Sign in or create an account to submit your corporate application. It only takes a minute.
+            Sign in or create an account to submit your business application. It only takes a minute.
           </p>
           <div className="flex flex-col gap-2 pt-2">
             <Button
@@ -157,7 +157,7 @@ const CorporateApply = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/rider")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">Corporate Application</h1>
+          <h1 className="text-2xl font-bold">Business Application</h1>
         </div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-surface rounded-lg p-6 space-y-4">
@@ -222,8 +222,8 @@ const CorporateApply = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Corporate Account Application</h1>
-          <p className="text-sm text-muted-foreground">Apply to bill rides to your organization</p>
+          <h1 className="text-2xl font-bold">Business Account Application</h1>
+          <p className="text-sm text-muted-foreground">Apply to bill rides to your business</p>
         </div>
       </div>
 
@@ -298,4 +298,4 @@ const CorporateApply = () => {
   );
 };
 
-export default CorporateApply;
+export default BusinessApply;
