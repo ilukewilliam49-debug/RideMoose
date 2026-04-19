@@ -184,8 +184,9 @@ const DriverOnboardingPending = () => {
         className="w-full max-w-lg"
       >
         <div className="text-center mb-6">
-          <a
-            href="/?view=landing"
+          <button
+            type="button"
+            onClick={() => navigate("/?view=landing")}
             aria-label="Go to homepage"
             className="block mx-auto mb-4 rounded-xl transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
@@ -194,7 +195,7 @@ const DriverOnboardingPending = () => {
               alt="PickYou"
               className="h-14 rounded-xl drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
             />
-          </a>
+          </button>
         </div>
 
         <Card
