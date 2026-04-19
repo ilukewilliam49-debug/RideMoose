@@ -1,4 +1,4 @@
-import { DollarSign, Briefcase, Car, Clock, AlertTriangle } from "lucide-react";
+import { DollarSign, Briefcase, Car, Clock, AlertTriangle, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface PriceEstimateProps {
@@ -7,16 +7,19 @@ interface PriceEstimateProps {
   directionsData: any;
   trafficDelayMin: number;
   directionsFetching: boolean;
+  passengerCount?: number;
 }
 
 const PriceEstimate = ({
-  serviceType, estimatedPrice, directionsData, trafficDelayMin, directionsFetching,
+  serviceType, estimatedPrice, directionsData, trafficDelayMin, directionsFetching, passengerCount = 1,
 }: PriceEstimateProps) => {
   const { t } = useTranslation();
 
   if (!estimatedPrice) return null;
 
   const priceNum = parseFloat(estimatedPrice);
+  const largeGroupSurcharge = passengerCount >= 5 ? 6 : 0;
+  const fareBeforeSurcharge = priceNum - largeGroupSurcharge;
 
   if (serviceType === "private_hire") {
     const surcharge = 2.99;
@@ -38,8 +41,14 @@ const PriceEstimate = ({
         <div className="space-y-1 pt-1 border-t border-border/50">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Fare</span>
-            <span>${estimatedPrice}</span>
+            <span>${fareBeforeSurcharge.toFixed(2)}</span>
           </div>
+          {largeGroupSurcharge > 0 && (
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Large group ({passengerCount} pax)</span>
+              <span>${largeGroupSurcharge.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>PickYou Surcharge</span>
             <span>${surcharge.toFixed(2)}</span>
@@ -89,6 +98,18 @@ const PriceEstimate = ({
             <span className="text-2xl font-mono font-bold">${estimatedPrice}</span>
           </div>
         </div>
+        {largeGroupSurcharge > 0 && (
+          <div className="space-y-1 pt-1 border-t border-border/50">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Fare</span>
+              <span>${fareBeforeSurcharge.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Large group ({passengerCount} pax)</span>
+              <span>${largeGroupSurcharge.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
         {directionsData && (
           <div className="space-y-1 pt-1 border-t border-border/50">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

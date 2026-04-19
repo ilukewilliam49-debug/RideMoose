@@ -29,6 +29,7 @@ import ActiveRideCard from "@/components/rider/ActiveRideCard";
 import RideHistory from "@/components/rider/RideHistory";
 
 import ServiceSelector from "@/components/rider/ServiceSelector";
+import PassengerCountPicker from "@/components/rider/PassengerCountPicker";
 import { useRideBookingState } from "@/hooks/useRideBookingState";
 import DriverMatchingOverlay from "@/components/rider/DriverMatchingOverlay";
 import { useRideQueries } from "@/hooks/useRideQueries";
@@ -401,6 +402,12 @@ const RiderDashboard = () => {
               )}
             </div>
           )}
+
+          {/* Passenger count selection */}
+          <PassengerCountPicker
+            value={state.passengerCount}
+            onChange={state.setPassengerCount}
+          />
 
           {/* Service selection cards with prices */}
           <ServiceSelector

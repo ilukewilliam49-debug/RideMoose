@@ -105,9 +105,12 @@ export const useRideQueries = ({
       ? Math.max((directionsData.duration_in_traffic_sec ?? directionsData.duration_sec ?? 0) / 60, 0)
       : 0;
 
+    const largeGroupSurcharge = passengerCount >= 5 ? 6 : 0;
+
     if (svcType === "private_hire") {
       if (!routeKm || !taxiRates) return null;
-      return ((taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100).toFixed(2);
+      const meterFare = (taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100;
+      return (meterFare + largeGroupSurcharge).toFixed(2);
     }
     if (svcType === "courier") {
       if (!routeKm) return null;
@@ -137,7 +140,8 @@ export const useRideQueries = ({
     }
     if (svcType === "taxi") {
       if (!routeKm || !taxiRates) return null;
-      return ((taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100).toFixed(2);
+      const meterFare = (taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100;
+      return (meterFare + largeGroupSurcharge).toFixed(2);
     }
     if (!distanceKm || !currentPricing) return null;
     let price = Number(currentPricing.base_fare) + distanceKm * Number(currentPricing.per_km_rate);
@@ -161,7 +165,7 @@ export const useRideQueries = ({
       private_hire: pickyouTotal,
       courier: computePrice("courier"),
     };
-  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing]);
+  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing, passengerCount]);
 
   // Active ride
   const { data: activeRide } = useQuery({
