@@ -158,6 +158,7 @@ const RiderDashboard = () => {
       }
 
       const scheduledAtParam = state.searchParams.get("scheduledAt");
+      const validStops = (state.stops ?? []).filter((s) => s.address && s.lat && s.lng);
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
         pickup_address: state.pickup,
@@ -166,6 +167,7 @@ const RiderDashboard = () => {
         pickup_lng: state.pickupCoords.lng,
         dropoff_lat: state.dropoffCoords.lat,
         dropoff_lng: state.dropoffCoords.lng,
+        stops: validStops as any,
         estimated_price: parseFloat(queries.estimatedPrice || "0"),
         distance_km: state.distanceKm ? parseFloat(state.distanceKm.toFixed(2)) : null,
         service_type: state.serviceType,
