@@ -72,21 +72,42 @@ const decodePolyline = (encoded: string): [number, number][] => {
 
 const iconMap = { pickup: pickupIcon, dropoff: dropoffIcon, driver: driverIcon };
 
-/** Build a numbered amber badge marker for an intermediate stop. */
+/** Build a stop-sign shaped marker for an intermediate stop. */
 const stopBadgeIcon = (index: number) =>
   L.divIcon({
-    html: `<div style="
-      display:flex;align-items:center;justify-content:center;
-      width:26px;height:26px;border-radius:9999px;
-      background:hsl(38 92% 50%);
-      color:#fff;
-      border:2px solid #fff;
-      box-shadow:0 2px 6px hsl(0 0% 0%/0.25);
-      font-size:12px;font-weight:800;font-family:system-ui,sans-serif;
-    ">${index}</div>`,
+    html: `<div style="position:relative;width:30px;height:30px;filter:drop-shadow(0 2px 4px hsl(0 0% 0%/0.35));">
+      <svg viewBox="0 0 100 100" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+        <polygon
+          points="30,5 70,5 95,30 95,70 70,95 30,95 5,70 5,30"
+          fill="hsl(0 84% 50%)"
+          stroke="#fff"
+          stroke-width="6"
+          stroke-linejoin="round"
+        />
+        <text
+          x="50" y="58"
+          text-anchor="middle"
+          font-family="system-ui,-apple-system,sans-serif"
+          font-size="32"
+          font-weight="900"
+          fill="#fff"
+          letter-spacing="-1"
+        >STOP</text>
+      </svg>
+      <div style="
+        position:absolute;top:-4px;right:-4px;
+        display:flex;align-items:center;justify-content:center;
+        width:16px;height:16px;border-radius:9999px;
+        background:hsl(var(--background));
+        color:hsl(var(--foreground));
+        border:1.5px solid hsl(0 84% 50%);
+        font-size:9px;font-weight:800;font-family:system-ui,sans-serif;
+        line-height:1;
+      ">${index}</div>
+    </div>`,
     className: "",
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
   });
 
 const RideMap = ({ markers, center = [62.454, -114.372], className = "", polyline, routeInfo }: RideMapProps) => {
