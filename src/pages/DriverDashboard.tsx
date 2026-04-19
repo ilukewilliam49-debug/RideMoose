@@ -141,7 +141,7 @@ const DriverDashboard = () => {
             .select("outstanding_amount_cents")
             .eq("driver_id", profile.id)
             .eq("status", "completed")
-            .or("payment_status.eq.partial,and(payment_option.eq.pay_driver,payment_status.eq.unpaid)"),
+            .eq("payment_status", "partial"),
         ]);
 
       const earningsToday = (earningsTodayRes.data || []).reduce(

@@ -336,8 +336,6 @@
     "paymentMethod": "Payment Method",
     "payInApp": "Pay in App",
     "cardOnFile": "Card on file",
-    "payDriver": "Pay Driver",
-    "cashTap": "Cash/tap",
     "billing": "Billing",
     "suspended": "Suspended",
     "orgSuspendedMsg": "Organization billing is temporarily unavailable due to overdue invoices.",

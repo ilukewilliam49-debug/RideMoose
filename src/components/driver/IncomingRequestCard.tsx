@@ -265,11 +265,6 @@ export default function IncomingRequestCard({
             📍 {haversineKm(driverLat, driverLng, ride.pickup_lat, ride.pickup_lng).toFixed(1)} km away
           </span>
         )}
-        {ride.payment_option === "pay_driver" && (
-          <span className="flex items-center gap-1 text-[10px] font-medium bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full">
-            <Banknote className="h-3 w-3" /> Cash
-          </span>
-        )}
         {ride.billed_to === "organization" && (
           <span className="text-[10px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
             Corporate

@@ -336,8 +336,6 @@
     "paymentMethod": "Mode de paiement",
     "payInApp": "Payer dans l'application",
     "cardOnFile": "Carte enregistrée",
-    "payDriver": "Payer le chauffeur",
-    "cashTap": "Cash/tap",
     "billing": "Facturation",
     "suspended": "Suspendu",
     "orgSuspendedMsg": "La facturation de l'organisation est temporairement indisponible en raison de factures en retard.",
