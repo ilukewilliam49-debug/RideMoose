@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, User, Car, ArrowLeft, Phone, Check, Eye, EyeOff, AlertTriangle, X } from "lucide-react";
+import { Mail, Lock, User, Car, ArrowLeft, Phone, Check, Eye, EyeOff, AlertTriangle, X, Building2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import logoImg from "@/assets/logo.png";
@@ -24,7 +24,8 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   // Accept both the new `intent` param and the legacy `role` param.
   const intentParam = (searchParams.get("intent") || searchParams.get("role") || "").toLowerCase();
-  const preselectedRole = intentParam === "driver" ? "driver" : "rider";
+  const preselectedRole: "rider" | "driver" | "business" =
+    intentParam === "driver" ? "driver" : intentParam === "business" ? "business" : "rider";
   const preselectedSignup = intentParam === "driver" || intentParam === "business";
 
   const [view, setView] = useState<AuthView>("main");
@@ -34,7 +35,7 @@ const Login = () => {
   });
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"rider" | "driver">(preselectedRole);
+  const [role, setRole] = useState<"rider" | "driver" | "business">(preselectedRole);
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -559,11 +560,11 @@ const Login = () => {
                       </div>
                       <div className="space-y-1.5">
                         <Label>{t("auth.selectRole")}</Label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <button
                             type="button"
                             onClick={() => setRole("rider")}
-                            className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
+                            className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2.5 text-xs font-medium transition-all ${
                               role === "rider"
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-input bg-secondary text-muted-foreground hover:text-foreground"
@@ -575,7 +576,7 @@ const Login = () => {
                           <button
                             type="button"
                             onClick={() => setRole("driver")}
-                            className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
+                            className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2.5 text-xs font-medium transition-all ${
                               role === "driver"
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-input bg-secondary text-muted-foreground hover:text-foreground"
@@ -583,6 +584,18 @@ const Login = () => {
                           >
                             <Car className="h-4 w-4" />
                             {t("auth.driver")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRole("business")}
+                            className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2.5 text-xs font-medium transition-all ${
+                              role === "business"
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-input bg-secondary text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <Building2 className="h-4 w-4" />
+                            {t("auth.business", "Business")}
                           </button>
                         </div>
                       </div>
