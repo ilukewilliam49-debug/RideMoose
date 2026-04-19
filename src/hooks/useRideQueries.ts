@@ -2,6 +2,7 @@ import { useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ServiceType } from "./useRideBookingState";
+import { PER_STOP_FEE_CENTS, type RideStop } from "@/types/stops";
 
 interface UseRideQueriesParams {
   profileId?: string;
@@ -14,13 +15,22 @@ interface UseRideQueriesParams {
   distanceKm: number | null;
   passengerCount: number;
   estimatedItemCostCents: number | "";
+  /** Intermediate stops between pickup and dropoff (max 3). */
+  stops?: RideStop[];
 }
 
 export const useRideQueries = ({
   profileId, userId, serviceType, pickupCoords, dropoffCoords,
-  pickup, dropoff, distanceKm, passengerCount, estimatedItemCostCents,
+  pickup, dropoff, distanceKm, passengerCount, estimatedItemCostCents, stops = [],
 }: UseRideQueriesParams) => {
   const queryClient = useQueryClient();
+  const stopCount = stops.length;
+  // Stable key for waypoints so the directions query doesn't refetch on
+  // every render — only when coordinates actually change.
+  const stopsKey = useMemo(
+    () => stops.map((s) => `${s.lat.toFixed(5)},${s.lng.toFixed(5)}`).join("|"),
+    [stops]
+  );
 
   const { data: savedPlaces } = useQuery({
     queryKey: ["saved-places-rider", userId],
@@ -73,11 +83,17 @@ export const useRideQueries = ({
   });
 
   const { data: directionsData, isFetching: directionsFetching } = useQuery({
-    queryKey: ["directions-traffic", pickupCoords?.lat, pickupCoords?.lng, dropoffCoords?.lat, dropoffCoords?.lng],
+    queryKey: ["directions-traffic", pickupCoords?.lat, pickupCoords?.lng, dropoffCoords?.lat, dropoffCoords?.lng, stopsKey],
     queryFn: async () => {
       if (!pickupCoords || !dropoffCoords) return null;
       const { data, error } = await supabase.functions.invoke("directions", {
-        body: { origin_lat: pickupCoords.lat, origin_lng: pickupCoords.lng, dest_lat: dropoffCoords.lat, dest_lng: dropoffCoords.lng },
+        body: {
+          origin_lat: pickupCoords.lat,
+          origin_lng: pickupCoords.lng,
+          dest_lat: dropoffCoords.lat,
+          dest_lng: dropoffCoords.lng,
+          waypoints: stops.length > 0 ? stops.map((s) => ({ lat: s.lat, lng: s.lng })) : undefined,
+        },
       });
       if (error) throw error;
       return data as { distance_km: number; duration_sec: number; duration_text: string; duration_in_traffic_sec: number; duration_in_traffic_text: string; polyline: string | null };
