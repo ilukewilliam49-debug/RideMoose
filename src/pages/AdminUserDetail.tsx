@@ -177,6 +177,43 @@ export default function AdminUserDetail() {
     rejected: "bg-destructive/10 text-destructive",
   };
 
+  const roleLabel = isUserAdmin
+    ? "admin"
+    : profile?.is_driver
+      ? "driver"
+      : profile?.is_business
+        ? "business"
+        : "rider";
+
+  const toggleAdmin = async (grant: boolean) => {
+    if (!profile?.user_id) return;
+    setSaving(true);
+    if (grant) {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: profile.user_id, role: "admin" });
+      if (error) toast.error(`Failed to grant admin: ${error.message}`);
+      else {
+        await logAdminAction("grant_admin", "profile", id!, {});
+        toast.success("Admin role granted");
+        refetchAdmin();
+      }
+    } else {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", profile.user_id)
+        .eq("role", "admin");
+      if (error) toast.error(`Failed to revoke admin: ${error.message}`);
+      else {
+        await logAdminAction("revoke_admin", "profile", id!, {});
+        toast.success("Admin role revoked");
+        refetchAdmin();
+      }
+    }
+    setSaving(false);
+  };
+
   if (isError) {
     return (
       <div className="space-y-6">
@@ -214,7 +251,7 @@ export default function AdminUserDetail() {
         <div>
           <h1 className="text-2xl font-bold">{profile?.full_name || "Unnamed User"}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className="capitalize">{profile?.role}</Badge>
+            <Badge variant="outline" className="capitalize">{roleLabel}</Badge>
             {profile?.is_available && (
               <Badge className="bg-green-500/10 text-green-500">Online</Badge>
             )}
@@ -267,24 +304,16 @@ export default function AdminUserDetail() {
               onSave={(val) => handleUpdate("commission_rate", parseFloat(val) / 100)}
             />
             <div className="flex items-center justify-between pt-2">
-              <Label htmlFor="role-select" className="flex items-center gap-2">
+              <Label htmlFor="admin-toggle" className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-muted-foreground" />
-                Role
+                Admin access
               </Label>
-              <Select
-                value={profile?.role}
-                onValueChange={(val) => handleUpdate("role", val)}
+              <Switch
+                id="admin-toggle"
+                checked={!!isUserAdmin}
+                onCheckedChange={(checked) => toggleAdmin(checked)}
                 disabled={saving}
-              >
-                <SelectTrigger className="w-28" id="role-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
           </CardContent>
         </Card>
