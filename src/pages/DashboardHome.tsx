@@ -303,58 +303,10 @@ const DashboardHome = () => {
               </div>
             </div>
 
-            {/* Schedule + Go button row */}
-            <div className="flex items-center gap-2 pt-2">
-              <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
-                <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 shrink-0 hover:bg-accent transition-colors">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-semibold max-w-[100px] truncate">{scheduleLabel}</span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
-                  {!showCustom ? (
-                    <div className="space-y-1">
-                      <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
-                        Now
-                      </button>
-                      {[{ m: 15, label: "In 15 mins" }, { m: 30, label: "In 30 mins" }, { m: 60, label: "In 1 hour" }].map(({ m, label }) => (
-                        <button key={m} onClick={() => handlePreset(m)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
-                          {label}
-                        </button>
-                      ))}
-                      <button onClick={() => setShowCustom(true)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors flex items-center gap-2">
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        Custom date &amp; time
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <Calendar
-                        mode="single"
-                        selected={customDate}
-                        onSelect={setCustomDate}
-                        disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                        className={cn("p-2 pointer-events-auto")}
-                      />
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="time"
-                          value={customTime}
-                          onChange={(e) => setCustomTime(e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button size="sm" onClick={handleCustomConfirm} disabled={!customDate}>
-                          Set
-                        </Button>
-                      </div>
-                      <button onClick={() => setShowCustom(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                        ← Back
-                      </button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
+            {/* Pickup time + Rider selector + Go */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <PickupTimeSelector />
+              <RiderSelector />
 
               <Button
                 size="sm"
