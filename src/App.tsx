@@ -18,6 +18,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useHasActiveRide } from "./hooks/useHasActiveRide";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ActiveRoleProvider } from "./contexts/ActiveRoleContext";
+import { RideBookingProvider } from "./contexts/RideBookingContext";
 import SignupIntentRoute from "./components/SignupIntentRoute";
 
 // Lazy load heavy route pages for faster initial load
@@ -222,7 +223,9 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <ActiveRoleProvider>
-              <AppContent />
+              <RideBookingProvider>
+                <AppContent />
+              </RideBookingProvider>
             </ActiveRoleProvider>
           </BrowserRouter>
         </TooltipProvider>

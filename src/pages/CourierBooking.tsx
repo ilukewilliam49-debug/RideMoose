@@ -96,6 +96,10 @@ const CourierBooking = () => {
     setLoading(true);
     try {
       const validStops = stops.filter((s) => s.address && s.lat && s.lng);
+      const scheduledAtParam = searchParams.get("scheduledAt");
+      const bookingForParam = searchParams.get("bookingFor") === "guest" ? "guest" : "self";
+      const guestNameParam = searchParams.get("guestName") || null;
+      const guestPhoneParam = searchParams.get("guestPhone") || null;
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
         pickup_address: pickup,
@@ -118,6 +122,10 @@ const CourierBooking = () => {
         proof_photo_required: true,
         item_description: itemDescription || null,
         marketplace_delivery: marketplaceDelivery,
+        scheduled_at: scheduledAtParam || null,
+        booking_for: bookingForParam,
+        guest_name: bookingForParam === "guest" ? guestNameParam : null,
+        guest_phone: bookingForParam === "guest" ? guestPhoneParam : null,
       } as any).select("id").single();
 
       if (error) throw error;

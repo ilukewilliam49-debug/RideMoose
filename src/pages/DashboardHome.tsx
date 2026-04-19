@@ -1,13 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, HelpCircle, LocateFixed, AlertTriangle } from "lucide-react";
-import { format, addMinutes } from "date-fns";
+import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, HelpCircle, LocateFixed, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -19,6 +15,9 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 import SupportChatDialog from "@/components/SupportChatDialog";
 import NearbyDriversMap from "@/components/rider/NearbyDriversMap";
 import PlanRideSheet from "@/components/rider/PlanRideSheet";
+import PickupTimeSelector from "@/components/rider/PickupTimeSelector";
+import RiderSelector from "@/components/rider/RiderSelector";
+import { useRideBooking } from "@/contexts/RideBookingContext";
 
 
 
@@ -70,13 +69,9 @@ const DashboardHome = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+  const { scheduledAt, bookingFor, guestName, guestPhone } = useRideBooking();
+
   const [destination, setDestination] = useState("");
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
-  const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
-  const [customTime, setCustomTime] = useState("12:00");
-  const [showCustom, setShowCustom] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupAddressCoords, setPickupAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -103,37 +98,21 @@ const DashboardHome = () => {
     }
   }, []);
 
-  const scheduleLabel = scheduledAt
-    ? format(scheduledAt, "MMM d, h:mm a")
-    : t("dashboard.now");
-
-  const handlePreset = (mins: number) => {
-    setScheduledAt(addMinutes(new Date(), mins));
-    setShowCustom(false);
-    setScheduleOpen(false);
+  /** Append shared booking-plan params (schedule + guest rider) to a path. */
+  const withPlan = (path: string) => {
+    const url = new URL(path, window.location.origin);
+    if (scheduledAt) {
+      url.searchParams.set("scheduledAt", scheduledAt.toISOString());
+    }
+    if (bookingFor === "guest" && guestName && guestPhone) {
+      url.searchParams.set("bookingFor", "guest");
+      url.searchParams.set("guestName", guestName);
+      url.searchParams.set("guestPhone", guestPhone);
+    }
+    return `${url.pathname}${url.search}`;
   };
-
-  const handleNow = () => {
-    setScheduledAt(null);
-    setShowCustom(false);
-    setScheduleOpen(false);
-  };
-
-  const handleCustomConfirm = () => {
-    if (!customDate) return;
-    const [h, m] = customTime.split(":").map(Number);
-    const dt = new Date(customDate);
-    dt.setHours(h, m, 0, 0);
-    setScheduledAt(dt);
-    setShowCustom(false);
-    setScheduleOpen(false);
-  };
-
-  const withSchedule = (path: string) => {
-    if (!scheduledAt) return path;
-    const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}scheduledAt=${scheduledAt.toISOString()}`;
-  };
+  // Backwards-compatible alias used throughout this file.
+  const withSchedule = withPlan;
 
   // Fetch saved places
   const { data: savedPlaces, isLoading: savedPlacesLoading, isError: savedPlacesError, refetch: refetchSaved } = useQuery({
@@ -324,58 +303,10 @@ const DashboardHome = () => {
               </div>
             </div>
 
-            {/* Schedule + Go button row */}
-            <div className="flex items-center gap-2 pt-2">
-              <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
-                <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 shrink-0 hover:bg-accent transition-colors">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-semibold max-w-[100px] truncate">{scheduleLabel}</span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3" align="start">
-                  {!showCustom ? (
-                    <div className="space-y-1">
-                      <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
-                        Now
-                      </button>
-                      {[{ m: 15, label: "In 15 mins" }, { m: 30, label: "In 30 mins" }, { m: 60, label: "In 1 hour" }].map(({ m, label }) => (
-                        <button key={m} onClick={() => handlePreset(m)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
-                          {label}
-                        </button>
-                      ))}
-                      <button onClick={() => setShowCustom(true)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors flex items-center gap-2">
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        Custom date &amp; time
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <Calendar
-                        mode="single"
-                        selected={customDate}
-                        onSelect={setCustomDate}
-                        disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                        className={cn("p-2 pointer-events-auto")}
-                      />
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="time"
-                          value={customTime}
-                          onChange={(e) => setCustomTime(e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button size="sm" onClick={handleCustomConfirm} disabled={!customDate}>
-                          Set
-                        </Button>
-                      </div>
-                      <button onClick={() => setShowCustom(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                        ← Back
-                      </button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
+            {/* Pickup time + Rider selector + Go */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <PickupTimeSelector />
+              <RiderSelector />
 
               <Button
                 size="sm"
@@ -673,8 +604,6 @@ const DashboardHome = () => {
         setDestination={setDestination}
         dropoffCoords={dropoffAddressCoords}
         setDropoffCoords={setDropoffAddressCoords}
-        scheduledAt={scheduledAt}
-        setScheduledAt={setScheduledAt}
         setUserLocation={setUserLocation}
         savedPlaces={savedPlaces ?? []}
         onRequestMapPick={() => {

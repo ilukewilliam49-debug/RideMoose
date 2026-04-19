@@ -158,6 +158,9 @@ const RiderDashboard = () => {
       }
 
       const scheduledAtParam = state.searchParams.get("scheduledAt");
+      const bookingForParam = state.searchParams.get("bookingFor") === "guest" ? "guest" : "self";
+      const guestNameParam = state.searchParams.get("guestName") || null;
+      const guestPhoneParam = state.searchParams.get("guestPhone") || null;
       const validStops = (state.stops ?? []).filter((s) => s.address && s.lat && s.lng);
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
@@ -181,6 +184,9 @@ const RiderDashboard = () => {
         po_number: isOrgBilling && state.poNumber ? state.poNumber : null,
         cost_center: isOrgBilling && state.costCenter ? state.costCenter : null,
         scheduled_at: scheduledAtParam || null,
+        booking_for: bookingForParam,
+        guest_name: bookingForParam === "guest" ? guestNameParam : null,
+        guest_phone: bookingForParam === "guest" ? guestPhoneParam : null,
         ...(state.serviceType === "courier" ? {
           package_size: state.packageSize, pickup_notes: state.pickupNotes || null,
           dropoff_notes: state.dropoffNotes || null, proof_photo_required: true,
