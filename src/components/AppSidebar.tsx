@@ -62,9 +62,11 @@ export function AppSidebar() {
   const isOnline = useIsOnline();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
-  const { activeRole, setActiveRole, canSwitch, dbRole } = useActiveRole();
+  const { activeRole, setActiveRole, canSwitch, capabilities } = useActiveRole();
   const { t } = useTranslation();
-  const role = activeRole;
+  // Sidebar nav uses rider layout for the "business" mode (business users
+  // book rides through the rider UI; there is no separate business dashboard).
+  const role = activeRole === "business" ? "rider" : activeRole;
 
   const navItems = navByRole(t)[role] || navByRole(t).rider;
 
@@ -254,23 +256,30 @@ export function AppSidebar() {
             <span className="text-xs font-semibold capitalize">{role}</span>
           </div>
         )}
-        {/* Role switch button — only when the user has both capabilities */}
-        {canSwitch && !collapsed && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-1.5"
-            onClick={() => {
-              const newRole = activeRole === "driver" ? "rider" : "driver";
-              setActiveRole(newRole as any);
-              navigate(newRole === "rider" ? "/rider" : "/driver");
-              setOpenMobile(false);
-            }}
-          >
-            <Car className="h-4 w-4 shrink-0" />
-            Switch to {activeRole === "driver" ? "Rider" : "Driver"} mode
-          </Button>
-        )}
+        {/* Role switch button — only when the user has 2+ capabilities.
+            Cycles through the held caps in a stable order. */}
+        {canSwitch && !collapsed && (() => {
+          const order: Array<"rider" | "driver" | "business"> = ["rider", "driver", "business"];
+          const held = order.filter((r) => capabilities[r]);
+          const currentIdx = held.indexOf(activeRole as any);
+          const next = held[(currentIdx + 1) % held.length] || "rider";
+          const label = next.charAt(0).toUpperCase() + next.slice(1);
+          return (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5"
+              onClick={() => {
+                setActiveRole(next as any);
+                navigate(next === "driver" ? "/driver" : "/rider");
+                setOpenMobile(false);
+              }}
+            >
+              <Car className="h-4 w-4 shrink-0" />
+              Switch to {label} mode
+            </Button>
+          );
+        })()}
         {role === "rider" && (
           <SupportChatDialog
             trigger={

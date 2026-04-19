@@ -5,21 +5,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
 
 interface ProtectedRouteProps {
-  allowedRoles: string[];
+  allowedRoles: Array<"rider" | "driver" | "business" | "admin">;
   children: React.ReactNode;
 }
 
 const REQUIRED_DOC_TYPES = ["drivers_license", "vehicle_insurance", "vehicle_registration"];
 
+/**
+ * Capability-based route guard.
+ *
+ * Onboarding gates are FLOW-SCOPED — driver onboarding only blocks /driver/*,
+ * never /rider/*, /business/*, or /admin/*. This prevents a dual-capability
+ * user from being trapped in driver onboarding when trying to use other flows.
+ */
 const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
-  const { activeRole } = useActiveRole();
+  const { activeRole, defaultRole } = useActiveRole();
 
   const isDriverRoute = location.pathname.startsWith("/driver");
-  const needsVerifications = !!profile && (profile.is_driver || profile.role === "driver");
+  // Only run the verifications query when the user is on a driver route AND
+  // has driver capability — avoids unnecessary fetches on rider/business pages.
+  const needsVerifications = isDriverRoute && !!profile?.is_driver;
 
-  // Check driver onboarding status (only when relevant)
   const { data: verifications, isLoading: verificationsLoading } = useQuery({
     queryKey: ["driver-verifications", profile?.id],
     queryFn: async () => {
@@ -42,25 +50,35 @@ const ProtectedRoute = ({ allowedRoles, children }: ProtectedRouteProps) => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Capability-based access — a user with is_driver can hit /driver routes
-  // even if their primary `role` is still 'rider'. Admin is exclusive.
-  const dbRole = profile?.role || "rider";
-  const isAdmin = dbRole === "admin";
+  // Capability checks. Admin is exclusive.
+  const isAdmin = profile?.role === "admin";
+  const hasRiderAccess = isAdmin || !!profile?.is_rider;
   const hasDriverAccess = isAdmin || !!profile?.is_driver;
-  const hasRiderAccess = isAdmin || !!profile?.is_rider || dbRole === "rider" || dbRole === "driver";
+  const hasBusinessAccess = isAdmin || !!profile?.is_business;
 
   const canAccess =
     (allowedRoles.includes("admin") && isAdmin) ||
     (allowedRoles.includes("driver") && hasDriverAccess) ||
-    (allowedRoles.includes("rider") && hasRiderAccess);
+    (allowedRoles.includes("rider") && hasRiderAccess) ||
+    (allowedRoles.includes("business") && hasBusinessAccess);
 
   if (!canAccess) {
-    const roleRoute = isAdmin ? "/admin" : profile?.is_driver ? "/driver" : "/rider";
-    return <Navigate to={roleRoute} replace />;
+    const fallback = isAdmin
+      ? "/admin"
+      : profile?.is_rider
+      ? "/rider"
+      : profile?.is_driver
+      ? "/driver"
+      : profile?.is_business
+      ? "/business/apply"
+      : "/rider";
+    return <Navigate to={fallback} replace />;
   }
 
-  // Driver onboarding gate — applies only to driver routes (excluding the
-  // onboarding pages themselves) when the user holds driver capability.
+  // Driver-onboarding gate — ONLY fires on /driver/* routes (excluding the
+  // onboarding pages themselves) and only when the user is in driver mode.
+  // Never blocks /rider, /business, or /admin even if driver onboarding is
+  // incomplete.
   if (
     isDriverRoute &&
     !location.pathname.startsWith("/driver/onboarding") &&

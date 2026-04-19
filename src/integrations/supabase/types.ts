@@ -734,6 +734,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           average_rating: number | null
+          business_onboarding_complete: boolean
           can_courier: boolean
           can_private_hire: boolean
           can_shuttle: boolean
@@ -745,9 +746,11 @@ export type Database = {
           full_name: string
           id: string
           is_available: boolean | null
+          is_business: boolean
           is_driver: boolean
           is_rider: boolean
           last_seen_at: string | null
+          last_used_role: string | null
           latitude: number | null
           launch_start_date: string | null
           license_plate: string | null
@@ -759,6 +762,7 @@ export type Database = {
           promo_commission_rate: number
           promo_end_date: string | null
           rider_average_rating: number | null
+          rider_onboarding_complete: boolean
           rider_total_ratings: number | null
           role: Database["public"]["Enums"]["user_role"]
           role_in_org: string | null
@@ -778,6 +782,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           average_rating?: number | null
+          business_onboarding_complete?: boolean
           can_courier?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
@@ -789,9 +794,11 @@ export type Database = {
           full_name?: string
           id?: string
           is_available?: boolean | null
+          is_business?: boolean
           is_driver?: boolean
           is_rider?: boolean
           last_seen_at?: string | null
+          last_used_role?: string | null
           latitude?: number | null
           launch_start_date?: string | null
           license_plate?: string | null
@@ -803,6 +810,7 @@ export type Database = {
           promo_commission_rate?: number
           promo_end_date?: string | null
           rider_average_rating?: number | null
+          rider_onboarding_complete?: boolean
           rider_total_ratings?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null
@@ -822,6 +830,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           average_rating?: number | null
+          business_onboarding_complete?: boolean
           can_courier?: boolean
           can_private_hire?: boolean
           can_shuttle?: boolean
@@ -833,9 +842,11 @@ export type Database = {
           full_name?: string
           id?: string
           is_available?: boolean | null
+          is_business?: boolean
           is_driver?: boolean
           is_rider?: boolean
           last_seen_at?: string | null
+          last_used_role?: string | null
           latitude?: number | null
           launch_start_date?: string | null
           license_plate?: string | null
@@ -847,6 +858,7 @@ export type Database = {
           promo_commission_rate?: number
           promo_end_date?: string | null
           rider_average_rating?: number | null
+          rider_onboarding_complete?: boolean
           rider_total_ratings?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           role_in_org?: string | null

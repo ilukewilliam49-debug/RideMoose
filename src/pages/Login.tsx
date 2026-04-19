@@ -22,8 +22,10 @@ type AuthView = "main" | "email" | "phone-otp";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
-  const preselectedRole = searchParams.get("role") === "driver" ? "driver" : "rider";
-  const preselectedSignup = searchParams.get("role") === "driver";
+  // Accept both the new `intent` param and the legacy `role` param.
+  const intentParam = (searchParams.get("intent") || searchParams.get("role") || "").toLowerCase();
+  const preselectedRole = intentParam === "driver" ? "driver" : "rider";
+  const preselectedSignup = intentParam === "driver" || intentParam === "business";
 
   const [view, setView] = useState<AuthView>("main");
   const [isLogin, setIsLogin] = useState(!preselectedSignup);
@@ -85,10 +87,10 @@ const Login = () => {
 
   useEffect(() => {
     if (!authLoading && user && profile) {
-      const intent = searchParams.get("role");
+      const intent = searchParams.get("intent") || searchParams.get("role");
       const returnTo = searchParams.get("returnTo");
       const route = resolvePostAuthRoute(profile as any, { intent, activeRole, returnTo });
-      // Strip the consumed ?role= param so it doesn't trigger repeat upgrades
+      // Strip the consumed intent param so it doesn't trigger repeat upgrades
       clearRoleIntentFromUrl();
       navigate(route, { replace: true });
     }
@@ -158,19 +160,23 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const wantedRole = searchParams.get("role");
+      const wantedIntent = (searchParams.get("intent") || searchParams.get("role") || "").toLowerCase();
+      const capCol =
+        wantedIntent === "driver" ? "is_driver"
+        : wantedIntent === "business" ? "is_business"
+        : wantedIntent === "rider" ? "is_rider"
+        : null;
 
       if (isLogin) {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        // Coming from the Drive CTA (?role=driver): grant the driver
-        // capability without overwriting the user's primary role. Admins are
-        // never modified.
-        if (wantedRole === "driver" && signInData.user) {
+        // Provision the matching capability without touching `role`.
+        // Admins are excluded so they're never modified.
+        if (capCol && signInData.user) {
           await supabase
             .from("profiles")
-            .update({ is_driver: true } as any)
+            .update({ [capCol]: true } as any)
             .eq("user_id", signInData.user.id)
             .neq("role", "admin");
         }
@@ -200,15 +206,13 @@ const Login = () => {
           email,
           password,
           options: {
-            data: { full_name: fullName, role },
+            // Pass the intent so the handle_new_user trigger can flip the
+            // matching capability flag at signup time.
+            data: { full_name: fullName, role: wantedIntent || role },
             emailRedirectTo: window.location.origin,
           },
         });
 
-        // If the email already exists, gracefully fall back to sign-in so the
-        // user isn't bounced back to the signup screen with an opaque error.
-        // The wantedRole=driver upgrade then runs against the existing
-        // account, putting them straight into driver onboarding.
         if (error) {
           const msg = error.message?.toLowerCase() || "";
           const looksLikeDuplicate =
@@ -229,10 +233,10 @@ const Login = () => {
               setLoading(false);
               return;
             }
-            if (wantedRole === "driver" && signInData.user) {
+            if (capCol && signInData.user) {
               await supabase
                 .from("profiles")
-                .update({ is_driver: true } as any)
+                .update({ [capCol]: true } as any)
                 .eq("user_id", signInData.user.id)
                 .neq("role", "admin");
             }
@@ -258,12 +262,12 @@ const Login = () => {
   const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
-      // Preserve ?role=driver and ?returnTo=... across the OAuth round-trip
-      // so AuthCallback can promote the profile and route to the right page.
-      const roleParam = searchParams.get("role");
+      // Preserve intent + returnTo across the OAuth round-trip so AuthCallback
+      // can promote the profile capability and route to the right page.
+      const intentParam = searchParams.get("intent") || searchParams.get("role");
       const returnToParam = searchParams.get("returnTo");
       const cbParams = new URLSearchParams();
-      if (roleParam) cbParams.set("role", roleParam);
+      if (intentParam) cbParams.set("intent", intentParam);
       if (returnToParam) cbParams.set("returnTo", returnToParam);
       const cbQs = cbParams.toString();
       const redirectUri = `${window.location.origin}/auth/callback${cbQs ? `?${cbQs}` : ""}`;
