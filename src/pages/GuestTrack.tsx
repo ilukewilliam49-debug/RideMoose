@@ -224,7 +224,7 @@ export default function GuestTrack() {
           if (markers.length === 0) return null;
           return (
             <Card className="p-2 overflow-hidden">
-              <RideMap markers={markers} />
+              <RideMap markers={markers} polyline={data.route_polyline} />
               {!isFinal && data.driver?.lat == null && (
                 <p className="text-[11px] text-center text-muted-foreground py-2">
                   Driver location will appear once they're on the way.
