@@ -239,6 +239,14 @@ const AdminCorporate = () => {
         .eq("id", reviewApp.id);
       if (appError) throw appError;
 
+      // 4. Grant the applicant the business capability so they get the
+      //    Business mode in the role switcher and pass /business route guards.
+      const { error: capError } = await supabase
+        .from("profiles")
+        .update({ is_business: true, business_onboarding_complete: true } as any)
+        .eq("user_id", reviewApp.applicant_user_id);
+      if (capError) console.warn("Failed to flip is_business flag:", capError.message);
+
       toast.success(`${reviewApp.company_name} approved and organization created!`);
       setReviewApp(null);
       setReviewNotes("");

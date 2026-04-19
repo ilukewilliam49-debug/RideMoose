@@ -18,6 +18,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useHasActiveRide } from "./hooks/useHasActiveRide";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ActiveRoleProvider } from "./contexts/ActiveRoleContext";
+import SignupIntentRoute from "./components/SignupIntentRoute";
 
 // Lazy load heavy route pages for faster initial load
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -120,6 +121,13 @@ const AppContent = () => {
           <Route path="/drive" element={<DriveLanding />} />
           <Route path="/business" element={<BusinessLanding />} />
           <Route path="/business/apply" element={<CorporateApply />} />
+
+          {/* Signup intent shims — make role-aware signup links work from
+              anywhere. They forward to /login with intent=... + returnTo, or
+              for business straight to the public apply form. */}
+          <Route path="/signup/rider" element={<SignupIntentRoute role="rider" />} />
+          <Route path="/signup/driver" element={<SignupIntentRoute role="driver" />} />
+          <Route path="/signup/business" element={<SignupIntentRoute role="business" />} />
 
           <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><RoleLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
