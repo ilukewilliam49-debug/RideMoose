@@ -42,7 +42,10 @@ const AddressAutocomplete = ({ value, onChange, placeholder, iconColor = "text-p
   }, []);
 
   const handleChange = (text: string) => {
-    onChange(text);
+    // Pass undefined coords so callers can detect that the typed text is
+    // no longer geocoded — prevents stale lat/lng from a previously
+    // selected suggestion being submitted with a different address.
+    onChange(text, undefined, undefined);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => search(text), 400);
   };

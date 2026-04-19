@@ -258,6 +258,7 @@ const DashboardHome = () => {
                   onChange={(value, lat, lng) => {
                     setPickupAddress(value);
                     if (lat && lng) setPickupAddressCoords({ lat, lng });
+                    else setPickupAddressCoords(null);
                   }}
                   placeholder={t("rider.pickupLocation", "Pickup location")}
                   iconColor="text-green-400"
@@ -298,6 +299,7 @@ const DashboardHome = () => {
                   onChange={(value, lat, lng) => {
                     setDestination(value);
                     if (lat && lng) setDropoffAddressCoords({ lat, lng });
+                    else setDropoffAddressCoords(null);
                   }}
                   placeholder={t("dashboard.whereTo")}
                   iconColor="text-primary"

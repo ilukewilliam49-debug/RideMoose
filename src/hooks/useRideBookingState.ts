@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { decodeStopsParam, type RideStop } from "@/types/stops";
+import { decodeStopsParam, encodeStopsParam, type RideStop } from "@/types/stops";
 
 export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
 
 export const useRideBookingState = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const serviceParam = searchParams.get("service");
 
   const [pickup, setPickup] = useState("");
@@ -100,6 +100,23 @@ export const useRideBookingState = () => {
       }
     }
   }, []);
+
+  // Persist stops back to URL on change so refresh / back-nav preserves them.
+  // Only fully geocoded stops are serialised.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const valid = stops.filter((s) => s.address && s.lat && s.lng);
+    const encoded = encodeStopsParam(valid);
+    const current = searchParams.get("stops");
+    if (encoded && encoded !== current) {
+      next.set("stops", encoded);
+      setSearchParams(next, { replace: true });
+    } else if (!encoded && current) {
+      next.delete("stops");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stops]);
 
   // Calculate distance through pickup → stops → dropoff (Haversine fallback).
   const distanceKm = useMemo(() => {
