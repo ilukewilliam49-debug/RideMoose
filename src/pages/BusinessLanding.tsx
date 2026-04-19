@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -23,6 +22,18 @@ const BusinessLanding = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    const prevTitle = document.title;
+    document.title = "PickYou for Business — Corporate Rides in Yellowknife";
+    const meta = document.querySelector('meta[name="description"]');
+    const prevDesc = meta?.getAttribute("content") ?? "";
+    meta?.setAttribute(
+      "content",
+      "Streamline your team's transportation with PickYou for Business. Monthly invoicing, no driver payments, dedicated support across Yellowknife, NWT."
+    );
+    return () => {
+      document.title = prevTitle;
+      if (meta && prevDesc) meta.setAttribute("content", prevDesc);
+    };
   }, []);
 
   const features = [
@@ -73,15 +84,6 @@ const BusinessLanding = () => {
 
   return (
     <>
-      <Helmet>
-        <title>PickYou for Business — Corporate Rides in Yellowknife</title>
-        <meta
-          name="description"
-          content="Streamline your team's transportation with PickYou for Business. Monthly invoicing, no driver payments, dedicated support across Yellowknife, NWT."
-        />
-        <link rel="canonical" href="https://pickyou.ca/business" />
-      </Helmet>
-
       <div className="min-h-screen bg-background text-foreground">
         <LandingNav />
 
