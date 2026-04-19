@@ -538,7 +538,7 @@ export default function ActiveTripPanel({
         </div>
 
         {/* Rider / customer context */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-3 space-y-2">
           <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold shrink-0">
@@ -547,7 +547,7 @@ export default function ActiveTripPanel({
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{riderProfile?.full_name || "Customer"}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {isDeliveryType(activeRide.service_type) ? "Sender" : `${activeRide.passenger_count} passenger${activeRide.passenger_count > 1 ? "s" : ""}`}
+                  {activeRide.booking_for === "guest" ? "Booker" : isDeliveryType(activeRide.service_type) ? "Sender" : `${activeRide.passenger_count} passenger${activeRide.passenger_count > 1 ? "s" : ""}`}
                   {activeRide.billed_to === "organization" && " · Corporate"}
                 </p>
               </div>
@@ -564,6 +564,35 @@ export default function ActiveTripPanel({
               )}
             </div>
           </div>
+
+          {/* Guest passenger info — when booked for someone else */}
+          {activeRide.booking_for === "guest" && activeRide.guest_name && (
+            <div className="flex items-center justify-between rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 px-3 py-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-sm font-bold shrink-0">
+                  {activeRide.guest_name[0]?.toUpperCase() || "G"}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold truncate">{activeRide.guest_name}</p>
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                      {isDeliveryType(activeRide.service_type) ? "Recipient" : "Passenger"}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Booked by {riderProfile?.full_name || "someone else"}</p>
+                </div>
+              </div>
+              {activeRide.guest_phone && (
+                <a
+                  href={`tel:${activeRide.guest_phone}`}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 active:scale-95 transition-transform shrink-0"
+                  aria-label={`Call ${activeRide.guest_name}`}
+                >
+                  <Phone className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Trip details by service type */}
