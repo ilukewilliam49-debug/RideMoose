@@ -470,8 +470,8 @@ const RiderDashboard = () => {
                 {/* Pickup */}
                 {state.pickup && (
                   <div className="relative flex items-start gap-3">
-                    <span className="relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-success ring-2 ring-background">
-                      <MapPin className="h-3 w-3 text-success-foreground" />
+                    <span className="relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary ring-2 ring-background">
+                      <MapPin className="h-3 w-3 text-primary-foreground" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
