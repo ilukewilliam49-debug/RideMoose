@@ -17,7 +17,17 @@ const RoleLayout = () => {
   // capability (covers legacy `role === 'driver'` and rider-primary users
   // who later opted into driving via `is_driver`).
   const isDriver = activeRole === "driver" && (profile?.role === "driver" || !!profile?.is_driver);
+  const isBusiness = activeRole === "business" && !!profile?.is_business;
+  const isAdmin = profile?.role === "admin";
   const hasMobileNav = isRider || isDriver;
+
+  const headerLabel = isAdmin
+    ? "Admin dashboard"
+    : isDriver
+    ? "Driver dashboard"
+    : isBusiness
+    ? "Business dashboard"
+    : "Rider dashboard";
 
   return (
     <SidebarProvider>
@@ -35,7 +45,7 @@ const RoleLayout = () => {
               <img src={logoImg} alt="PickYou" className="h-6 object-contain md:hidden" />
             )}
             <span className={`text-sm font-semibold ${hasMobileNav ? "hidden md:inline" : ""}`}>
-              {isDriver ? "Driver dashboard" : isRider ? "Rider dashboard" : "Admin dashboard"}
+              {headerLabel}
             </span>
             <div className="ml-auto flex items-center gap-2">
               <RoleSwitcher />
