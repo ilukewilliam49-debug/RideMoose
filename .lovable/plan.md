@@ -1,45 +1,41 @@
 
+
 ## Goal
-When the rider taps the "Where to?" field on the mobile dashboard home, open a full-screen sheet that mirrors the Uber pattern in your reference: header with back button + "Plan your ride", schedule + passenger chips, stacked Pickup/Dropoff inputs with a connecting dot/line, and helper rows underneath (Set location on map, Saved places).
+Make PickYou (private_hire) fare always equal **Taxi meter estimate + $2.99 surcharge + 5% GST**, instead of using a separate base/per-km/per-min formula.
 
-## Scope
-**Mobile only.** Desktop layout stays unchanged — pickup/dropoff stay inline in the card on the right.
+## Root cause
+In `src/hooks/useRideQueries.ts` `computePrice()`:
+- `taxi` uses `taxi_meter_rates` (base_fare_cents + km × per_km_cents)
+- `private_hire` uses the `service_pricing` row (different base, per-km AND per-min, surge, minimum)
 
-## New component
-`src/components/rider/PlanRideSheet.tsx` — a `Sheet` (side="bottom") rendered full-height (`h-[100dvh]`, rounded only at top).
+So the two base estimates are unrelated. The $2.99 surcharge in `PriceEstimate.tsx` is added on top of the *private_hire base*, not the *taxi base*.
 
-Contents top → bottom:
-1. **Header row** — back arrow (closes sheet) + centered "Plan your ride" title.
-2. **Chip row** — two pill buttons:
-   - "Pickup now" with clock icon → opens existing schedule popover (Now / 15m / 30m / 1h / Custom).
-   - "For me" with person icon → static placeholder for v1 (future "ride for someone else").
-3. **Address card** — bordered rounded rectangle:
-   - Pickup row (green dot, autocomplete, "Use my location" button).
-   - Dashed vertical connector.
-   - Dropoff row (square marker, "Where to?" autocomplete, **autofocused on open**).
-4. **Helper rows** (tap targets, list-style):
-   - **Set location on map** → closes sheet, scrolls map into view.
-   - **Saved places** → renders existing `SavedPlaceChips` inline. Tapping a chip fills dropoff + closes sheet.
-5. **Continue** button at the bottom, enabled only when both pickup + dropoff are set; navigates to `/rider?pickup=...&dropoff=...` (same URL-param flow `useRideBookingState` already consumes).
+Example with your trip: taxi base = $13.14 → PickYou base = something else (e.g. $10.62) → display = $10.62 + $2.99 + GST. Hence the mismatch.
 
-## Wiring on mobile (DashboardHome.tsx)
-- The mobile-only Pickup row I added above the map stays.
-- Replace the inline mobile dropoff (currently below the map) with a **read-only button** styled the same — green/blue dots, "Where to?" placeholder. Tap → `setPlanSheetOpen(true)`.
-- Sheet is controlled: receives current pickup/dropoff state + setters as props.
-- Desktop (`lg:`) doesn't render the trigger or sheet — existing inline form is unchanged.
+## Fix (frontend only — 1 file)
+`src/hooks/useRideQueries.ts`, inside `computePrice()`:
+- Replace the `private_hire` branch so it returns the **same** number as the `taxi` branch (just the meter estimate). The existing surcharge + GST math in `PriceEstimate.tsx` and `create-payment-intent` already adds $2.99 + 5% GST on top — no changes needed there.
 
-## State propagation
-- Sheet uses the same setters already in `DashboardHome.tsx` (`setPickupAddress`, `setPickupAddressCoords`, `setDestination`, `setDropoffAddressCoords`, `setScheduledAt`, `setUserLocation`).
-- "Continue" reuses the existing navigation pattern to `/rider` with URL params.
+```ts
+if (svcType === "private_hire") {
+  if (!routeKm || !taxiRates) return null;
+  return ((taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100).toFixed(2);
+}
+```
 
-## Out of scope (deferred)
-- "For me" → ride-for-others (UI-only placeholder).
-- "Search in a different city" (not in codebase, skip v1).
-- No DB migrations.
+## Result
+For your current trip:
+- Taxi card: **$13.14**
+- PickYou card breakdown:
+  - Fare: $13.14
+  - PickYou Surcharge: $2.99
+  - GST (5%): $0.81
+  - **Total: $16.94**
 
 ## Files touched
-- **New**: `src/components/rider/PlanRideSheet.tsx`
-- **Edit**: `src/pages/DashboardHome.tsx` — replace mobile dropoff with trigger button + render `<PlanRideSheet />`.
-- **i18n**: add keys (`rider.planYourRide`, `rider.pickupNow`, `rider.forMe`, `rider.setLocationOnMap`, `rider.savedPlaces`, `rider.continue`) to `en.json` and `fr.json`.
+- `src/hooks/useRideQueries.ts` — single branch change in `computePrice()`
 
-Approve and I'll implement.
+## Out of scope
+- No DB migration. The `service_pricing` row for `private_hire` becomes unused for estimates but stays in DB for admin reference.
+- Backend Edge Functions (`create-payment-intent`, `pay-with-saved-card`, `capture-payment`) already compute surcharge + GST from the fare passed in — they remain correct.
+
