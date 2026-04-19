@@ -537,7 +537,7 @@ serve(async (req) => {
 
     const { data: ride } = await supabase
       .from("rides")
-      .select("id, rider_id, driver_id, service_type, pickup_address, dropoff_address, booking_for, guest_name, guest_phone")
+      .select("id, rider_id, driver_id, service_type, pickup_address, dropoff_address, booking_for, guest_name, guest_phone, guest_track_token")
       .eq("id", ride_id)
       .single();
 
@@ -694,9 +694,30 @@ serve(async (req) => {
         // ── Guest SMS: notify the actual passenger if booking_for='guest' ──
         if (ride.booking_for === "guest" && ride.guest_phone) {
           const guestName = ride.guest_name?.split(" ")[0] || "there";
+
+          // Lazily generate a tracking token on the first guest event
+          let token = (ride as any).guest_track_token as string | null;
+          if (!token) {
+            token = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+            const { error: tokErr } = await supabase
+              .from("rides")
+              .update({ guest_track_token: token })
+              .eq("id", ride_id);
+            if (tokErr) {
+              console.warn("[guest-track] could not store token:", tokErr.message);
+              token = null;
+            }
+          }
+
+          // Build short, public tracking URL. PUBLIC_APP_URL falls back to the
+          // Lovable preview URL so links work even before a custom domain is set.
+          const baseUrl = Deno.env.get("PUBLIC_APP_URL") || "https://pickyou.lovable.app";
+          const trackUrl = token ? `${baseUrl.replace(/\/$/, "")}/t/${token}` : null;
+          const linkSuffix = trackUrl ? ` Track: ${trackUrl}` : "";
+
           const guestMessages: Record<string, string> = {
-            accepted: `Hi ${guestName}, your PickYou driver has been assigned and is heading to ${ride.pickup_address}. Track or contact via the booking confirmation.`,
-            arrived: `Hi ${guestName}, your PickYou driver has arrived at ${ride.pickup_address}.`,
+            accepted: `Hi ${guestName}, your PickYou driver is on the way to ${ride.pickup_address}.${linkSuffix}`,
+            arrived: `Hi ${guestName}, your PickYou driver has arrived at ${ride.pickup_address}.${linkSuffix}`,
             completed: `Hi ${guestName}, your PickYou trip is complete. Thanks for riding!`,
           };
           const guestMsg = guestMessages[event];
@@ -705,7 +726,7 @@ serve(async (req) => {
             ride_id, event, method: "sms_guest",
             status: smsOk ? "delivered" : "failed",
             error_message: smsOk ? undefined : "Guest SMS delivery failed",
-            metadata: { guest_phone: ride.guest_phone, guest_name: ride.guest_name, message: guestMsg },
+            metadata: { guest_phone: ride.guest_phone, guest_name: ride.guest_name, message: guestMsg, track_url: trackUrl },
           });
           results.push({ target: `guest:${ride.guest_phone}`, method: "sms", success: smsOk });
         }
