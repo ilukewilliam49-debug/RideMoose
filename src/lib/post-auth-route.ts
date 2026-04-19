@@ -43,7 +43,7 @@ export function isSafeReturnTo(path: string | null | undefined): path is string 
 
 export const STORAGE_KEY_ACTIVE_ROLE = "pickyou-active-role";
 
-/** Normalise an intent value (accepts `role` or `intent` query params). */
+/** Normalise an intent value from the `intent` query param. */
 export function normalizeIntent(raw: string | null | undefined): "rider" | "driver" | "business" | null {
   if (!raw) return null;
   const v = raw.toLowerCase();
