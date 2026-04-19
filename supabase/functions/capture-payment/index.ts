@@ -114,7 +114,28 @@ serve(async (req) => {
       }
     }
 
-    const grossFareCents = ride.final_fare_cents || 0;
+    // SERVER-AUTHORITATIVE FARE COMPUTATION
+    // Never trust client-supplied final_fare_cents alone for taxi/private_hire.
+    // Recompute from authoritative taxi_rates + stored distance_km, then add
+    // stops surcharge ($2 each) and large group surcharge ($6 for 5+ pax).
+    const PER_STOP_CENTS = 200;
+    const stopsCount = Array.isArray(ride.stops) ? ride.stops.length : 0;
+    const isMetered = ride.service_type === "taxi" || ride.service_type === "private_hire";
+    let grossFareCents = ride.final_fare_cents || 0;
+
+    if (isMetered) {
+      const { data: rates } = await serviceClient
+        .from("taxi_rates")
+        .select("base_fare_cents, per_km_cents")
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+      const distKm = Number(ride.distance_km || 0);
+      const meterCents = rates ? rates.base_fare_cents + Math.round(distKm * rates.per_km_cents) : (ride.final_fare_cents || 0);
+      const stopsCents = stopsCount * PER_STOP_CENTS;
+      const largeGroupCents = (ride.passenger_count ?? 1) >= 5 ? 600 : 0;
+      grossFareCents = meterCents + stopsCents + largeGroupCents;
+    }
 
     // Differentiate tax by service type:
     // Taxi: NO GST, no surcharge
