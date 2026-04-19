@@ -35,9 +35,7 @@ export default function PickupTimeSelector({ className }: { className?: string }
   };
 
   const handlePreset = (mins: number) => {
-    const dt = addMinutes(new Date(), mins);
-    console.log("[PickupTimeSelector] handlePreset", mins, dt.toISOString(), "current scheduledAt", scheduledAt);
-    setScheduledAt(dt);
+    setScheduledAt(addMinutes(new Date(), mins));
     setShowCustom(false);
     setOpen(false);
   };
