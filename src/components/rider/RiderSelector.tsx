@@ -85,7 +85,7 @@ export default function RiderSelector({ className }: { className?: string }) {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-72 p-3 z-[1300]"
+        className="w-72 p-3 z-[1400]"
         align="start"
         sideOffset={8}
         onOpenAutoFocus={(e) => e.preventDefault()}
