@@ -78,26 +78,10 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         if (session?.user) {
           clearSessionExpired();
-
-          // Capability provisioning from URL intent. Intent only flips the
-          // corresponding capability flag if not already set; admin status
-          // lives in user_roles and is unaffected.
-          if (event === "SIGNED_IN") {
-            const params = new URLSearchParams(window.location.search);
-            const intent = (params.get("intent") || params.get("role") || "").toLowerCase();
-            const capCol =
-              intent === "driver" ? "is_driver"
-              : intent === "business" ? "is_business"
-              : intent === "rider" ? "is_rider"
-              : null;
-            if (capCol) {
-              await supabase
-                .from("profiles")
-                .update({ [capCol]: true } as any)
-                .eq("user_id", session.user.id);
-            }
-          }
-
+          // Capability provisioning is handled exclusively by Login.tsx and
+          // AuthCallback.tsx on a fresh sign-in. useAuth must never flip
+          // capability flags, since onAuthStateChange also fires on token
+          // refresh, tab focus, and stale URLs containing ?intent=.
           setTimeout(() => fetchProfileAndRoles(session.user.id), 0);
         } else {
           setProfile(null);
