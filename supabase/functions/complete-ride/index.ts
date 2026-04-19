@@ -73,7 +73,7 @@ serve(async (req) => {
     // Fetch ride
     const { data: ride, error: rideErr } = await admin
       .from("rides")
-      .select("id, status, driver_id, rider_id, service_type, payment_option, meter_started_at, final_fare_cents, stripe_payment_intent_id")
+      .select("id, status, driver_id, rider_id, service_type, payment_option, meter_started_at, final_fare_cents, stripe_payment_intent_id, booking_for, guest_phone, guest_name, guest_track_token")
       .eq("id", ride_id)
       .single();
 
@@ -158,6 +158,51 @@ serve(async (req) => {
       });
     } catch (notifErr: any) {
       console.error("[complete-ride] driver notification failed:", notifErr.message);
+    }
+
+    // Send guest a "Rate your trip" SMS via Twilio when applicable.
+    try {
+      if (
+        ride.booking_for === "guest" &&
+        ride.guest_phone &&
+        ride.guest_track_token
+      ) {
+        const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+        const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+        const fromNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
+        const publicBase = Deno.env.get("PUBLIC_APP_URL") || "https://pickyou.lovable.app";
+        if (accountSid && authToken && fromNumber) {
+          const rateUrl = `${publicBase}/t/${ride.guest_track_token}/rate`;
+          const firstName = (ride.guest_name || "").trim().split(/\s+/)[0];
+          const greeting = firstName ? `Hi ${firstName}, ` : "";
+          const smsBody = `${greeting}thanks for riding with PickYou! How was your trip? Rate your driver: ${rateUrl}`;
+          const smsRes = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                To: ride.guest_phone,
+                From: fromNumber,
+                Body: smsBody,
+              }),
+            },
+          );
+          if (!smsRes.ok) {
+            const errBody = await smsRes.text();
+            console.error(`[complete-ride] guest rating SMS failed: ${smsRes.status} ${errBody}`);
+          } else {
+            console.log(`[complete-ride] guest rating SMS sent to ${ride.guest_phone}`);
+          }
+        } else {
+          console.log("[complete-ride] Twilio not configured, skipping guest rating SMS");
+        }
+      }
+    } catch (smsErr: any) {
+      console.error("[complete-ride] guest rating SMS error:", smsErr.message);
     }
 
     console.log(`[complete-ride] ride=${ride_id} driver=${profile.id} completed_at=${now} duration=${computedDuration}min`);

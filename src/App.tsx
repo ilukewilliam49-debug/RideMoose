@@ -58,6 +58,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const GuestTrack = lazy(() => import("./pages/GuestTrack"));
+const GuestRate = lazy(() => import("./pages/GuestRate"));
 const DriveLanding = lazy(() => import("./pages/DriveLanding"));
 const BusinessLanding = lazy(() => import("./pages/BusinessLanding"));
 const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
@@ -125,6 +126,7 @@ const AppContent = () => {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/t/:token" element={<GuestTrack />} />
+          <Route path="/t/:token/rate" element={<GuestRate />} />
           <Route path="/drive" element={<DriveLanding />} />
           <Route path="/business" element={<BusinessLanding />} />
           <Route path="/business/apply" element={<BusinessApply />} />
