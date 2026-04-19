@@ -165,3 +165,33 @@ export function intentToCapabilityColumn(
   if (i === "rider") return "is_rider";
   return null;
 }
+
+/**
+ * Provision the capability flag matching `intent` on the user's profile.
+ * Single source of truth for capability provisioning — call from explicit
+ * sign-in/sign-up flows ONLY (Login.tsx, AuthCallback.tsx). Never call
+ * from token-refresh handlers.
+ *
+ * No-op when intent is missing/unknown or when userId is falsy.
+ * Errors are swallowed and logged; provisioning failures should not block
+ * the auth flow.
+ */
+export async function provisionCapabilityFromIntent(
+  userId: string | null | undefined,
+  intent: string | null | undefined,
+): Promise<void> {
+  if (!userId) return;
+  const capCol = intentToCapabilityColumn(intent);
+  if (!capCol) return;
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ [capCol]: true } as any)
+      .eq("user_id", userId);
+    if (error) {
+      console.error("provisionCapabilityFromIntent failed:", error.message);
+    }
+  } catch (err) {
+    console.error("provisionCapabilityFromIntent unexpected error:", err);
+  }
+}
