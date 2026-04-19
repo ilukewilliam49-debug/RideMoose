@@ -18,6 +18,7 @@ import PlanRideSheet from "@/components/rider/PlanRideSheet";
 import PickupTimeSelector from "@/components/rider/PickupTimeSelector";
 import RiderSelector from "@/components/rider/RiderSelector";
 import { useRideBooking } from "@/contexts/RideBookingContext";
+import { encodeStopsParam, type RideStop } from "@/types/stops";
 
 
 
