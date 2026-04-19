@@ -18,6 +18,7 @@ import ActiveRideBanner from "@/components/rider/ActiveRideBanner";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import SupportChatDialog from "@/components/SupportChatDialog";
 import NearbyDriversMap from "@/components/rider/NearbyDriversMap";
+import PlanRideSheet from "@/components/rider/PlanRideSheet";
 
 
 
