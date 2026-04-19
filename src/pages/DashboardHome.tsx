@@ -286,8 +286,8 @@ const DashboardHome = () => {
           </h2>
 
           <div className="space-y-2">
-            {/* Pickup */}
-            <div className="flex items-center gap-2">
+            {/* Pickup — desktop only (mobile shows it above the map) */}
+            <div className="hidden lg:flex items-center gap-2">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center">
                 <div className="h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-green-500/20" />
               </div>
@@ -324,7 +324,7 @@ const DashboardHome = () => {
               </button>
             </div>
 
-            <div className="ml-3 h-3 border-l-2 border-dashed border-border/50" />
+            <div className="hidden lg:block ml-3 h-3 border-l-2 border-dashed border-border/50" />
 
             {/* Dropoff */}
             <div className="flex items-center gap-2">
