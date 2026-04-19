@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldAlert, Share2, Phone, Copy, Check } from "lucide-react";
+import { ShieldAlert, Share2, Phone, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RideSafetyActionsProps {
   rideId: string;
@@ -31,33 +32,60 @@ const RideSafetyActions = ({
 }: RideSafetyActionsProps) => {
   const [sosOpen, setSosOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
-  const shareMessage = [
-    `🚗 I'm on a PickYou ${serviceType || "ride"}`,
-    driverName ? `Driver: ${driverName}` : null,
-    `From: ${pickupAddress}`,
-    `To: ${dropoffAddress}`,
-    `Ride ID: ${rideId.slice(0, 8)}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const buildShareMessage = (trackUrl: string | null) =>
+    [
+      `🚗 I'm on a PickYou ${serviceType || "ride"}`,
+      driverName ? `Driver: ${driverName}` : null,
+      `From: ${pickupAddress}`,
+      `To: ${dropoffAddress}`,
+      trackUrl ? `Track live: ${trackUrl}` : `Ride ID: ${rideId.slice(0, 8)}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
   const handleShare = async () => {
+    setSharing(true);
+    let trackUrl: string | null = null;
+    try {
+      const { data: token, error } = await supabase.rpc("ensure_ride_track_token", {
+        _ride_id: rideId,
+      });
+      if (error) throw error;
+      if (token) {
+        trackUrl = `${window.location.origin}/t/${token}`;
+      }
+    } catch (err) {
+      console.error("Failed to generate tracking link", err);
+      // Fall through and share without a link
+    }
+
+    const shareMessage = buildShareMessage(trackUrl);
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: "My PickYou Trip",
           text: shareMessage,
+          url: trackUrl || undefined,
         });
       } catch {
         // User cancelled share — do nothing
       }
     } else {
-      await navigator.clipboard.writeText(shareMessage);
-      setCopied(true);
-      toast.success("Trip details copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(shareMessage);
+        setCopied(true);
+        toast.success(
+          trackUrl ? "Tracking link copied to clipboard" : "Trip details copied to clipboard"
+        );
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        toast.error("Could not copy to clipboard");
+      }
     }
+    setSharing(false);
   };
 
   const handleCallEmergency = () => {
@@ -129,9 +157,17 @@ const RideSafetyActions = ({
       </Dialog>
 
       {/* Share Trip Button */}
-      <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
-        {copied ? (
-          <Check className="h-4 w-4 text-green-500" />
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1.5"
+        onClick={handleShare}
+        disabled={sharing}
+      >
+        {sharing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : copied ? (
+          <Check className="h-4 w-4 text-primary" />
         ) : (
           <Share2 className="h-4 w-4" />
         )}

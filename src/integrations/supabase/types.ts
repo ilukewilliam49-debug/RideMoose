@@ -1982,6 +1982,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      ensure_ride_track_token: { Args: { _ride_id: string }; Returns: string }
       get_ride_stats: {
         Args: {
           _date_from?: string
