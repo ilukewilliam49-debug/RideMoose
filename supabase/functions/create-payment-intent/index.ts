@@ -33,7 +33,7 @@ serve(async (req) => {
     const isPrivateHire = service_type === "private_hire";
 
     // Taxi: no GST, no surcharge
-    // Private Hire: $1.20 surcharge + 5% GST on (fare + surcharge)
+    // Private Hire: $2.99 surcharge + 5% GST on (fare + surcharge)
     let fareWithExtras = estimated_fare_cents;
     if (isPrivateHire) {
       const subtotal = estimated_fare_cents + PICKYOU_SURCHARGE_CENTS;
