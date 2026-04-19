@@ -69,13 +69,9 @@ const DashboardHome = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+  const { scheduledAt, bookingFor, guestName, guestPhone } = useRideBooking();
+
   const [destination, setDestination] = useState("");
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
-  const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
-  const [customTime, setCustomTime] = useState("12:00");
-  const [showCustom, setShowCustom] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupAddressCoords, setPickupAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -102,37 +98,21 @@ const DashboardHome = () => {
     }
   }, []);
 
-  const scheduleLabel = scheduledAt
-    ? format(scheduledAt, "MMM d, h:mm a")
-    : t("dashboard.now");
-
-  const handlePreset = (mins: number) => {
-    setScheduledAt(addMinutes(new Date(), mins));
-    setShowCustom(false);
-    setScheduleOpen(false);
+  /** Append shared booking-plan params (schedule + guest rider) to a path. */
+  const withPlan = (path: string) => {
+    const url = new URL(path, window.location.origin);
+    if (scheduledAt) {
+      url.searchParams.set("scheduledAt", scheduledAt.toISOString());
+    }
+    if (bookingFor === "guest" && guestName && guestPhone) {
+      url.searchParams.set("bookingFor", "guest");
+      url.searchParams.set("guestName", guestName);
+      url.searchParams.set("guestPhone", guestPhone);
+    }
+    return `${url.pathname}${url.search}`;
   };
-
-  const handleNow = () => {
-    setScheduledAt(null);
-    setShowCustom(false);
-    setScheduleOpen(false);
-  };
-
-  const handleCustomConfirm = () => {
-    if (!customDate) return;
-    const [h, m] = customTime.split(":").map(Number);
-    const dt = new Date(customDate);
-    dt.setHours(h, m, 0, 0);
-    setScheduledAt(dt);
-    setShowCustom(false);
-    setScheduleOpen(false);
-  };
-
-  const withSchedule = (path: string) => {
-    if (!scheduledAt) return path;
-    const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}scheduledAt=${scheduledAt.toISOString()}`;
-  };
+  // Backwards-compatible alias used throughout this file.
+  const withSchedule = withPlan;
 
   // Fetch saved places
   const { data: savedPlaces, isLoading: savedPlacesLoading, isError: savedPlacesError, refetch: refetchSaved } = useQuery({
