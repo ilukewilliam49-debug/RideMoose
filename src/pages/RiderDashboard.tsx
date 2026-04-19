@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Clock, AlertTriangle, CreditCard, Banknote, Building2,
+  ArrowLeft, Clock, AlertTriangle, CreditCard, Building2,
   Package, ShoppingBag, MapPinned, MapPin, LocateFixed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -170,7 +170,7 @@ const RiderDashboard = () => {
         passenger_count: state.passengerCount,
         pricing_model: state.serviceType === "courier" ? "courier" : state.serviceType === "large_delivery" ? "large_delivery" : state.serviceType === "retail_delivery" ? "retail_delivery" : state.serviceType === "personal_shopper" ? "personal_shopper" : "metered",
         status: "requested",
-        payment_option: isOrgBilling ? "pay_driver" : state.paymentOption,
+        payment_option: "in_app",
         billed_to: isOrgBilling ? "organization" : "individual",
         organization_id: isOrgBilling ? queries.riderOrgMembership!.organization_id : null,
         payment_status: isOrgBilling ? "invoiced_pending" : "unpaid",
@@ -204,7 +204,7 @@ const RiderDashboard = () => {
 
       // Payment authorization for specific service types
       const needsAuth = (state.serviceType === "personal_shopper" ||
-        (!isOrgBilling && state.paymentOption === "in_app" && state.serviceType === "taxi"));
+        (!isOrgBilling && state.serviceType === "taxi"));
       if (needsAuth && rideData) {
         let authCents = estCents;
         if (state.serviceType === "personal_shopper") {
@@ -408,30 +408,7 @@ const RiderDashboard = () => {
             driverETAs={driverETAs}
           />
 
-          {/* Payment option selector for taxi */}
-          {state.serviceType === "taxi" && (
-            <div className="space-y-2">
-              <Label>{t("rider.paymentMethod")}</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => state.setPaymentOption("in_app")}
-                  className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${state.paymentOption === "in_app" ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"}`}>
-                  <CreditCard className={`h-4 w-4 ${state.paymentOption === "in_app" ? "text-primary" : "text-muted-foreground"}`} />
-                  <div className="text-left">
-                    <p className="text-xs font-semibold">{t("rider.payInApp")}</p>
-                    <p className="text-[10px] text-muted-foreground">{t("rider.cardOnFile")}</p>
-                  </div>
-                </button>
-                <button type="button" onClick={() => state.setPaymentOption("pay_driver")}
-                  className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${state.paymentOption === "pay_driver" ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"}`}>
-                  <Banknote className={`h-4 w-4 ${state.paymentOption === "pay_driver" ? "text-primary" : "text-muted-foreground"}`} />
-                  <div className="text-left">
-                    <p className="text-xs font-semibold">{t("rider.payDriver")}</p>
-                    <p className="text-[10px] text-muted-foreground">{t("rider.cashTap")}</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
+          {/* All rides are paid in-app via card on file */}
 
           {/* Bill to Organization option */}
           {queries.riderOrgMembership && (
@@ -446,7 +423,7 @@ const RiderDashboard = () => {
                   </div>
                 </div>
               ) : (
-                <button type="button" onClick={() => { const newVal = !state.billToOrg; state.setBillToOrg(newVal); if (newVal) state.setPaymentOption("pay_driver"); }}
+                <button type="button" onClick={() => state.setBillToOrg(!state.billToOrg)}
                   className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-all ${state.billToOrg ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"}`}>
                   <Building2 className={`h-5 w-5 ${state.billToOrg ? "text-primary" : "text-muted-foreground"}`} />
                   <div className="text-left flex-1">

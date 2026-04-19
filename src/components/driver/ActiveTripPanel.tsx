@@ -523,7 +523,6 @@ export default function ActiveTripPanel({
                 <p className="text-sm font-medium truncate">{riderProfile?.full_name || "Customer"}</p>
                 <p className="text-[10px] text-muted-foreground">
                   {isDeliveryType(activeRide.service_type) ? "Sender" : `${activeRide.passenger_count} passenger${activeRide.passenger_count > 1 ? "s" : ""}`}
-                  {activeRide.payment_option === "pay_driver" && " · Cash payment"}
                   {activeRide.billed_to === "organization" && " · Corporate"}
                 </p>
               </div>

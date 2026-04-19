@@ -7,7 +7,6 @@ import {
   Plane,
   Users,
   Clock,
-  Banknote,
 } from "lucide-react";
 import ServiceIcon from "@/components/driver/ServiceIcon";
 import DriverBidForm from "@/components/DriverBidForm";
@@ -263,11 +262,6 @@ export default function IncomingRequestCard({
         {driverLat != null && driverLng != null && ride.pickup_lat && ride.pickup_lng && (
           <span className="text-[10px] font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full tabular-nums">
             📍 {haversineKm(driverLat, driverLng, ride.pickup_lat, ride.pickup_lng).toFixed(1)} km away
-          </span>
-        )}
-        {ride.payment_option === "pay_driver" && (
-          <span className="flex items-center gap-1 text-[10px] font-medium bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full">
-            <Banknote className="h-3 w-3" /> Cash
           </span>
         )}
         {ride.billed_to === "organization" && (

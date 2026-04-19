@@ -16,7 +16,7 @@ export const useRideBookingState = () => {
     serviceParam === "private_hire" ? "private_hire" : serviceParam === "courier" ? "courier" : "taxi"
   );
   const mode = serviceType === "courier" ? "delivery" : "rides";
-  const [paymentOption, setPaymentOption] = useState<"in_app" | "pay_driver">("in_app");
+  const [paymentOption, setPaymentOption] = useState<"in_app">("in_app");
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
   const [pendingRideId, setPendingRideId] = useState<string | null>(null);

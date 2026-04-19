@@ -137,7 +137,7 @@ const DriverDispatch = () => {
         .select("*")
         .eq("driver_id", profile.id)
         .eq("status", "completed")
-        .or("payment_status.eq.partial,and(payment_option.eq.pay_driver,payment_status.eq.unpaid)")
+        .eq("payment_status", "partial")
         .order("completed_at", { ascending: false })
         .limit(10);
       if (error) throw error;

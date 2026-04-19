@@ -102,7 +102,7 @@ serve(async (req) => {
         service_type: "taxi",
         status: "requested",
         estimated_price: 15.00,
-        payment_option: "pay_driver",
+        payment_option: "in_app",
         pricing_model: "metered",
       })
       .select("id, status")

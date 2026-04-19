@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { MapPin, CreditCard, Banknote, Clock } from "lucide-react";
+import { MapPin, CreditCard, Clock } from "lucide-react";
 import { serviceLabels } from "@/lib/driver-constants";
 
 interface RideConfirmSheetProps {
@@ -68,11 +68,7 @@ export default function RideConfirmSheet({
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">{t("rider.paymentMethod")}</span>
               <span className="font-medium flex items-center gap-1.5">
-                {paymentOption === "in_app" ? (
-                  <><CreditCard className="h-3.5 w-3.5" /> {t("rider.payInApp")}</>
-                ) : (
-                  <><Banknote className="h-3.5 w-3.5" /> {t("rider.payDriver")}</>
-                )}
+                <CreditCard className="h-3.5 w-3.5" /> {t("rider.payInApp")}
               </span>
             </div>
             {scheduledAt && (

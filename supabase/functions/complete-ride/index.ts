@@ -141,22 +141,6 @@ serve(async (req) => {
         console.error(`[complete-ride] payment capture failed:`, payErr.message);
         paymentResult = { error: payErr.message };
       }
-    } else if (ride.payment_option === "pay_driver") {
-      // For cash rides, still call capture to record commission
-      try {
-        const captureResp = await fetch(`${supabaseUrl}/functions/v1/capture-payment`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${serviceKey}`,
-          },
-          body: JSON.stringify({ ride_id }),
-        });
-        paymentResult = await captureResp.json();
-      } catch (payErr: any) {
-        console.error(`[complete-ride] pay_driver commission calc failed:`, payErr.message);
-        paymentResult = { error: payErr.message };
-      }
     }
 
     // Send earnings notification to driver
