@@ -71,6 +71,8 @@ function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }:
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const currentUserId = currentUser?.id;
   const [saving, setSaving] = useState(false);
 
   const { data: profile, isLoading, isError, refetch } = useQuery({
