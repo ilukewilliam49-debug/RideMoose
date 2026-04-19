@@ -74,13 +74,9 @@ Deno.serve(async (req) => {
         .update({ phone_verified: true })
         .eq("user_id", userId);
     } else {
-      // Check if user exists in auth by phone
-      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1,
-      });
-
-      // Create new user with phone
+      // No profile row for this phone — create the auth user. We attach a
+      // synthetic email because the legacy admin SDK requires one for the
+      // session-forging path below. Tracked as follow-up to remove.
       const tempEmail = `phone_${phone.replace(/\+/g, "")}@pickyou.local`;
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         phone,
@@ -91,19 +87,22 @@ Deno.serve(async (req) => {
       });
 
       if (createError) {
-        // User might already exist with this phone in auth
-        // Try to find by phone
+        // createUser failed — most likely a phone-conflict (auth row exists
+        // but no profile row was created). Only then pay the cost of a full
+        // listUsers() scan. At scale this should be replaced with a direct
+        // phone lookup once the SDK supports it.
+        const msg = (createError.message || "").toLowerCase();
+        const isConflict = msg.includes("already") || msg.includes("exists") || msg.includes("duplicate") || msg.includes("registered");
+        if (!isConflict) throw createError;
+
         const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
         const foundUser = users?.find((u) => u.phone === phone);
-        if (foundUser) {
-          userId = foundUser.id;
-          await supabaseAdmin
-            .from("profiles")
-            .update({ phone_verified: true, phone })
-            .eq("user_id", userId);
-        } else {
-          throw createError;
-        }
+        if (!foundUser) throw createError;
+        userId = foundUser.id;
+        await supabaseAdmin
+          .from("profiles")
+          .update({ phone_verified: true, phone })
+          .eq("user_id", userId);
       } else {
         userId = newUser.user.id;
       }

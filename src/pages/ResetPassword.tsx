@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Lock, CheckCircle } from "lucide-react";
+import { Lock, CheckCircle, Check } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
 
@@ -20,14 +20,12 @@ const ResetPassword = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    // Check for recovery event from the URL hash
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsRecovery(true);
       }
     });
 
-    // Also check hash params for type=recovery
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
       setIsRecovery(true);
@@ -36,14 +34,25 @@ const ResetPassword = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Same strength rules as signup — never let a reset weaken a password.
+  const passwordChecks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    symbol: /[^A-Za-z0-9]/.test(password),
+  };
+  const passwordScore = Object.values(passwordChecks).filter(Boolean).length;
+  const passwordValid = passwordScore === 5;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      toast.error(t("auth.passwordMismatch"));
+    if (!passwordValid) {
+      toast.error(t("auth.passwordTooWeak", "Password does not meet all requirements"));
       return;
     }
-    if (password.length < 6) {
-      toast.error(t("auth.passwordTooShort"));
+    if (password !== confirmPassword) {
+      toast.error(t("auth.passwordMismatch"));
       return;
     }
     setLoading(true);
@@ -106,10 +115,34 @@ const ResetPassword = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 bg-secondary border-border"
+                    autoComplete="new-password"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
+                {password.length > 0 && (
+                  <ul className="space-y-1 text-xs pt-1">
+                    {[
+                      { ok: passwordChecks.length, label: t("auth.passwordMinLength", "At least 8 characters") },
+                      { ok: passwordChecks.uppercase, label: t("auth.passwordUppercase", "One uppercase letter") },
+                      { ok: passwordChecks.lowercase, label: t("auth.passwordLowercase", "One lowercase letter") },
+                      { ok: passwordChecks.number, label: t("auth.passwordNumber", "One number") },
+                      { ok: passwordChecks.symbol, label: t("auth.passwordSymbol", "One symbol (!@#$…)") },
+                    ].map((rule, i) => (
+                      <li
+                        key={i}
+                        className={`flex items-center gap-2 ${rule.ok ? "text-green-500" : "text-muted-foreground"}`}
+                      >
+                        {rule.ok ? (
+                          <Check className="h-3.5 w-3.5" />
+                        ) : (
+                          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 ml-1" />
+                        )}
+                        {rule.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">{t("auth.confirmPassword")}</Label>
@@ -122,12 +155,13 @@ const ResetPassword = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 bg-secondary border-border"
+                    autoComplete="new-password"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || !passwordValid || password !== confirmPassword}>
                 {loading ? t("auth.loading") : t("auth.updatePassword")}
               </Button>
             </form>

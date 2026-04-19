@@ -440,6 +440,20 @@ const Login = () => {
                   {loading ? t("auth.loading") : t("auth.continue", "Continue")}
                 </Button>
 
+                {/* ToS / Privacy notice — shown directly under phone Continue
+                    so first-time phone users see it before tapping. */}
+                <p className="text-[11px] text-muted-foreground text-center leading-relaxed px-2">
+                  {t("auth.byContinuing", "By continuing, you agree to the")}{" "}
+                  <a href="/terms" target="_blank" className="underline hover:text-foreground">
+                    {t("auth.termsOfService", "Terms of Service")}
+                  </a>{" "}
+                  {t("common.and", "and")}{" "}
+                  <a href="/privacy" target="_blank" className="underline hover:text-foreground">
+                    {t("auth.privacyPolicy", "Privacy Policy")}
+                  </a>
+                  {" "}{t("auth.fromPickYou", "from PickYou.")}
+                </p>
+
                 <Divider />
 
                 {/* Apple */}

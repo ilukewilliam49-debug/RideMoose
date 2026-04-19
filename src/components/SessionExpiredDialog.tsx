@@ -59,12 +59,16 @@ const SessionExpiredDialog = ({ open, email: prefillEmail, onSuccess, onSwitchAc
             <Label htmlFor="session-email">{t("auth.email")}</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {/* Email is locked to the previously signed-in user. To use a
+                  different account, click "Switch account" below — that path
+                  signs out and clears all cached profile/role state first. */}
               <Input
                 id="session-email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 bg-secondary border-border"
+                readOnly
+                aria-readonly="true"
+                className="pl-10 bg-secondary border-border opacity-80 cursor-not-allowed"
                 required
               />
             </div>
