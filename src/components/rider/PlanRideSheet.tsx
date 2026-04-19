@@ -65,6 +65,43 @@ export default function PlanRideSheet({
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [customTime, setCustomTime] = useState("12:00");
 
+  // "For me" / "For someone else"
+  const [riderOpen, setRiderOpen] = useState(false);
+  const [riderMode, setRiderMode] = useState<"me" | "other">("me");
+  const [riderName, setRiderName] = useState("");
+  const [riderPhone, setRiderPhone] = useState("");
+  const [draftMode, setDraftMode] = useState<"me" | "other">("me");
+  const [draftName, setDraftName] = useState("");
+  const [draftPhone, setDraftPhone] = useState("");
+
+  const riderLabel =
+    riderMode === "me"
+      ? t("rider.forMe", "For me")
+      : riderName
+        ? riderName.split(" ")[0]
+        : t("rider.forSomeoneElse", "For someone else");
+
+  const openRiderPopover = (open: boolean) => {
+    if (open) {
+      setDraftMode(riderMode);
+      setDraftName(riderName);
+      setDraftPhone(riderPhone);
+    }
+    setRiderOpen(open);
+  };
+
+  const confirmRider = () => {
+    setRiderMode(draftMode);
+    if (draftMode === "other") {
+      setRiderName(draftName.trim());
+      setRiderPhone(draftPhone.trim());
+    } else {
+      setRiderName("");
+      setRiderPhone("");
+    }
+    setRiderOpen(false);
+  };
+
   // Autofocus the dropoff input when sheet opens
   useEffect(() => {
     if (!open) return;
