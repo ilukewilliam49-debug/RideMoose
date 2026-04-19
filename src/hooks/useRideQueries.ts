@@ -144,11 +144,17 @@ export const useRideQueries = ({
     [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, directionsData, estimatedItemCostCents, servicePricing]);
 
   // All main service prices for the selection cards
-  const allServicePrices = useMemo(() => ({
-    taxi: computePrice("taxi"),
-    private_hire: computePrice("private_hire"),
-    courier: computePrice("courier"),
-  }), [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing]);
+  const allServicePrices = useMemo(() => {
+    const pickyouBase = computePrice("private_hire");
+    const pickyouTotal = pickyouBase
+      ? ((parseFloat(pickyouBase) + 2.99) * 1.05).toFixed(2)
+      : null;
+    return {
+      taxi: computePrice("taxi"),
+      private_hire: pickyouTotal,
+      courier: computePrice("courier"),
+    };
+  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing]);
 
   // Active ride
   const { data: activeRide } = useQuery({
