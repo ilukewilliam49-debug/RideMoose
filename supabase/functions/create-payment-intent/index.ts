@@ -48,6 +48,41 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
+    // Idempotency: if a PaymentIntent already exists for this ride and is still
+    // capturable, reuse it instead of creating a duplicate hold on the card.
+    const serviceClientEarly = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    const { data: existingRide } = await serviceClientEarly
+      .from("rides")
+      .select("stripe_payment_intent_id, authorized_amount_cents, payment_status, rider_id")
+      .eq("id", ride_id)
+      .maybeSingle();
+
+    if (existingRide?.stripe_payment_intent_id) {
+      try {
+        const existingPI = await stripe.paymentIntents.retrieve(existingRide.stripe_payment_intent_id);
+        const reusable = existingPI.status === "requires_capture"
+          || existingPI.status === "requires_confirmation"
+          || existingPI.status === "requires_payment_method"
+          || existingPI.status === "requires_action";
+        if (reusable && existingPI.client_secret) {
+          return new Response(
+            JSON.stringify({
+              clientSecret: existingPI.client_secret,
+              authorized_amount_cents: existingRide.authorized_amount_cents ?? existingPI.amount,
+              payment_intent_id: existingPI.id,
+              reused: true,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+          );
+        }
+      } catch (_e) {
+        // PI not found or invalid — fall through and create a new one.
+      }
+    }
+
     // Find or create Stripe customer
     let customerId: string | undefined;
     if (user.email) {

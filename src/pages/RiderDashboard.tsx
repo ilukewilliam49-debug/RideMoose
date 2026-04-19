@@ -133,10 +133,6 @@ const RiderDashboard = () => {
 
   const requestRide = async () => {
     if (submittingRef.current) return;
-    // Debounce: prevent rapid duplicate submissions within 3 seconds
-    const now = Date.now();
-    if (now - lastSubmitTimeRef.current < 3000) return;
-    lastSubmitTimeRef.current = now;
     if (!profile?.id || !state.pickup || !state.dropoff || !state.pickupCoords || !state.dropoffCoords) {
       toast.error(t("rider.pickAddressError", "Please select valid pickup and drop-off addresses from the suggestions"));
       return;
@@ -167,6 +163,13 @@ const RiderDashboard = () => {
       toast.error(t("rider.businessAccountRequired"));
       return;
     }
+
+    // Debounce: prevent rapid duplicate submissions within 3 seconds.
+    // NOTE: this check runs AFTER validation so a failed validation does not
+    // lock the user out for 3 s.
+    const now = Date.now();
+    if (now - lastSubmitTimeRef.current < 3000) return;
+    lastSubmitTimeRef.current = now;
 
     // Source of truth: context (filled by RiderSelector / PickupTimeSelector)
     // with URL params as a fallback for deep links from DashboardHome.
@@ -378,8 +381,33 @@ const RiderDashboard = () => {
           matchingRideIdRef.current = null;
           setMatchingInProgress(false);
           if (rideId) {
-            await supabase.from("rides").update({ status: "cancelled", cancellation_reason: "Rider cancelled during matching" }).eq("id", rideId);
-            toast.info(t("rider.searchCancelled", "Driver search cancelled"));
+            // Race-safe: only cancel if the ride is still in a cancellable
+            // state. If a driver already accepted in the same tick, leave it.
+            const { data: cancelled, error: cancelErr } = await supabase
+              .from("rides")
+              .update({
+                status: "cancelled",
+                cancellation_reason: "Rider cancelled during matching",
+              })
+              .eq("id", rideId)
+              .in("status", ["requested", "dispatched"])
+              .select("id, stripe_payment_intent_id")
+              .maybeSingle();
+
+            if (cancelErr) {
+              toast.error(t("rider.searchCancelFailed", "Could not cancel — please try again"));
+            } else if (cancelled) {
+              // Release any held PaymentIntent so funds aren't held for 7 days.
+              if (cancelled.stripe_payment_intent_id) {
+                supabase.functions.invoke("cancel-bid-payment", {
+                  body: { ride_id: rideId },
+                }).catch(() => { /* best-effort */ });
+              }
+              toast.info(t("rider.searchCancelled", "Driver search cancelled"));
+            } else {
+              // A driver accepted before we could cancel.
+              toast.info(t("rider.driverAcceptedFirst", "A driver just accepted — your ride is on the way"));
+            }
             queries.refetch();
           }
         }}
