@@ -40,7 +40,7 @@ export const DRIVER_DOCUMENTS: DocumentSpec[] = [
     helper: "Required only if you'll be driving Taxi service in Yellowknife. Skip for Courier or PickYou.",
     tips: [
       "Issued by the City of Yellowknife",
-      "Skip this if you're only doing courier or private hire",
+      "Skip this if you're only doing Courier or PickYou",
     ],
   },
 ];
