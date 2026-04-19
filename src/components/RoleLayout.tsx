@@ -3,7 +3,6 @@ import logoImg from "@/assets/logo.png";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import NotificationBell from "@/components/NotificationBell";
-import RoleSwitcher from "@/components/RoleSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import BottomTabBar from "@/components/BottomTabBar";
@@ -44,12 +43,6 @@ const RoleLayout = () => {
               {headerLabel}
             </span>
             <div className="ml-auto flex items-center gap-2">
-              {/* Role switcher remains in the header on mobile (riders/drivers don't see the sidebar) */}
-              {hasMobileNav && (
-                <div className="md:hidden">
-                  <RoleSwitcher />
-                </div>
-              )}
               <NotificationBell />
             </div>
           </header>
