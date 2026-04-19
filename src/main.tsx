@@ -139,6 +139,14 @@ const bootstrap = async () => {
   const rootEl = document.getElementById("root")!;
   createRoot(rootEl).render(<App />);
 
+  // Fade out the pre-mount loader once React has painted the first frame.
+  requestAnimationFrame(() => {
+    const loader = document.getElementById("initial-loader");
+    if (!loader) return;
+    loader.classList.add("hidden");
+    setTimeout(() => loader.remove(), 350);
+  });
+
   // Blank-screen watchdog: if React fails to mount (stale SW, broken chunk,
   // etc.) and #root is still empty after 4s, force-unregister SWs, clear
   // caches, and hard-reload once. Guarded by sessionStorage so we never loop.
