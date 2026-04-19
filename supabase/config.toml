@@ -81,3 +81,7 @@ verify_jwt = false
 [functions.guest-track]
 verify_jwt = false
 
+[functions.guest-call-driver]
+verify_jwt = false
+
+
