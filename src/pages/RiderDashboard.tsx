@@ -136,17 +136,63 @@ const RiderDashboard = () => {
     const now = Date.now();
     if (now - lastSubmitTimeRef.current < 3000) return;
     lastSubmitTimeRef.current = now;
-    if (!profile?.id || !state.pickup || !state.dropoff || !state.pickupCoords || !state.dropoffCoords) return;
+    if (!profile?.id || !state.pickup || !state.dropoff || !state.pickupCoords || !state.dropoffCoords) {
+      toast.error(t("rider.pickAddressError", "Please select valid pickup and drop-off addresses from the suggestions"));
+      return;
+    }
     // Block submission if any added stop is incomplete
     const incompleteStop = (state.stops ?? []).find((s) => !s.address || !s.lat || !s.lng);
     if (incompleteStop) {
       toast.error(t("rider.completeAllStops", "Please complete or remove empty stops"));
       return;
     }
+    // Block if there's already an active ride (DB trigger would throw a
+    // cryptic error otherwise).
+    if (queries.activeRide) {
+      toast.error(t("rider.alreadyHasActiveRide", "You already have an active ride"));
+      return;
+    }
+    // Block submission until fare estimate is ready (prevents $0 payment auth)
+    if (!queries.estimatedPrice || parseFloat(queries.estimatedPrice) <= 0) {
+      toast.error(t("rider.fareNotReady", "Fare estimate is still calculating — please wait a moment"));
+      return;
+    }
+    // Personal-shopper requires an item cost
+    if (state.serviceType === "personal_shopper" && (!state.estimatedItemCostCents || Number(state.estimatedItemCostCents) <= 0)) {
+      toast.error(t("rider.itemCostRequired", "Please enter an estimated item cost"));
+      return;
+    }
     if (state.serviceType === "retail_delivery" && !queries.riderOrgMembership) {
       toast.error(t("rider.businessAccountRequired"));
       return;
     }
+
+    // Source of truth: context (filled by RiderSelector / PickupTimeSelector)
+    // with URL params as a fallback for deep links from DashboardHome.
+    const scheduledAtSource = rideBooking.scheduledAt ?? (state.searchParams.get("scheduledAt") ? new Date(state.searchParams.get("scheduledAt")!) : null);
+    // Reject scheduled times that have drifted into the past (user picked
+    // "in 15 min" then idled).
+    let scheduledAtFinal: string | null = null;
+    if (scheduledAtSource) {
+      if (scheduledAtSource.getTime() <= Date.now() - 30_000) {
+        toast.error(t("rider.scheduledInPast", "Scheduled pickup time is in the past — choose a new time"));
+        return;
+      }
+      scheduledAtFinal = scheduledAtSource.toISOString();
+    }
+    const bookingForFinal: "self" | "guest" =
+      rideBooking.bookingFor === "guest" || state.searchParams.get("bookingFor") === "guest" ? "guest" : "self";
+    const guestNameFinal = bookingForFinal === "guest"
+      ? (rideBooking.guestName || state.searchParams.get("guestName") || "").trim() || null
+      : null;
+    const guestPhoneFinal = bookingForFinal === "guest"
+      ? (rideBooking.guestPhone || state.searchParams.get("guestPhone") || "").trim() || null
+      : null;
+    if (bookingForFinal === "guest" && (!guestNameFinal || !guestPhoneFinal)) {
+      toast.error(t("rider.guestInfoMissing", "Please add the rider's name and phone number"));
+      return;
+    }
+
     submittingRef.current = true;
     state.setLoading(true);
     try {
@@ -167,10 +213,6 @@ const RiderDashboard = () => {
         }
       }
 
-      const scheduledAtParam = state.searchParams.get("scheduledAt");
-      const bookingForParam = state.searchParams.get("bookingFor") === "guest" ? "guest" : "self";
-      const guestNameParam = state.searchParams.get("guestName") || null;
-      const guestPhoneParam = state.searchParams.get("guestPhone") || null;
       const validStops = (state.stops ?? []).filter((s) => s.address && s.lat && s.lng);
       const { data: rideData, error } = await supabase.from("rides").insert({
         rider_id: profile.id,
