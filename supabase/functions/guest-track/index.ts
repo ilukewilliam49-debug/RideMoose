@@ -52,6 +52,30 @@ Deno.serve(async (req) => {
     const isEnRoute = ride.status === "accepted";
     const isOnTrip = ride.status === "in_progress";
 
+    // Compute real ETA via Google Directions when driver is en route to pickup
+    if (isEnRoute && driver?.latitude != null && driver?.longitude != null
+        && ride.pickup_lat != null && ride.pickup_lng != null) {
+      const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+      if (apiKey) {
+        try {
+          const origin = `${driver.latitude},${driver.longitude}`;
+          const dest = `${ride.pickup_lat},${ride.pickup_lng}`;
+          const dirUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&mode=driving&departure_time=now&key=${apiKey}`;
+          const dirRes = await fetch(dirUrl);
+          if (dirRes.ok) {
+            const dirJson = await dirRes.json();
+            const leg = dirJson?.routes?.[0]?.legs?.[0];
+            const seconds = leg?.duration_in_traffic?.value ?? leg?.duration?.value;
+            if (typeof seconds === "number") {
+              etaMin = Math.max(1, Math.round(seconds / 60));
+            }
+          }
+        } catch (err) {
+          console.error("[guest-track] directions error:", err);
+        }
+      }
+    }
+
     return new Response(JSON.stringify({
       status: ride.status,
       service_type: ride.service_type,
