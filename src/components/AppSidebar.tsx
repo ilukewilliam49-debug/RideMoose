@@ -39,6 +39,12 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
     { icon: DollarSign, title: "Earnings", url: "/driver/earnings" },
     { icon: Users, title: "Account", url: "/driver/account" },
   ],
+  business: [
+    { icon: Home, title: "Overview", url: "/business" },
+    { icon: Users, title: "Members", url: "/business/members" },
+    { icon: FileText, title: "Invoices", url: "/business/invoices" },
+    { icon: Car, title: "Ride history", url: "/business/rides" },
+  ],
   admin: [
     { icon: Home, title: t("nav.dashboard"), url: "/admin" },
     { icon: Shield, title: t("nav.verifications"), url: "/admin/verifications" },
@@ -64,9 +70,9 @@ export function AppSidebar() {
   const { profile, signOut } = useAuth();
   const { activeRole, setActiveRole, canSwitch, capabilities } = useActiveRole();
   const { t } = useTranslation();
-  // Sidebar nav uses rider layout for the "business" mode (business users
-  // book rides through the rider UI; there is no separate business dashboard).
-  const role = activeRole === "business" ? "rider" : activeRole;
+  // Sidebar nav now has a dedicated layout for "business" mode (org members,
+  // invoices, ride history). Falls back to rider when activeRole is unknown.
+  const role = activeRole;
 
   const navItems = navByRole(t)[role] || navByRole(t).rider;
 
@@ -163,7 +169,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === `/rider` || item.url === `/driver` || item.url === `/admin`}
+                      end={item.url === `/rider` || item.url === `/driver` || item.url === `/admin` || item.url === `/business`}
                       className="hover:bg-accent/50"
                       activeClassName="bg-accent text-primary font-medium"
                       onClick={() => setOpenMobile(false)}
@@ -271,7 +277,9 @@ export function AppSidebar() {
               className="w-full gap-1.5"
               onClick={() => {
                 setActiveRole(next as any);
-                navigate(next === "driver" ? "/driver" : "/rider");
+                if (next === "driver") navigate("/driver");
+                else if (next === "business") navigate("/business");
+                else navigate("/rider");
                 setOpenMobile(false);
               }}
             >
