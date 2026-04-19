@@ -346,6 +346,9 @@ const RiderDashboard = () => {
   // Build markers
   const mapMarkers: MapMarker[] = [
     ...(state.pickupCoords ? [{ lat: state.pickupCoords.lat, lng: state.pickupCoords.lng, type: "pickup" as const, label: t("rider.pickup") }] : []),
+    ...state.stops
+      .filter((s) => s.lat !== 0 && s.lng !== 0)
+      .map((s, i) => ({ lat: s.lat, lng: s.lng, type: "stop" as const, label: s.address, index: i + 1 })),
     ...(state.dropoffCoords ? [{ lat: state.dropoffCoords.lat, lng: state.dropoffCoords.lng, type: "dropoff" as const, label: t("rider.dropoff") }] : []),
   ];
 
