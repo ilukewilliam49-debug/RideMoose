@@ -15,6 +15,7 @@ import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
 
 const VEHICLE_TYPES = ["sedan", "SUV", "van", "truck"] as const;
 
@@ -70,6 +71,8 @@ function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }:
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  const currentUserId = currentUser?.id;
   const [saving, setSaving] = useState(false);
 
   const { data: profile, isLoading, isError, refetch } = useQuery({
@@ -187,6 +190,12 @@ export default function AdminUserDetail() {
 
   const toggleAdmin = async (grant: boolean) => {
     if (!profile?.user_id) return;
+    // Hard block on self-revoke — last admin lockout protection.
+    // (DB trigger also blocks revoking the very last admin.)
+    if (!grant && profile.user_id === currentUserId) {
+      toast.error("You cannot revoke your own admin access");
+      return;
+    }
     setSaving(true);
     if (grant) {
       const { error } = await supabase
@@ -312,7 +321,7 @@ export default function AdminUserDetail() {
                 id="admin-toggle"
                 checked={!!isUserAdmin}
                 onCheckedChange={(checked) => toggleAdmin(checked)}
-                disabled={saving}
+                disabled={saving || profile?.user_id === currentUserId}
               />
             </div>
           </CardContent>

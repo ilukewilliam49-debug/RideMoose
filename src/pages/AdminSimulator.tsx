@@ -75,7 +75,7 @@ const MockDriverSimulator = () => {
   // Cleanup on unmount
   useEffect(() => () => stop(), [stop]);
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
     if (!selectedRide) {
       toast.error("Select a ride first");
       return;
@@ -89,6 +89,16 @@ const MockDriverSimulator = () => {
     if (!driver_id) {
       toast.error("No driver assigned to this ride");
       return;
+    }
+
+    // Refuse to spoof a real, currently-online driver — would corrupt their
+    // active shift, navigation, and fare distance.
+    const { data: live } = await supabase.rpc("is_driver_live", { _profile_id: driver_id });
+    if (live === true) {
+      const ok = window.confirm(
+        "⚠ This driver is currently ONLINE and was seen in the last 60s. Spoofing their GPS may corrupt an active shift. Continue anyway?"
+      );
+      if (!ok) return;
     }
 
     const steps = 40;
@@ -243,7 +253,7 @@ const MockDriverSimulator = () => {
         {/* Controls */}
         <div className="flex gap-3">
           {!isRunning ? (
-            <Button onClick={start} disabled={!selectedRideId}>
+            <Button onClick={() => { void start(); }} disabled={!selectedRideId}>
               <Play className="h-4 w-4 mr-2" /> Start Simulation
             </Button>
           ) : (

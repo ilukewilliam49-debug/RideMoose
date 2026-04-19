@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,12 +39,22 @@ const PAGE_SIZE = 20;
 const AdminBookings = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
 
+  // Debounce search to keep DB queries cheap and reset to page 0 on change.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["admin-bookings", statusFilter, serviceFilter, page],
+    queryKey: ["admin-bookings", statusFilter, serviceFilter, page, debouncedSearch],
     queryFn: async () => {
       let query = supabase
         .from("rides")
@@ -61,22 +71,41 @@ const AdminBookings = () => {
       if (serviceFilter !== "all") {
         query = query.eq("service_type", serviceFilter as any);
       }
+      if (debouncedSearch) {
+        // UUID-safe full-id match OR address ilike
+        const safe = debouncedSearch.replace(/[%,]/g, "");
+        query = query.or(
+          `pickup_address.ilike.%${safe}%,dropoff_address.ilike.%${safe}%,id.eq.${safe}`
+        );
+      }
 
       const { data: rides, count, error } = await query;
-      if (error) throw error;
+      if (error) {
+        // If the id.eq filter throws on non-UUID, retry without it
+        if (debouncedSearch && /invalid input syntax/i.test(error.message)) {
+          const safe = debouncedSearch.replace(/[%,]/g, "");
+          let retry = supabase
+            .from("rides")
+            .select(
+              "id, status, service_type, pickup_address, dropoff_address, created_at, scheduled_at, estimated_price, final_price, rider_id, driver_id",
+              { count: "exact" }
+            )
+            .order("created_at", { ascending: false })
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+            .or(`pickup_address.ilike.%${safe}%,dropoff_address.ilike.%${safe}%`);
+          if (statusFilter !== "all") retry = retry.eq("status", statusFilter as any);
+          if (serviceFilter !== "all") retry = retry.eq("service_type", serviceFilter as any);
+          const { data: r2, count: c2, error: e2 } = await retry;
+          if (e2) throw e2;
+          return { rides: r2 || [], total: c2 || 0 };
+        }
+        throw error;
+      }
       return { rides: rides || [], total: count || 0 };
     },
   });
 
-  const filtered = (data?.rides || []).filter((r) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      r.pickup_address?.toLowerCase().includes(s) ||
-      r.dropoff_address?.toLowerCase().includes(s) ||
-      r.id?.toLowerCase().includes(s)
-    );
-  });
+  const filtered = data?.rides || [];
 
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
 

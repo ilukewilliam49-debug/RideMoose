@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -57,18 +57,26 @@ const AdminPricing = () => {
         .select("*")
         .order("key");
       if (error) throw error;
-      const rows = data as PlatformConfigRow[];
-      // Initialize edit state from DB on first load
-      const initial: Record<string, number> = {};
-      rows.forEach((r) => {
-        if (configEdits[r.key] === undefined) initial[r.key] = Number(r.value);
-      });
-      if (Object.keys(initial).length) {
-        setConfigEdits((prev) => ({ ...initial, ...prev }));
-      }
-      return rows;
+      return data as PlatformConfigRow[];
     },
   });
+
+  // Initialize config edits from server values exactly once per row, without
+  // mutating React state inside queryFn (which causes render loops on refetch).
+  useEffect(() => {
+    if (!allPlatformConfig?.length) return;
+    setConfigEdits((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const r of allPlatformConfig) {
+        if (next[r.key] === undefined) {
+          next[r.key] = Number(r.value);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [allPlatformConfig]);
 
   const configMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: number }) => {

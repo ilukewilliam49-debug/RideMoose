@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Megaphone, Send, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { logAdminAction } from "@/lib/audit-log";
 
 type Audience = "drivers" | "riders" | "all";
 
@@ -49,7 +50,17 @@ export default function BroadcastNotificationPanel() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Audit log: who broadcast what to whom (best-effort)
+      try {
+        await logAdminAction("broadcast", "notification", "all", {
+          audience,
+          heading: heading.trim(),
+          message: message.trim(),
+          total_profiles: data?.total_profiles,
+          sent: data?.sent,
+        });
+      } catch {/* non-fatal */}
       toast.success(
         `Broadcast sent to ${data.total_profiles} user${data.total_profiles !== 1 ? "s" : ""} (${data.sent} push delivered)`
       );

@@ -66,14 +66,6 @@ const AdminVerifications = () => {
 
     if (verification?.driver_id) {
       if (status === "approved") {
-        await supabase
-          .from("profiles")
-          .update({
-            launch_start_date: new Date().toISOString(),
-            standard_commission_rate: 0.049,
-          } as any)
-          .eq("id", verification.driver_id);
-
         const { data: allVerifications } = await supabase
           .from("verifications")
           .select("document_type, status")
@@ -84,11 +76,22 @@ const AdminVerifications = () => {
         );
 
         if (allApproved) {
-          // Mark driver onboarding complete so the user can switch into
-          // Driver mode and access the driver dashboard.
+          // Only initialize commission/launch_start_date the first time the
+          // driver becomes fully approved. Re-approving a single doc must
+          // never overwrite admin-set commission rates.
+          const { data: driverProfile } = await supabase
+            .from("profiles")
+            .select("driver_onboarding_complete, launch_start_date")
+            .eq("id", verification.driver_id)
+            .maybeSingle();
+
+          const updates: Record<string, any> = { driver_onboarding_complete: true };
+          if (!driverProfile?.launch_start_date) {
+            updates.launch_start_date = new Date().toISOString();
+          }
           await supabase
             .from("profiles")
-            .update({ driver_onboarding_complete: true } as any)
+            .update(updates as any)
             .eq("id", verification.driver_id);
 
           await supabase.from("notifications").insert({

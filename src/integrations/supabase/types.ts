@@ -2007,6 +2007,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_driver_live: { Args: { _profile_id: string }; Returns: boolean }
       is_org_admin: {
         Args: { _organization_id: string; _user_id: string }
         Returns: boolean
