@@ -23,6 +23,7 @@ import TurnByTurnNav, { type NavStep } from "@/components/TurnByTurnNav";
 import ServiceIcon from "@/components/driver/ServiceIcon";
 import { serviceLabels, fmt, isAirportTrip, isDeliveryType } from "@/lib/driver-constants";
 import type { Ride, RiderProfileSummary, DirectionsData, LiveEtaData, Profile } from "@/types/driver";
+import { parseStopsFromDb } from "@/types/stops";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -487,29 +488,53 @@ export default function ActiveTripPanel({
 
         {/* Addresses */}
         <div className="px-4 pb-3 space-y-2">
-          <div className="flex items-start gap-3">
-            <div className="flex flex-col items-center gap-1 pt-1">
-              <div className="h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-green-500/20" />
-              <div className="w-px h-6 bg-border" />
-              <div className="h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-primary/20" />
-            </div>
-            <div className="flex-1 min-w-0 space-y-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pickup</p>
-                <p className="text-sm font-medium leading-tight">{activeRide.pickup_address}</p>
-                {(activeRide as any).pickup_notes && (
-                  <p className="text-xs text-muted-foreground mt-0.5">📝 {(activeRide as any).pickup_notes}</p>
-                )}
+          {(() => {
+            const tripStops = parseStopsFromDb((activeRide as any).stops);
+            return (
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center gap-1 pt-1">
+                  <div className="h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-green-500/20" />
+                  <div className="w-px h-6 bg-border" />
+                  {tripStops.map((_, i) => (
+                    <div key={`stop-dot-${i}`} className="contents">
+                      <div className="h-5 w-5 rounded-full bg-amber-500 ring-2 ring-amber-500/20 flex items-center justify-center text-[10px] font-bold text-white">
+                        {i + 1}
+                      </div>
+                      <div className="w-px h-6 bg-border" />
+                    </div>
+                  ))}
+                  <div className="h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-primary/20" />
+                </div>
+                <div className="flex-1 min-w-0 space-y-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pickup</p>
+                    <p className="text-sm font-medium leading-tight">{activeRide.pickup_address}</p>
+                    {(activeRide as any).pickup_notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5">📝 {(activeRide as any).pickup_notes}</p>
+                    )}
+                  </div>
+                  {tripStops.map((s, i) => (
+                    <div key={`stop-${i}`}>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-500">
+                        Stop {i + 1}
+                      </p>
+                      <p className="text-sm font-medium leading-tight">{s.address}</p>
+                      {s.notes && (
+                        <p className="text-xs text-muted-foreground mt-0.5">📝 {s.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Drop-off</p>
+                    <p className="text-sm font-medium leading-tight">{activeRide.dropoff_address}</p>
+                    {(activeRide as any).dropoff_notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5">📝 {(activeRide as any).dropoff_notes}</p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Drop-off</p>
-                <p className="text-sm font-medium leading-tight">{activeRide.dropoff_address}</p>
-                {(activeRide as any).dropoff_notes && (
-                  <p className="text-xs text-muted-foreground mt-0.5">📝 {(activeRide as any).dropoff_notes}</p>
-                )}
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* Rider / customer context */}

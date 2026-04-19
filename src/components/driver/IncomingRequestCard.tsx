@@ -14,6 +14,7 @@ import { serviceLabels, fmt, isAirportTrip, isDeliveryType } from "@/lib/driver-
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { Ride, DeliveryBid } from "@/types/driver";
+import { parseStopsFromDb } from "@/types/stops";
 
 const AUTO_DECLINE_SECONDS = 30;
 const DISPATCH_TIMEOUT_SECONDS = 15;
@@ -236,26 +237,41 @@ export default function IncomingRequestCard({
       </div>
 
       {/* Addresses */}
-      <div className="px-4 py-2 space-y-1.5">
-        <div className="flex items-start gap-2">
-          <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm leading-tight line-clamp-1">{ride.pickup_address}</p>
-            {ride.pickup_notes && (
-              <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.pickup_notes}</p>
-            )}
+      {(() => {
+        const reqStops = parseStopsFromDb((ride as any).stops);
+        return (
+          <div className="px-4 py-2 space-y-1.5">
+            <div className="flex items-start gap-2">
+              <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm leading-tight line-clamp-1">{ride.pickup_address}</p>
+                {ride.pickup_notes && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.pickup_notes}</p>
+                )}
+              </div>
+            </div>
+            {reqStops.map((s, i) => (
+              <div key={`stop-${i}`} className="flex items-start gap-2">
+                <div className="mt-0.5 h-4 w-4 rounded-full bg-amber-500 shrink-0 flex items-center justify-center text-[9px] font-bold text-white">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm leading-tight line-clamp-1">{s.address}</p>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-start gap-2">
+              <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm leading-tight line-clamp-1">{ride.dropoff_address}</p>
+                {ride.dropoff_notes && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.dropoff_notes}</p>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-start gap-2">
-          <div className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm leading-tight line-clamp-1">{ride.dropoff_address}</p>
-            {ride.dropoff_notes && (
-              <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">📝 {ride.dropoff_notes}</p>
-            )}
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Distance to pickup & payment chips */}
       <div className="px-4 pb-1 flex flex-wrap items-center gap-1.5">
