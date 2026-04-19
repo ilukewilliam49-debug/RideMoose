@@ -548,33 +548,77 @@ const DashboardHome = () => {
       >
         <h2 className="text-lg font-black tracking-tight">{t("dashboard.quickActions")}</h2>
 
-        <button
-          onClick={() => navigate(withSchedule("/rider/rides"))}
-          className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Car className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold">{t("rider.requestARide")}</p>
-            <p className="text-[13px] text-muted-foreground mt-0.5">{t("dashboard.ridesDesc")}</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-        </button>
+        {(() => {
+          // Build query string from typed pickup/destination so the booking page
+          // pre-fills the addresses instead of starting blank.
+          const buildBookingUrl = (basePath: string, extraParams?: Record<string, string>) => {
+            const params = new URLSearchParams();
+            if (extraParams) {
+              Object.entries(extraParams).forEach(([k, v]) => params.set(k, v));
+            }
+            if (pickupAddress && pickupAddressCoords) {
+              params.set("pickup", pickupAddress);
+              params.set("plat", String(pickupAddressCoords.lat));
+              params.set("plng", String(pickupAddressCoords.lng));
+            }
+            if (destination && dropoffAddressCoords) {
+              params.set("dropoff", destination);
+              params.set("dlat", String(dropoffAddressCoords.lat));
+              params.set("dlng", String(dropoffAddressCoords.lng));
+            }
+            const qs = params.toString();
+            return `${basePath}${qs ? `?${qs}` : ""}`;
+          };
 
-        <button
-          onClick={() => navigate(withSchedule("/rider/rides?service=courier"))}
-          className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Package className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-bold">{t("dashboard.delivery")}</p>
-            <p className="text-[13px] text-muted-foreground mt-0.5">{t("dashboard.deliveryDesc")}</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-        </button>
+          const needsAddresses = !destination;
+          const handleQuickAction = (basePath: string, extraParams?: Record<string, string>) => {
+            if (needsAddresses) {
+              setPlanSheetOpen(true);
+              return;
+            }
+            navigate(withSchedule(buildBookingUrl(basePath, extraParams)));
+          };
+
+          return (
+            <>
+              <button
+                onClick={() => handleQuickAction("/rider/rides")}
+                className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Car className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold">{t("rider.requestARide")}</p>
+                  <p className="text-[13px] text-muted-foreground mt-0.5">
+                    {needsAddresses
+                      ? t("dashboard.enterAddressesFirst", "Enter pickup & destination first")
+                      : t("dashboard.ridesDesc")}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              </button>
+
+              <button
+                onClick={() => handleQuickAction("/rider/courier", { service: "courier" })}
+                className="flex w-full items-center gap-4 rounded-2xl bg-card/60 p-4 text-left hover:bg-card transition-colors active:scale-[0.99]"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <Package className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold">{t("dashboard.delivery")}</p>
+                  <p className="text-[13px] text-muted-foreground mt-0.5">
+                    {needsAddresses
+                      ? t("dashboard.enterAddressesFirst", "Enter pickup & destination first")
+                      : t("dashboard.deliveryDesc")}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              </button>
+            </>
+          );
+        })()}
 
         {/* Help / Support */}
         <SupportChatDialog
