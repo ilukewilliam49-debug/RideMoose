@@ -60,7 +60,7 @@ const Login = () => {
   const [otpSent, setOtpSent] = useState(false);
 
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const { activeRole } = useActiveRole();
   const { t } = useTranslation();
 
@@ -108,13 +108,9 @@ const Login = () => {
       upgradedForUserRef.current = user.id;
       (async () => {
         await provisionCapabilityFromIntent(user.id, normalized);
-        // Force a fresh profile read so the next route resolution sees the
-        // newly-flipped capability flag.
-        const { data: refreshed } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
+        // Refresh the in-memory profile via useAuth so subsequent renders
+        // (and ProtectedRoute) see the new capability without a full reload.
+        const refreshed = await refreshProfile();
         const route = resolvePostAuthRoute((refreshed ?? profile) as any, {
           intent: normalized,
           activeRole,

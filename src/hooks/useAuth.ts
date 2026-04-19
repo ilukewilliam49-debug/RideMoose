@@ -154,5 +154,5 @@ export const useAuth = () => {
     setIsAdmin(false);
   };
 
-  return { user, profile, isAdmin, loading, signOut, sessionExpired, expiredEmail, clearSessionExpired };
+  return { user, profile, isAdmin, loading, signOut, sessionExpired, expiredEmail, clearSessionExpired, refreshProfile };
 };
