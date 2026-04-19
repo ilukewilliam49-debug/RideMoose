@@ -306,6 +306,12 @@
     "petRatesUpdated": "Pet transport rates updated!"
   },
   "rider": {
+    "planYourRide": "Plan your ride",
+    "pickupNow": "Pickup now",
+    "forMe": "For me",
+    "setLocationOnMap": "Set location on map",
+    "savedPlaces": "Saved places",
+    "continue": "Continue",
     "rideInProgress": "Ride in Progress",
     "requestARide": "Request a Ride",
     "requestDelivery": "Request a Delivery",

@@ -306,6 +306,12 @@
     "petRatesUpdated": "Tarifs de transport d'animaux mis à jour !"
   },
   "rider": {
+    "planYourRide": "Planifier votre trajet",
+    "pickupNow": "Départ maintenant",
+    "forMe": "Pour moi",
+    "setLocationOnMap": "Définir sur la carte",
+    "savedPlaces": "Lieux enregistrés",
+    "continue": "Continuer",
     "rideInProgress": "Trajet en cours",
     "requestARide": "Demander un trajet",
     "requestDelivery": "Demander une livraison",

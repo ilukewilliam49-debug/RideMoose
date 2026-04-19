@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { Car, Package, Plane, Clock, MapPin, Home as HomeIcon, Building2, ChevronRight, CalendarIcon, HelpCircle, LocateFixed, AlertTriangle } from "lucide-react";
@@ -18,6 +18,7 @@ import ActiveRideBanner from "@/components/rider/ActiveRideBanner";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import SupportChatDialog from "@/components/SupportChatDialog";
 import NearbyDriversMap from "@/components/rider/NearbyDriversMap";
+import PlanRideSheet from "@/components/rider/PlanRideSheet";
 
 
 
@@ -80,6 +81,8 @@ const DashboardHome = () => {
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupAddressCoords, setPickupAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffAddressCoords, setDropoffAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [planSheetOpen, setPlanSheetOpen] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -264,6 +267,7 @@ const DashboardHome = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className="order-2 lg:order-2"
+          ref={mapRef}
         >
           <NearbyDriversMap
             activeTab="taxi"
@@ -273,12 +277,31 @@ const DashboardHome = () => {
           />
         </motion.div>
 
-        {/* Get-a-ride card (below map on mobile, left on desktop) */}
+        {/* Mobile-only: "Where to?" trigger that opens the PlanRideSheet */}
+        <div className="order-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setPlanSheetOpen(true)}
+            className="flex w-full items-center gap-2 rounded-2xl bg-card p-4 text-left active:scale-[0.99] transition-transform"
+            style={{ boxShadow: "0 1px 4px 0 hsl(0 0% 0%/0.15)" }}
+          >
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+              <div className="h-2.5 w-2.5 rounded-sm bg-primary ring-2 ring-primary/20" />
+            </div>
+            <span className="flex-1 text-[14px] font-semibold text-muted-foreground">
+              {t("dashboard.whereTo", "Where to?")}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </button>
+        </div>
+
+
+        {/* Get-a-ride card (desktop only — mobile uses PlanRideSheet trigger) */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="order-3 lg:order-1 rounded-2xl bg-card p-4 lg:p-5 lg:sticky lg:top-4"
+          className="hidden lg:block order-3 lg:order-1 rounded-2xl bg-card p-4 lg:p-5 lg:sticky lg:top-4"
           style={{ boxShadow: "0 1px 4px 0 hsl(0 0% 0%/0.15)" }}
         >
           <h2 className="hidden lg:block text-base font-black tracking-tight mb-3">
@@ -612,6 +635,27 @@ const DashboardHome = () => {
           }
         />
       </motion.div>
+
+      {/* Mobile-only: full-screen "Plan your ride" sheet */}
+      <PlanRideSheet
+        open={planSheetOpen}
+        onOpenChange={setPlanSheetOpen}
+        pickupAddress={pickupAddress}
+        setPickupAddress={setPickupAddress}
+        pickupCoords={pickupAddressCoords}
+        setPickupCoords={setPickupAddressCoords}
+        destination={destination}
+        setDestination={setDestination}
+        dropoffCoords={dropoffAddressCoords}
+        setDropoffCoords={setDropoffAddressCoords}
+        scheduledAt={scheduledAt}
+        setScheduledAt={setScheduledAt}
+        setUserLocation={setUserLocation}
+        savedPlaces={savedPlaces ?? []}
+        onRequestMapPick={() => {
+          setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+        }}
+      />
     </div>
   );
 };
