@@ -27,7 +27,7 @@ const LandingFooter = () => {
               <Link to="/privacy" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
                 {t("landing.footerPrivacy")}
               </Link>
-              <Link to="/rider/corporate-apply" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
+              <Link to="/business" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
                 {t("landing.footerBusiness")}
               </Link>
             </div>
