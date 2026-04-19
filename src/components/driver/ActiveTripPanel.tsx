@@ -204,8 +204,11 @@ export default function ActiveTripPanel({
       : 0;
 
   const [transitioning, setTransitioning] = useState(false);
+  const transitioningRef = useRef(false);
 
   const handleArrivedAtPickup = async (rideId: string) => {
+    if (transitioningRef.current) return;
+    transitioningRef.current = true;
     setTransitioning(true);
     try {
       const body: Record<string, unknown> = { ride_id: rideId };
@@ -225,10 +228,16 @@ export default function ActiveTripPanel({
       }
       toast.success("Marked as arrived at pickup");
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
-    } finally { setTransitioning(false); }
+      queryClient.invalidateQueries({ queryKey: ["has-active-ride"] });
+    } finally {
+      transitioningRef.current = false;
+      setTransitioning(false);
+    }
   };
 
   const handleStartTrip = async (rideId: string) => {
+    if (transitioningRef.current) return;
+    transitioningRef.current = true;
     setTransitioning(true);
     try {
       const body: Record<string, unknown> = { ride_id: rideId };
@@ -248,10 +257,16 @@ export default function ActiveTripPanel({
       }
       toast.success("Trip started");
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
-    } finally { setTransitioning(false); }
+      queryClient.invalidateQueries({ queryKey: ["has-active-ride"] });
+    } finally {
+      transitioningRef.current = false;
+      setTransitioning(false);
+    }
   };
 
   const handleCompleteTrip = async (rideId: string) => {
+    if (transitioningRef.current) return;
+    transitioningRef.current = true;
     setTransitioning(true);
     try {
       const body: Record<string, unknown> = { ride_id: rideId };
@@ -261,7 +276,11 @@ export default function ActiveTripPanel({
       if (data?.error) { toast.error(data.error); return; }
       toast.success("Trip completed!");
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
-    } finally { setTransitioning(false); }
+      queryClient.invalidateQueries({ queryKey: ["has-active-ride"] });
+    } finally {
+      transitioningRef.current = false;
+      setTransitioning(false);
+    }
   };
 
   const uploadProofPhoto = async (rideId: string, file: File) => {
