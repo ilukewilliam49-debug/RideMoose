@@ -181,9 +181,9 @@ const DashboardHome = () => {
   });
 
   const suggestions = [
-    { icon: Car, label: t("dashboard.localTaxi"), path: "/rider/rides?service=taxi" },
-    { icon: Plane, label: t("dashboard.airportRides"), path: "/rider/rides?service=private_hire" },
-    { icon: Package, label: t("dashboard.delivery"), path: "/rider/rides?service=courier" },
+    { icon: Car, label: t("dashboard.localTaxi"), basePath: "/rider/rides", service: "taxi" },
+    { icon: Plane, label: t("dashboard.airportRides"), basePath: "/rider/rides", service: "private_hire" },
+    { icon: Package, label: t("dashboard.delivery"), basePath: "/rider/courier", service: "courier" },
   ];
 
   const placeIcon = (icon: string) => {
@@ -511,7 +511,13 @@ const DashboardHome = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black tracking-tight">{t("dashboard.suggestions")}</h2>
           <button
-            onClick={() => navigate(withSchedule("/rider/rides"))}
+            onClick={() => {
+              if (!destination) {
+                setPlanSheetOpen(true);
+                return;
+              }
+              navigate(withSchedule("/rider/rides"));
+            }}
             className="text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
             {t("dashboard.seeAll")}
@@ -522,7 +528,25 @@ const DashboardHome = () => {
           {suggestions.map((item) => (
             <button
               key={item.label}
-              onClick={() => navigate(withSchedule(item.path))}
+              onClick={() => {
+                if (!destination) {
+                  setPlanSheetOpen(true);
+                  return;
+                }
+                const params = new URLSearchParams();
+                params.set("service", item.service);
+                if (pickupAddress && pickupAddressCoords) {
+                  params.set("pickup", pickupAddress);
+                  params.set("plat", String(pickupAddressCoords.lat));
+                  params.set("plng", String(pickupAddressCoords.lng));
+                }
+                if (destination && dropoffAddressCoords) {
+                  params.set("dropoff", destination);
+                  params.set("dlat", String(dropoffAddressCoords.lat));
+                  params.set("dlng", String(dropoffAddressCoords.lng));
+                }
+                navigate(withSchedule(`${item.basePath}?${params.toString()}`));
+              }}
               className="flex flex-col items-center gap-2 shrink-0 active:scale-[0.96] transition-transform"
             >
               <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-card border border-border/30">
