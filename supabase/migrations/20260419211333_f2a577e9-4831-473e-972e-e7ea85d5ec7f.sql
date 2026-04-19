@@ -1,0 +1,2 @@
+ALTER TABLE public.rides ADD COLUMN IF NOT EXISTS guest_track_token text UNIQUE;
+CREATE INDEX IF NOT EXISTS idx_rides_guest_track_token ON public.rides(guest_track_token) WHERE guest_track_token IS NOT NULL;

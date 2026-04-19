@@ -1160,6 +1160,7 @@ export type Database = {
           final_price: number | null
           guest_name: string | null
           guest_phone: string | null
+          guest_track_token: string | null
           id: string
           invoice_id: string | null
           invoiced: boolean
@@ -1243,6 +1244,7 @@ export type Database = {
           final_price?: number | null
           guest_name?: string | null
           guest_phone?: string | null
+          guest_track_token?: string | null
           id?: string
           invoice_id?: string | null
           invoiced?: boolean
@@ -1326,6 +1328,7 @@ export type Database = {
           final_price?: number | null
           guest_name?: string | null
           guest_phone?: string | null
+          guest_track_token?: string | null
           id?: string
           invoice_id?: string | null
           invoiced?: boolean
