@@ -19,7 +19,7 @@ const PriceEstimate = ({
   const priceNum = parseFloat(estimatedPrice);
 
   if (serviceType === "private_hire") {
-    const surcharge = 1.20;
+    const surcharge = 2.99;
     const subtotal = priceNum + surcharge;
     const gstAmount = (subtotal * 0.05).toFixed(2);
     const totalWithTax = (subtotal * 1.05).toFixed(2);

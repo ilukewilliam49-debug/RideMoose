@@ -35,7 +35,7 @@ export interface FareReceipt {
 }
 
 const DB_SYNC_INTERVAL = 12_000;
-const PICKYOU_SURCHARGE_CENTS = 120; // $1.20
+const PICKYOU_SURCHARGE_CENTS = 299; // $2.99
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;

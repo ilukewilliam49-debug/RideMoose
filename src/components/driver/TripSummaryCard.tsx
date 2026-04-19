@@ -46,7 +46,7 @@ export default function TripSummaryCard({ ride, driverProfileId, onDismiss }: Tr
   const taxCents = ride.tax_cents ?? 0;
   const earnings = (ride.driver_earnings_cents ?? 0) + tipCents;
   const isPrivateHire = ride.service_type === "private_hire";
-  const surchargeCents = isPrivateHire ? 120 : 0;
+  const surchargeCents = isPrivateHire ? 299 : 0;
 
   // Rating state
   const [riderRating, setRiderRating] = useState(0);
