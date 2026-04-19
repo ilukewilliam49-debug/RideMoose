@@ -1,18 +1,15 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { format, addMinutes } from "date-fns";
-import { ArrowLeft, Clock, User, MapPin, LocateFixed, Map as MapIcon, ChevronRight, CalendarIcon, ChevronDown, Check, UserPlus } from "lucide-react";
+import { ArrowLeft, MapPin, LocateFixed, Map as MapIcon, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
 import AddressAutocomplete from "@/components/map/AddressAutocomplete";
 import SavedPlaceChips from "@/components/rider/SavedPlaceChips";
 import RouteStopsEditor from "@/components/rider/RouteStopsEditor";
+import PickupTimeSelector from "@/components/rider/PickupTimeSelector";
+import RiderSelector from "@/components/rider/RiderSelector";
+import { useRideBooking } from "@/contexts/RideBookingContext";
 import { encodeStopsParam, type RideStop } from "@/types/stops";
 import type { SavedPlace } from "@/types/rider";
 
@@ -27,8 +24,6 @@ interface PlanRideSheetProps {
   setDestination: (v: string) => void;
   dropoffCoords: { lat: number; lng: number } | null;
   setDropoffCoords: (c: { lat: number; lng: number } | null) => void;
-  scheduledAt: Date | null;
-  setScheduledAt: (d: Date | null) => void;
   setUserLocation: (l: { lat: number; lng: number } | null) => void;
   savedPlaces?: SavedPlace[];
   onRequestMapPick?: () => void;
@@ -48,8 +43,6 @@ export default function PlanRideSheet({
   setDestination,
   dropoffCoords,
   setDropoffCoords,
-  scheduledAt,
-  setScheduledAt,
   setUserLocation,
   savedPlaces = [],
   onRequestMapPick,
@@ -60,47 +53,7 @@ export default function PlanRideSheet({
   const navigate = useNavigate();
   const dropoffRef = useRef<HTMLDivElement>(null);
 
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [showCustom, setShowCustom] = useState(false);
-  const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
-  const [customTime, setCustomTime] = useState("12:00");
-
-  // "For me" / "For someone else"
-  const [riderOpen, setRiderOpen] = useState(false);
-  const [riderMode, setRiderMode] = useState<"me" | "other">("me");
-  const [riderName, setRiderName] = useState("");
-  const [riderPhone, setRiderPhone] = useState("");
-  const [draftMode, setDraftMode] = useState<"me" | "other">("me");
-  const [draftName, setDraftName] = useState("");
-  const [draftPhone, setDraftPhone] = useState("");
-
-  const riderLabel =
-    riderMode === "me"
-      ? t("rider.forMe", "For me")
-      : riderName
-        ? riderName.split(" ")[0]
-        : t("rider.forSomeoneElse", "For someone else");
-
-  const openRiderPopover = (open: boolean) => {
-    if (open) {
-      setDraftMode(riderMode);
-      setDraftName(riderName);
-      setDraftPhone(riderPhone);
-    }
-    setRiderOpen(open);
-  };
-
-  const confirmRider = () => {
-    setRiderMode(draftMode);
-    if (draftMode === "other") {
-      setRiderName(draftName.trim());
-      setRiderPhone(draftPhone.trim());
-    } else {
-      setRiderName("");
-      setRiderPhone("");
-    }
-    setRiderOpen(false);
-  };
+  const { scheduledAt, bookingFor, guestName, guestPhone } = useRideBooking();
 
   // Autofocus the dropoff input when sheet opens
   useEffect(() => {
@@ -111,30 +64,6 @@ export default function PlanRideSheet({
     }, 250);
     return () => clearTimeout(id);
   }, [open]);
-
-  const scheduleLabel = scheduledAt
-    ? format(scheduledAt, "MMM d, h:mm a")
-    : t("rider.pickupNow", "Pickup now");
-
-  const handlePreset = (mins: number) => {
-    setScheduledAt(addMinutes(new Date(), mins));
-    setShowCustom(false);
-    setScheduleOpen(false);
-  };
-  const handleNow = () => {
-    setScheduledAt(null);
-    setShowCustom(false);
-    setScheduleOpen(false);
-  };
-  const handleCustomConfirm = () => {
-    if (!customDate) return;
-    const [h, m] = customTime.split(":").map(Number);
-    const dt = new Date(customDate);
-    dt.setHours(h, m, 0, 0);
-    setScheduledAt(dt);
-    setShowCustom(false);
-    setScheduleOpen(false);
-  };
 
   const useMyLocation = async () => {
     try {
@@ -156,27 +85,34 @@ export default function PlanRideSheet({
 
   const handleContinue = () => {
     const base = "/rider/rides";
-    let params = "";
+    const params = new URLSearchParams();
     if (pickupAddress && pickupCoords) {
-      params += `?pickup=${encodeURIComponent(pickupAddress)}&plat=${pickupCoords.lat}&plng=${pickupCoords.lng}`;
+      params.set("pickup", pickupAddress);
+      params.set("plat", String(pickupCoords.lat));
+      params.set("plng", String(pickupCoords.lng));
     }
     if (destination && dropoffCoords) {
-      const sep = params ? "&" : "?";
-      params += `${sep}dropoff=${encodeURIComponent(destination)}&dlat=${dropoffCoords.lat}&dlng=${dropoffCoords.lng}`;
+      params.set("dropoff", destination);
+      params.set("dlat", String(dropoffCoords.lat));
+      params.set("dlng", String(dropoffCoords.lng));
     }
     if (stops && stops.length > 0) {
       const validStops = stops.filter((s) => s.address && s.lat && s.lng);
       if (validStops.length > 0) {
-        const sep = params ? "&" : "?";
-        params += `${sep}stops=${encodeStopsParam(validStops)}`;
+        params.set("stops", encodeStopsParam(validStops));
       }
     }
     if (scheduledAt) {
-      const sep = params ? "&" : "?";
-      params += `${sep}scheduledAt=${scheduledAt.toISOString()}`;
+      params.set("scheduledAt", scheduledAt.toISOString());
+    }
+    if (bookingFor === "guest" && guestName && guestPhone) {
+      params.set("bookingFor", "guest");
+      params.set("guestName", guestName);
+      params.set("guestPhone", guestPhone);
     }
     onOpenChange(false);
-    navigate(`${base}${params}`);
+    const qs = params.toString();
+    navigate(qs ? `${base}?${qs}` : base);
   };
 
   return (
@@ -205,139 +141,10 @@ export default function PlanRideSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-4">
-          {/* Chip row — Uber-style action pills */}
+          {/* Chip row — modular Uber-style action pills */}
           <div className="flex items-center gap-2">
-            <Popover open={scheduleOpen} onOpenChange={setScheduleOpen} modal={false}>
-              <PopoverTrigger asChild>
-                <button
-                  className={cn(
-                    "group flex items-center gap-2 rounded-full border px-3.5 py-2 transition-all active:scale-95",
-                    scheduledAt
-                      ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-                      : "border-border/60 bg-secondary hover:bg-accent"
-                  )}
-                >
-                  <Clock className={cn("h-4 w-4 transition-transform group-hover:-rotate-12", scheduledAt ? "text-primary" : "text-foreground")} />
-                  <span className="text-sm font-semibold max-w-[140px] truncate">{scheduleLabel}</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 opacity-60 transition-transform", scheduleOpen && "rotate-180")} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-3 z-[1300]" align="start" sideOffset={8} onOpenAutoFocus={(e) => e.preventDefault()}>
-                {!showCustom ? (
-                  <div className="space-y-1">
-                    <button onClick={handleNow} className={cn("w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-between", !scheduledAt ? "bg-primary/10 text-primary" : "hover:bg-accent")}>
-                      <span>{t("rider.pickupNow", "Pickup now")}</span>
-                      {!scheduledAt && <Check className="h-4 w-4" />}
-                    </button>
-                    {[{ m: 15, label: "In 15 mins" }, { m: 30, label: "In 30 mins" }, { m: 60, label: "In 1 hour" }].map(({ m, label }) => (
-                      <button key={m} onClick={() => handlePreset(m)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
-                        {label}
-                      </button>
-                    ))}
-                    <button onClick={() => setShowCustom(true)} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-accent transition-colors flex items-center gap-2">
-                      <CalendarIcon className="h-3.5 w-3.5" />
-                      Custom date &amp; time
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Calendar
-                      mode="single"
-                      selected={customDate}
-                      onSelect={setCustomDate}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      className={cn("p-2 pointer-events-auto")}
-                    />
-                    <div className="flex items-center gap-2">
-                      <Input type="time" value={customTime} onChange={(e) => setCustomTime(e.target.value)} className="flex-1" />
-                      <Button size="sm" onClick={handleCustomConfirm} disabled={!customDate}>
-                        Set
-                      </Button>
-                    </div>
-                    <button onClick={() => setShowCustom(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      ← Back
-                    </button>
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={riderOpen} onOpenChange={openRiderPopover} modal={false}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "group flex items-center gap-2 rounded-full border px-3.5 py-2 transition-all active:scale-95",
-                    riderMode === "other"
-                      ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-                      : "border-border/60 bg-secondary hover:bg-accent"
-                  )}
-                >
-                  {riderMode === "other" ? (
-                    <UserPlus className="h-4 w-4 text-primary" />
-                  ) : (
-                    <User className="h-4 w-4 text-foreground transition-transform group-hover:scale-110" />
-                  )}
-                  <span className="text-sm font-semibold max-w-[140px] truncate">{riderLabel}</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 opacity-60 transition-transform", riderOpen && "rotate-180")} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-3 z-[1300]" align="start" sideOffset={8} onOpenAutoFocus={(e) => e.preventDefault()}>
-                <div className="space-y-1 mb-2">
-                  <button
-                    onClick={() => setDraftMode("me")}
-                    className={cn(
-                      "w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-between",
-                      draftMode === "me" ? "bg-primary/10 text-primary" : "hover:bg-accent"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {t("rider.forMe", "For me")}
-                    </span>
-                    {draftMode === "me" && <Check className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={() => setDraftMode("other")}
-                    className={cn(
-                      "w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-between",
-                      draftMode === "other" ? "bg-primary/10 text-primary" : "hover:bg-accent"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <UserPlus className="h-4 w-4" />
-                      {t("rider.forSomeoneElse", "For someone else")}
-                    </span>
-                    {draftMode === "other" && <Check className="h-4 w-4" />}
-                  </button>
-                </div>
-                {draftMode === "other" && (
-                  <div className="space-y-2 pt-2 border-t border-border/40">
-                    <Input
-                      value={draftName}
-                      onChange={(e) => setDraftName(e.target.value)}
-                      placeholder={t("rider.contactName", "Rider name")}
-                      className="h-9"
-                    />
-                    <Input
-                      value={draftPhone}
-                      onChange={(e) => setDraftPhone(e.target.value)}
-                      placeholder={t("rider.contactPhone", "Phone number")}
-                      type="tel"
-                      className="h-9"
-                    />
-                  </div>
-                )}
-                <Button
-                  size="sm"
-                  className="w-full mt-3 rounded-full"
-                  onClick={confirmRider}
-                  disabled={draftMode === "other" && (!draftName.trim() || !draftPhone.trim())}
-                >
-                  {t("common.confirm", "Confirm")}
-                </Button>
-              </PopoverContent>
-            </Popover>
+            <PickupTimeSelector />
+            <RiderSelector />
           </div>
 
           {/* Address card */}
