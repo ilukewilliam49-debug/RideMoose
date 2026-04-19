@@ -135,6 +135,12 @@ const RiderDashboard = () => {
     if (now - lastSubmitTimeRef.current < 3000) return;
     lastSubmitTimeRef.current = now;
     if (!profile?.id || !state.pickup || !state.dropoff || !state.pickupCoords || !state.dropoffCoords) return;
+    // Block submission if any added stop is incomplete
+    const incompleteStop = (state.stops ?? []).find((s) => !s.address || !s.lat || !s.lng);
+    if (incompleteStop) {
+      toast.error(t("rider.completeAllStops", "Please complete or remove empty stops"));
+      return;
+    }
     if (state.serviceType === "retail_delivery" && !queries.riderOrgMembership) {
       toast.error(t("rider.businessAccountRequired"));
       return;
