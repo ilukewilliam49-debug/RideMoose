@@ -60,8 +60,10 @@ const runKillSwitchOnce = async () => {
 };
 
 const unregisterServiceWorkers = async () => {
-  const registrations = await navigator.serviceWorker?.getRegistrations();
-  await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
+  if (!("serviceWorker" in navigator)) return;
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  if (!registrations.length) return;
+  await Promise.all(registrations.map((registration) => registration.unregister()));
 };
 
 const clearBrowserCaches = async () => {
