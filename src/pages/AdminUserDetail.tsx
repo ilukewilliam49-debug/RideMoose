@@ -16,7 +16,6 @@ import { format } from "date-fns";
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 
-const ROLES = ["rider", "driver", "admin"] as const;
 const VEHICLE_TYPES = ["sedan", "SUV", "van", "truck"] as const;
 
 function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }: {
@@ -118,6 +117,21 @@ export default function AdminUserDetail() {
     enabled: !!id,
   });
 
+  const { data: isUserAdmin = false, refetch: refetchAdmin } = useQuery({
+    queryKey: ["admin-user-is-admin", profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("user_id", profile.user_id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!profile?.user_id,
+  });
+
   const { data: verifications } = useQuery({
     queryKey: ["admin-user-verifications", id],
     queryFn: async () => {
@@ -129,7 +143,7 @@ export default function AdminUserDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !!id && profile?.role === "driver",
+    enabled: !!id && !!profile?.is_driver,
   });
 
   const handleUpdate = async (field: string, value: any) => {
