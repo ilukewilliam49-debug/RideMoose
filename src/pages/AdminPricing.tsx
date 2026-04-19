@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Save, Car, Briefcase, Bus, Gauge, Percent, Settings } from "lucide-react";
+import { Save, Car, Briefcase, Bus, Gauge, Percent, Settings, Package, ShoppingBag, Truck, Utensils } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -31,6 +31,11 @@ const serviceConfig = {
   taxi: { label: "Taxi", icon: Car, color: "text-primary" },
   private_hire: { label: "PickYou", icon: Briefcase, color: "text-blue-500" },
   shuttle: { label: "Shuttle", icon: Bus, color: "text-green-500" },
+  courier: { label: "Courier", icon: Package, color: "text-orange-500" },
+  retail_delivery: { label: "Retail Delivery", icon: ShoppingBag, color: "text-purple-500" },
+  personal_shopper: { label: "Personal Shopper", icon: ShoppingBag, color: "text-pink-500" },
+  large_delivery: { label: "Large Delivery", icon: Truck, color: "text-amber-600" },
+  food_delivery: { label: "Food Delivery", icon: Utensils, color: "text-red-500" },
 } as const;
 
 const AdminPricing = () => {
@@ -304,7 +309,7 @@ const AdminPricing = () => {
       {/* Service Pricing Cards */}
       <div>
         <h2 className="text-lg font-semibold mb-3">{t("pricing.generalPricing")}</h2>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {pricingRows?.map((row) => {
             const cfg = serviceConfig[row.service_type as keyof typeof serviceConfig];
             const edited = getEdited(row);

@@ -111,7 +111,14 @@ export const useRideQueries = ({
     }
     if (svcType === "courier") {
       if (!routeKm) return null;
-      return (Math.max(1200, 800 + Math.round(routeKm * 150)) / 100).toFixed(2);
+      const courierPricing = servicePricing?.find((p) => p.service_type === "courier");
+      if (!courierPricing) return null;
+      const base = Number(courierPricing.base_fare);
+      const perKm = Number(courierPricing.per_km_rate);
+      const minimum = Number(courierPricing.minimum_fare);
+      const surge = Number(courierPricing.surge_multiplier) || 1;
+      const computed = (base + routeKm * perKm) * surge;
+      return Math.max(minimum, computed).toFixed(2);
     }
     if (svcType === "large_delivery") {
       if (!routeKm) return null;
