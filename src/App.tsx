@@ -11,8 +11,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleLayout from "./components/RoleLayout";
 import SessionExpiredDialog from "./components/SessionExpiredDialog";
 import IdleTimeoutDialog from "./components/IdleTimeoutDialog";
-import OfflineBanner from "./components/OfflineBanner";
-import NetworkErrorBanner from "./components/NetworkErrorBanner";
+// Offline UX handled by the sonner toast in useNetworkStatus — duplicate
+// banners removed to avoid stacking notifications and a framer-motion warning.
 import SplashScreen from "./components/SplashScreen";
 import { useAuth } from "./hooks/useAuth";
 import { useHasActiveRide } from "./hooks/useHasActiveRide";
@@ -95,8 +95,6 @@ const AppContent = () => {
 
   return (
     <>
-      <OfflineBanner />
-      <NetworkErrorBanner />
       <SessionExpiredDialog
         open={sessionExpired}
         email={expiredEmail}
