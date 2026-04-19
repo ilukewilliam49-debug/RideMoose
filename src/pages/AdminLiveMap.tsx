@@ -99,7 +99,7 @@ export default function AdminLiveMap() {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     mapRef.current = L.map(containerRef.current, {
-      center: [64.135, -21.895], // Reykjavik default
+      center: [62.454, -114.371], // Yellowknife, NWT — service area
       zoom: 12,
       attributionControl: false,
     });
