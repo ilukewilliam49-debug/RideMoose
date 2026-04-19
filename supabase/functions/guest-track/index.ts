@@ -48,26 +48,44 @@ Deno.serve(async (req) => {
     }
 
     let etaMin: number | null = null;
+    let routePolyline: string | null = null;
     const driver: any = ride.driver;
     const isEnRoute = ride.status === "accepted";
     const isOnTrip = ride.status === "in_progress";
 
-    // Compute real ETA via Google Directions when driver is en route to pickup
+    // Determine route endpoints based on phase
+    let origin: string | null = null;
+    let dest: string | null = null;
     if (isEnRoute && driver?.latitude != null && driver?.longitude != null
         && ride.pickup_lat != null && ride.pickup_lng != null) {
+      // Driver -> pickup
+      origin = `${driver.latitude},${driver.longitude}`;
+      dest = `${ride.pickup_lat},${ride.pickup_lng}`;
+    } else if (isOnTrip && ride.pickup_lat != null && ride.pickup_lng != null
+        && ride.dropoff_lat != null && ride.dropoff_lng != null) {
+      // Pickup -> dropoff (use driver location as origin if available for live progress)
+      origin = driver?.latitude != null && driver?.longitude != null
+        ? `${driver.latitude},${driver.longitude}`
+        : `${ride.pickup_lat},${ride.pickup_lng}`;
+      dest = `${ride.dropoff_lat},${ride.dropoff_lng}`;
+    }
+
+    if (origin && dest) {
       const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
       if (apiKey) {
         try {
-          const origin = `${driver.latitude},${driver.longitude}`;
-          const dest = `${ride.pickup_lat},${ride.pickup_lng}`;
           const dirUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${dest}&mode=driving&departure_time=now&key=${apiKey}`;
           const dirRes = await fetch(dirUrl);
           if (dirRes.ok) {
             const dirJson = await dirRes.json();
-            const leg = dirJson?.routes?.[0]?.legs?.[0];
+            const route = dirJson?.routes?.[0];
+            const leg = route?.legs?.[0];
             const seconds = leg?.duration_in_traffic?.value ?? leg?.duration?.value;
             if (typeof seconds === "number") {
               etaMin = Math.max(1, Math.round(seconds / 60));
+            }
+            if (typeof route?.overview_polyline?.points === "string") {
+              routePolyline = route.overview_polyline.points;
             }
           }
         } catch (err) {
@@ -98,6 +116,7 @@ Deno.serve(async (req) => {
         lng: isEnRoute || isOnTrip ? driver.longitude : null,
       } : null,
       eta_min: etaMin,
+      route_polyline: routePolyline,
     }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
