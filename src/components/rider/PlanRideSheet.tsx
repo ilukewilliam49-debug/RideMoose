@@ -174,6 +174,7 @@ export default function PlanRideSheet({
                   onChange={(value, lat, lng) => {
                     setPickupAddress(value);
                     if (lat && lng) setPickupCoords({ lat, lng });
+                    else setPickupCoords(null);
                   }}
                   placeholder={t("rider.pickupLocation", "Pickup location")}
                   iconColor="text-green-500"
@@ -213,6 +214,7 @@ export default function PlanRideSheet({
                   onChange={(value, lat, lng) => {
                     setDestination(value);
                     if (lat && lng) setDropoffCoords({ lat, lng });
+                    else setDropoffCoords(null);
                   }}
                   placeholder={t("dashboard.whereTo", "Where to?")}
                   iconColor="text-primary"

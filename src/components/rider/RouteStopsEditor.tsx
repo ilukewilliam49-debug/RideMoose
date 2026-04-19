@@ -76,7 +76,9 @@ export default function RouteStopsEditor({ stops, onChange, className }: RouteSt
                 if (typeof lat === "number" && typeof lng === "number") {
                   updateStop(idx, { address: value, lat, lng });
                 } else {
-                  updateStop(idx, { address: value });
+                  // Reset coords so submission validation catches the
+                  // un-geocoded text instead of using stale lat/lng.
+                  updateStop(idx, { address: value, lat: 0, lng: 0 });
                 }
               }}
               placeholder={t("rider.stopPlaceholder", "Add stop {{n}}", { n: idx + 1 })}
