@@ -205,6 +205,10 @@ serve(async (req) => {
       stripe_fee_cents: stripeFeeCents,
       driver_earnings_cents: driverEarnings,
       tax_cents: taxCents,
+      // Persist server-recomputed authoritative fare so receipts/admin show
+      // the correct value (not whatever the meter reported).
+      final_fare_cents: grossFareCents,
+      final_price: riderTotalCents / 100,
     };
 
     if (riderTotalCents <= authorizedAmount) {
