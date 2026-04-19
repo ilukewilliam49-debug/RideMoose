@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { format, addMinutes } from "date-fns";
 import { ArrowLeft, Clock, User, MapPin, LocateFixed, Map as MapIcon, ChevronRight, CalendarIcon } from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -134,6 +134,10 @@ export default function PlanRideSheet({
         side="bottom"
         className="h-[100dvh] w-full max-w-full p-0 rounded-t-2xl flex flex-col gap-0 border-0 sm:max-w-full"
       >
+        <SheetTitle className="sr-only">{t("rider.planYourRide", "Plan your ride")}</SheetTitle>
+        <SheetDescription className="sr-only">
+          {t("rider.planYourRide", "Plan your ride")}
+        </SheetDescription>
         {/* Header */}
         <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-border/30">
           <button
