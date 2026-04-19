@@ -237,8 +237,7 @@ const Login = () => {
               await supabase
                 .from("profiles")
                 .update({ [capCol]: true } as any)
-                .eq("user_id", signInData.user.id)
-                .neq("role", "admin");
+                .eq("user_id", signInData.user.id);
             }
             toast.success(t("auth.welcomeBack"));
           } else {

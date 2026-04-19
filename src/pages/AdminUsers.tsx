@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { toast } from "@/hooks/use-toast";
@@ -27,14 +28,16 @@ interface ProfileRow {
   user_id: string;
   full_name: string;
   phone: string | null;
-  role: "rider" | "driver" | "admin";
+  is_rider: boolean;
+  is_driver: boolean;
+  is_business: boolean;
   is_available: boolean | null;
   can_courier: boolean;
   vehicle_type: string | null;
   created_at: string;
+  isAdmin?: boolean;
 }
 
-const ROLES = ["rider", "driver", "admin"] as const;
 const VEHICLE_TYPES = [
   { value: "none", label: "None" },
   { value: "sedan", label: "Sedan" },
@@ -69,7 +72,6 @@ const AdminUsers = () => {
     onConfirm: () => void;
   } | null>(null);
 
-  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
@@ -81,17 +83,19 @@ const AdminUsers = () => {
 
     let query = supabase
       .from("profiles")
-      .select("id, user_id, full_name, phone, role, is_available, can_courier, vehicle_type, created_at", { count: "exact" })
+      .select(
+        "id, user_id, full_name, phone, is_rider, is_driver, is_business, is_available, can_courier, vehicle_type, created_at",
+        { count: "exact" },
+      )
       .order("created_at", { ascending: false });
 
-    // Server-side filters
-    if (roleFilter !== "all") query = query.eq("role", roleFilter as any);
+    if (roleFilter === "driver") query = query.eq("is_driver", true);
+    else if (roleFilter === "rider") query = query.eq("is_rider", true).eq("is_driver", false).eq("is_business", false);
+    else if (roleFilter === "business") query = query.eq("is_business", true);
+
     if (vehicleFilter !== "all") {
-      if (vehicleFilter === "none") {
-        query = query.is("vehicle_type", null);
-      } else {
-        query = query.eq("vehicle_type", vehicleFilter);
-      }
+      if (vehicleFilter === "none") query = query.is("vehicle_type", null);
+      else query = query.eq("vehicle_type", vehicleFilter);
     }
     if (onlineFilter === "online") query = query.eq("is_available", true);
     if (onlineFilter === "offline") query = query.eq("is_available", false);
@@ -108,10 +112,27 @@ const AdminUsers = () => {
     if (err) {
       setError(true);
       toast({ title: "Error loading users", description: err.message, variant: "destructive" });
-    } else {
-      setProfiles(data as ProfileRow[]);
-      setTotalCount(count || 0);
+      setLoading(false);
+      return;
     }
+
+    const rows = (data || []) as ProfileRow[];
+    const userIds = rows.map((r) => r.user_id);
+    let adminSet = new Set<string>();
+    if (userIds.length) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .in("user_id", userIds);
+      adminSet = new Set((roles || []).map((r) => r.user_id));
+    }
+
+    let withAdmin = rows.map((r) => ({ ...r, isAdmin: adminSet.has(r.user_id) }));
+    if (roleFilter === "admin") withAdmin = withAdmin.filter((r) => r.isAdmin);
+
+    setProfiles(withAdmin);
+    setTotalCount(count || 0);
     setLoading(false);
   }, [roleFilter, vehicleFilter, onlineFilter, capabilityFilter, debouncedSearch, page]);
 
@@ -130,11 +151,8 @@ const AdminUsers = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selected.size === profiles.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(profiles.map((p) => p.id)));
-    }
+    if (selected.size === profiles.length) setSelected(new Set());
+    else setSelected(new Set(profiles.map((p) => p.id)));
   };
 
   const handleBulkUpdate = async (field: string, value: any) => {
@@ -180,17 +198,41 @@ const AdminUsers = () => {
     setSaving(null);
   };
 
-  const handleRoleChange = (profileId: string, newRole: string) => {
-    setConfirmAction({
-      title: "Change user role?",
-      description: `This will change the user's role to "${newRole}". This affects their access and permissions across the platform.`,
-      onConfirm: () => handleUpdate(profileId, "role", newRole),
-    });
+  const toggleAdmin = async (row: ProfileRow) => {
+    setSaving(row.id);
+    if (row.isAdmin) {
+      const { error: err } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", row.user_id)
+        .eq("role", "admin");
+      if (err) toast({ title: "Failed to revoke admin", description: err.message, variant: "destructive" });
+      else {
+        toast({ title: "Admin revoked" });
+        setProfiles((prev) => prev.map((p) => (p.id === row.id ? { ...p, isAdmin: false } : p)));
+      }
+    } else {
+      const { error: err } = await supabase
+        .from("user_roles")
+        .insert({ user_id: row.user_id, role: "admin" });
+      if (err) toast({ title: "Failed to grant admin", description: err.message, variant: "destructive" });
+      else {
+        toast({ title: "Admin granted" });
+        setProfiles((prev) => prev.map((p) => (p.id === row.id ? { ...p, isAdmin: true } : p)));
+      }
+    }
+    setSaving(null);
+  };
+
+  const roleLabel = (p: ProfileRow) => {
+    if (p.isAdmin) return "admin";
+    if (p.is_driver) return "driver";
+    if (p.is_business) return "business";
+    return "rider";
   };
 
   return (
     <div className="space-y-6">
-      {/* Confirm dialog */}
       <AlertDialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -212,7 +254,6 @@ const AdminUsers = () => {
         <p className="text-muted-foreground text-sm">View and manage all user accounts</p>
       </div>
 
-      {/* Search & Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -224,12 +265,13 @@ const AdminUsers = () => {
           />
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[120px]"><SelectValue placeholder="All roles" /></SelectTrigger>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="All roles" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>
-            {ROLES.map((r) => (
-              <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
-            ))}
+            <SelectItem value="rider">Rider only</SelectItem>
+            <SelectItem value="driver">Driver</SelectItem>
+            <SelectItem value="business">Business</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
         </Select>
         <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
@@ -268,22 +310,17 @@ const AdminUsers = () => {
         </div>
       ) : (
         <>
-          {/* Bulk Action Toolbar */}
           {selected.size > 0 && (
             <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2 flex-wrap">
               <span className="text-sm font-medium">{selected.size} selected</span>
               <div className="h-4 w-px bg-border" />
-              <Select onValueChange={(val) => handleBulkAction("role", val, `role → ${val}`)} disabled={bulkSaving}>
-                <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Set role…" /></SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Button variant="outline" size="sm" className="h-8 text-xs" disabled={bulkSaving}
                 onClick={() => handleBulkAction("can_courier", true, "courier → enabled")}>
                 Enable Courier
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={bulkSaving}
+                onClick={() => handleBulkAction("is_driver", true, "driver capability → enabled")}>
+                Enable Driver
               </Button>
               <Button variant="ghost" size="sm" className="h-8 text-xs ml-auto" onClick={() => setSelected(new Set())}>
                 <X className="h-3 w-3 mr-1" /> Clear
@@ -304,6 +341,7 @@ const AdminUsers = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Admin</TableHead>
                   <TableHead>Vehicle</TableHead>
                   <TableHead>Courier</TableHead>
                   <TableHead>Active</TableHead>
@@ -318,22 +356,18 @@ const AdminUsers = () => {
                     </TableCell>
                     <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{p.phone || "—"}</TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Select
-                        value={p.role}
-                        onValueChange={(val) => handleRoleChange(p.id, val)}
-                        disabled={saving === p.id || p.user_id === profile?.user_id}
-                      >
-                        <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {ROLES.map((r) => (
-                            <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">{roleLabel(p)}</Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {p.role === "driver" ? (
+                      <Switch
+                        checked={!!p.isAdmin}
+                        onCheckedChange={() => toggleAdmin(p)}
+                        disabled={saving === p.id || p.user_id === profile?.user_id}
+                      />
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {p.is_driver ? (
                         <Select
                           value={p.vehicle_type || "none"}
                           onValueChange={(val) => handleUpdate(p.id, "vehicle_type", val === "none" ? null : val)}
@@ -351,7 +385,7 @@ const AdminUsers = () => {
                       )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {p.role === "driver" ? (
+                      {p.is_driver ? (
                         <Switch
                           checked={p.can_courier}
                           onCheckedChange={(checked) => handleUpdate(p.id, "can_courier", checked)}
@@ -369,7 +403,7 @@ const AdminUsers = () => {
                 ))}
                 {profiles.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -378,7 +412,6 @@ const AdminUsers = () => {
             </Table>
           </div>
 
-          {/* Pagination */}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>{totalCount} user{totalCount !== 1 ? "s" : ""}</span>
             <div className="flex items-center gap-2">

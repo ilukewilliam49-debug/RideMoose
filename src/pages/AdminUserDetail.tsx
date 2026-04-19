@@ -16,7 +16,6 @@ import { format } from "date-fns";
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 
-const ROLES = ["rider", "driver", "admin"] as const;
 const VEHICLE_TYPES = ["sedan", "SUV", "van", "truck"] as const;
 
 function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }: {
@@ -118,6 +117,21 @@ export default function AdminUserDetail() {
     enabled: !!id,
   });
 
+  const { data: isUserAdmin = false, refetch: refetchAdmin } = useQuery({
+    queryKey: ["admin-user-is-admin", profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("user_id", profile.user_id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!profile?.user_id,
+  });
+
   const { data: verifications } = useQuery({
     queryKey: ["admin-user-verifications", id],
     queryFn: async () => {
@@ -129,7 +143,7 @@ export default function AdminUserDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !!id && profile?.role === "driver",
+    enabled: !!id && !!profile?.is_driver,
   });
 
   const handleUpdate = async (field: string, value: any) => {
@@ -161,6 +175,43 @@ export default function AdminUserDetail() {
     pending: "bg-yellow-500/10 text-yellow-500",
     approved: "bg-green-500/10 text-green-500",
     rejected: "bg-destructive/10 text-destructive",
+  };
+
+  const roleLabel = isUserAdmin
+    ? "admin"
+    : profile?.is_driver
+      ? "driver"
+      : profile?.is_business
+        ? "business"
+        : "rider";
+
+  const toggleAdmin = async (grant: boolean) => {
+    if (!profile?.user_id) return;
+    setSaving(true);
+    if (grant) {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: profile.user_id, role: "admin" });
+      if (error) toast.error(`Failed to grant admin: ${error.message}`);
+      else {
+        await logAdminAction("grant_admin", "profile", id!, {});
+        toast.success("Admin role granted");
+        refetchAdmin();
+      }
+    } else {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", profile.user_id)
+        .eq("role", "admin");
+      if (error) toast.error(`Failed to revoke admin: ${error.message}`);
+      else {
+        await logAdminAction("revoke_admin", "profile", id!, {});
+        toast.success("Admin role revoked");
+        refetchAdmin();
+      }
+    }
+    setSaving(false);
   };
 
   if (isError) {
@@ -200,7 +251,7 @@ export default function AdminUserDetail() {
         <div>
           <h1 className="text-2xl font-bold">{profile?.full_name || "Unnamed User"}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className="capitalize">{profile?.role}</Badge>
+            <Badge variant="outline" className="capitalize">{roleLabel}</Badge>
             {profile?.is_available && (
               <Badge className="bg-green-500/10 text-green-500">Online</Badge>
             )}
@@ -253,30 +304,22 @@ export default function AdminUserDetail() {
               onSave={(val) => handleUpdate("commission_rate", parseFloat(val) / 100)}
             />
             <div className="flex items-center justify-between pt-2">
-              <Label htmlFor="role-select" className="flex items-center gap-2">
+              <Label htmlFor="admin-toggle" className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-muted-foreground" />
-                Role
+                Admin access
               </Label>
-              <Select
-                value={profile?.role}
-                onValueChange={(val) => handleUpdate("role", val)}
+              <Switch
+                id="admin-toggle"
+                checked={!!isUserAdmin}
+                onCheckedChange={(checked) => toggleAdmin(checked)}
                 disabled={saving}
-              >
-                <SelectTrigger className="w-28" id="role-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
           </CardContent>
         </Card>
 
         {/* Driver Capabilities */}
-        {profile?.role === "driver" && (
+        {profile?.is_driver && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">Driver Capabilities</CardTitle>
@@ -366,7 +409,7 @@ export default function AdminUserDetail() {
         )}
 
         {/* Verifications (Driver only) */}
-        {profile?.role === "driver" && verifications && verifications.length > 0 && (
+        {profile?.is_driver && verifications && verifications.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">Verifications</CardTitle>
@@ -389,12 +432,12 @@ export default function AdminUserDetail() {
           <Card className="md:col-span-2">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                <span>{profile?.role === "driver" ? "Driver Ratings" : "Rider Ratings"}</span>
+                <span>{profile?.is_driver ? "Driver Ratings" : "Rider Ratings"}</span>
                 <div className="flex items-center gap-2">
                   {(() => {
                     const p = profile as any;
-                    const avg = profile?.role === "driver" ? p?.average_rating : p?.rider_average_rating;
-                    const count = profile?.role === "driver" ? p?.total_ratings : p?.rider_total_ratings;
+                    const avg = profile?.is_driver ? p?.average_rating : p?.rider_average_rating;
+                    const count = profile?.is_driver ? p?.total_ratings : p?.rider_total_ratings;
                     if (avg == null) return null;
                     return (
                       <>
@@ -455,7 +498,7 @@ export default function AdminUserDetail() {
         )}
 
         {/* Recent Rides */}
-        <Card className={profile?.role !== "driver" ? "md:col-span-2" : ""}>
+        <Card className={!profile?.is_driver ? "md:col-span-2" : ""}>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Recent Rides</CardTitle>
           </CardHeader>
