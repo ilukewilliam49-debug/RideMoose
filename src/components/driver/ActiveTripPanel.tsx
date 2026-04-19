@@ -328,14 +328,19 @@ export default function ActiveTripPanel({
     }
     setCancelling(true);
     try {
+      // Use a single atomic UPDATE that satisfies the
+      // "Drivers can cancel accepted or arrived rides" RLS policy.
+      // We intentionally do NOT null-out driver_id here — the policy's
+      // WITH CHECK requires status='cancelled' + reason set. Keeping
+      // driver_id preserves the audit trail and notification routing.
       const { error } = await supabase
         .from("rides")
         .update({
           status: "cancelled" as any,
           cancellation_reason: `Driver cancelled: ${cancelReason}`,
-          driver_id: null,
         } as any)
-        .eq("id", activeRide.id);
+        .eq("id", activeRide.id)
+        .in("status", ["accepted", "arrived"] as any);
       if (error) throw error;
 
       // Notify the rider
@@ -632,11 +637,12 @@ export default function ActiveTripPanel({
                 </>
               )}
             </Button>
-            {activeRide.status === "accepted" && (
+            {(activeRide.status === "accepted" || (activeRide.status as string) === "arrived") && (
               <Button
                 variant="outline"
                 className="h-14 w-14 rounded-xl active:scale-[0.98] border-destructive/30 text-destructive hover:bg-destructive/10"
                 onClick={() => setCancelDialogOpen(true)}
+                aria-label="Cancel ride"
               >
                 <X className="h-5 w-5" />
               </Button>

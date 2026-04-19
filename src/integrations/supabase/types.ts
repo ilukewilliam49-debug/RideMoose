@@ -2029,6 +2029,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      touch_driver_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

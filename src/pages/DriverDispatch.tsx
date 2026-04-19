@@ -394,7 +394,15 @@ const DriverDispatch = () => {
       } else if (result?.success) {
         toast.success(t("dispatch.rideAccepted"));
       } else {
-        toast.error(result?.reason === "already_taken" ? "This ride was already taken" : "Could not accept ride");
+        const reason = result?.reason;
+        const messageMap: Record<string, string> = {
+          driver_offline: "Go online before accepting rides",
+          ride_locked: "Another driver is currently accepting this ride",
+          already_taken: "This ride was already taken",
+          dispatched_to_other: "This ride was dispatched to a different driver",
+          dispatch_expired: "Dispatch window expired — request released",
+        };
+        toast.error(messageMap[reason || ""] || "Could not accept ride");
       }
     } finally {
       setAcceptingId(null);

@@ -48,8 +48,11 @@ export default function PickupTimeSelector({ className }: { className?: string }
     const [h, m] = customTime.split(":").map(Number);
     const dt = new Date(customDate);
     dt.setHours(h, m, 0, 0);
-    if (dt.getTime() <= Date.now()) {
-      toast.error(t("rider.pastTimeError", "Pickup time must be in the future"));
+    const MIN_LEAD_MS = 10 * 60 * 1000;
+    if (dt.getTime() <= Date.now() + MIN_LEAD_MS) {
+      toast.error(
+        t("rider.minLeadTimeError", "Pickup must be at least 10 minutes from now")
+      );
       return;
     }
     setScheduledAt(dt);
