@@ -60,6 +60,16 @@ serve(async (req) => {
     const res = await fetch(url.toString());
     const data = await res.json();
 
+    // Gracefully handle "no route possible" responses so the client can
+    // fall back to a Haversine estimate instead of crashing on a 500.
+    if (data.status === "ZERO_RESULTS" || data.status === "NOT_FOUND") {
+      console.warn("Google Directions API:", data.status);
+      return new Response(
+        JSON.stringify({ error: data.status, fallback: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     if (data.status !== "OK") {
       console.error("Google Directions API error:", data.status, data.error_message);
       throw new Error(`Google Directions API error: ${data.status}`);
@@ -68,7 +78,10 @@ serve(async (req) => {
     const route = data.routes?.[0];
     const legs = route?.legs || [];
     if (legs.length === 0) {
-      throw new Error("No route found");
+      return new Response(
+        JSON.stringify({ error: "NO_LEGS", fallback: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // Aggregate across all legs (origin → wp1 → wp2 ... → dest)
