@@ -45,6 +45,30 @@ export default function GuestTrack() {
   const [data, setData] = useState<TrackData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [calling, setCalling] = useState(false);
+
+  const handleCallDriver = async () => {
+    if (!token || calling) return;
+    setCalling(true);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/guest-call-driver`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ token }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Could not place call");
+      toast.success("We're calling your phone now to connect you with the driver.");
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't place the call");
+    } finally {
+      setCalling(false);
+    }
+  };
 
   useEffect(() => {
     if (!token) return;
