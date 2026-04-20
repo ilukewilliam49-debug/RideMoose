@@ -34,7 +34,7 @@ const PrivacyPolicy = () => {
         <p className="text-muted-foreground text-sm">Last updated: April 8, 2026</p>
 
         <h2>1. Information We Collect</h2>
-        <p>We collect information you provide directly (name, email, phone number, payment details) and information generated through your use of the Service (location data, ride history, device information).</p>
+        <p>PickYou Technologies Inc. ("PickYou Technologies Inc.", "we", "us", or "our"), the operator of the PickYou platform, collects information you provide directly (name, email, phone number, payment details) and information generated through your use of the Service (location data, ride history, device information).</p>
 
         <h2>2. How We Use Your Information</h2>
         <ul>
@@ -67,7 +67,7 @@ const PrivacyPolicy = () => {
         <p>We may update this Privacy Policy periodically. We will notify you of material changes via the app or email.</p>
 
         <h2>10. Contact</h2>
-        <p>For privacy-related inquiries, contact us at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
+        <p>For privacy-related inquiries, contact PickYou Technologies Inc. at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
       </article>
     </div>
   );

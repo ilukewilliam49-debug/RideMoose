@@ -34,10 +34,10 @@ const TermsOfService = () => {
         <p className="text-muted-foreground text-sm">Last updated: April 8, 2026</p>
 
         <h2>1. Acceptance of Terms</h2>
-        <p>By accessing or using the PickYou platform ("Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
+        <p>These Terms of Service ("Terms") are a binding agreement between you and PickYou Technologies Inc. ("PickYou Technologies Inc.", "we", "us", or "our"), the operator of the PickYou platform ("Service"). By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, do not use the Service.</p>
 
         <h2>2. Description of Service</h2>
-        <p>PickYou provides a technology platform connecting riders with independent drivers for transportation, courier, and delivery services. PickYou does not provide transportation services directly.</p>
+        <p>PickYou Technologies Inc. provides a technology platform, marketed under the "PickYou" brand, that connects riders with independent drivers for transportation, courier, and delivery services. PickYou Technologies Inc. does not provide transportation services directly.</p>
 
         <h2>3. User Accounts</h2>
         <p>You must provide accurate information when creating an account. You are responsible for maintaining the confidentiality of your credentials and for all activity under your account.</p>
@@ -52,13 +52,13 @@ const TermsOfService = () => {
         <p>Cancellation fees may apply if a ride is cancelled after a driver has been dispatched. The fee amount is displayed before confirmation.</p>
 
         <h2>7. Limitation of Liability</h2>
-        <p>To the fullest extent permitted by law, PickYou shall not be liable for indirect, incidental, or consequential damages arising from your use of the Service.</p>
+        <p>To the fullest extent permitted by law, PickYou Technologies Inc. shall not be liable for indirect, incidental, or consequential damages arising from your use of the Service.</p>
 
         <h2>8. Changes to Terms</h2>
         <p>We may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance of the revised Terms.</p>
 
         <h2>9. Contact</h2>
-        <p>For questions about these Terms, contact us at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
+        <p>For questions about these Terms, contact PickYou Technologies Inc. at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
       </article>
     </div>
   );
