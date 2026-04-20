@@ -58,7 +58,7 @@ const TermsOfService = () => {
         <p>We may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance of the revised Terms.</p>
 
         <h2>9. Contact</h2>
-        <p>For questions about these Terms, contact us at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
+        <p>For questions about these Terms, contact PickYou Technologies Inc. at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
       </article>
     </div>
   );
