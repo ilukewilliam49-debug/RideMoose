@@ -67,7 +67,7 @@ const PrivacyPolicy = () => {
         <p>We may update this Privacy Policy periodically. We will notify you of material changes via the app or email.</p>
 
         <h2>10. Contact</h2>
-        <p>For privacy-related inquiries, contact us at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
+        <p>For privacy-related inquiries, contact PickYou Technologies Inc. at <a href="tel:+18679888836" className="text-primary">(867) 988-8836</a>.</p>
       </article>
     </div>
   );
