@@ -424,7 +424,7 @@ const Login = () => {
                     </div>
                     <Input
                       type="tel"
-                      placeholder="(867) 446-4151"
+                      placeholder={t("auth.enterPhoneNumber", "Enter Phone Number")}
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       className="flex-1 bg-secondary border-input"
