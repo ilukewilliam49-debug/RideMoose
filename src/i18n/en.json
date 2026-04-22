@@ -175,7 +175,14 @@
     "passwordTooWeak": "Password does not meet all requirements",
     "capsLockOn": "Caps Lock is on",
     "rememberMe": "Remember me on this device",
-    "clearEmail": "Clear email"
+    "clearEmail": "Clear email",
+    "accountExistsWrongPassword": "An account with this email already exists. Please check your password.",
+    "business": "Business",
+    "createDriverAccount": "Create driver account",
+    "driverAccountSubtitle": "Sign up to start driving with PickYou.",
+    "driverApplication": "Driver application",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
@@ -218,7 +225,8 @@
     "getARide": "Get a ride",
     "go": "Go",
     "recent": "Recent",
-    "supportDesc": "Get help with your account or rides"
+    "supportDesc": "Get help with your account or rides",
+    "enterAddressesFirst": "Enter pickup and dropoff addresses first."
   },
   "bottomNav": {
     "home": "Home",
@@ -307,6 +315,28 @@
     "petRatesUpdated": "Pet transport rates updated!"
   },
   "rider": {
+    "tripSummary": "Trip summary",
+    "editStops": "Edit stops",
+    "fareNotReady": "Fare estimate isn't ready yet — please wait a moment.",
+    "guestInfoMissing": "Please provide both name and phone for the guest passenger.",
+    "guestNameRequired": "Guest name is required.",
+    "guestPhoneInvalid": "Please enter a valid phone number for the guest.",
+    "in15": "In 15 min",
+    "in30": "In 30 min",
+    "in60": "In 1 hour",
+    "scheduleForLater": "Schedule for later",
+    "pickADate": "Pick a date and time",
+    "minLeadTimeError": "Pickup must be at least 15 minutes from now.",
+    "scheduledInPast": "Scheduled time must be in the future.",
+    "itemCostRequired": "Estimated item cost is required.",
+    "largeGroupFee": "+$6 large-vehicle surcharge for 5–6 passengers",
+    "moveUp": "Move up",
+    "removeStop": "Remove stop",
+    "stopN": "Stop {{n}}",
+    "stopPlaceholder": "Add an address",
+    "stopUnnamed": "Unnamed stop",
+    "pickAddressError": "Please choose a pickup and dropoff address.",
+    "searchCancelFailed": "Couldn't cancel the search. Please try again.",
     "planYourRide": "Plan your ride",
     "pickupNow": "Pickup now",
     "forMe": "For me",
@@ -333,7 +363,7 @@
     "searchDropoff": "Search dropoff address...",
     "privateHireFlatRate": "PickYou – Flat Rate",
     "pickYouEstimate": "PickYou Estimate",
-    "pickYouPricingNote": "Estimate based on distance, travel time, and current PickYou pricing",
+    "pickYouPricingNote": "Estimate uses the City of Yellowknife taxi meter base, plus 5% GST and a $0.97 PickYou platform fee. Waiting time is billed live by the meter.",
     "taxiMeterEstimate": "Taxi Meter Estimate",
     "route": "Route",
     "eta": "ETA",
@@ -353,7 +383,6 @@
     "accessibilityToggle": "Wheelchair / accessibility needed",
     "accessibilityToggleNote": "Waives the $6 large-vehicle surcharge (City bylaw)",
     "taxiPricingNote": "City of Yellowknife regulated taxi rate. No GST. No service fee. Waiting time is billed live by the meter (first 3 minutes free).",
-    "pickYouPricingNote": "Estimate uses the City of Yellowknife taxi meter base, plus 5% GST and a $0.97 PickYou platform fee. Waiting time is billed live by the meter.",
     "estimatedPrice": "Estimated price:",
     "seat": "seat",
     "seats": "seats",
@@ -545,7 +574,12 @@
     "courierPricingNote": "$8 base + $1.50/km, $12 minimum",
     "packageSmallDesc": "Fits in a backpack (under 5 kg)",
     "packageMediumDesc": "Fits on a car seat (5–15 kg)",
-    "packageLargeDesc": "Fits in a trunk (15–30 kg)"
+    "packageLargeDesc": "Fits in a trunk (15–30 kg)",
+    "addAnotherStop": "Add another stop",
+    "addStop": "Add stop",
+    "alreadyHasActiveRide": "You already have an active ride.",
+    "completeAllStops": "Please complete every stop with a valid address.",
+    "driverAcceptedFirst": "Another driver accepted this ride first."
   },
   "rating": {
     "rateYourRide": "Rate Your Ride",
@@ -595,7 +629,11 @@
     "english": "English",
     "french": "French",
     "and": "and",
-    "back": "Back"
+    "back": "Back",
+    "confirm": "Confirm",
+    "done": "Done",
+    "set": "Set",
+    "useMyLocation": "Use my location"
   },
   "dispatch": {
     "dispatchBoard": "Dispatch Board",
@@ -724,5 +762,31 @@
     "sendTip": "Send tip",
     "sending": "Sending…",
     "sentSuccess": "Tip sent. Thanks!"
+  },
+  "business": {
+    "eyebrow": "PickYou for Business",
+    "heroTitle": "Move your team with one transparent account",
+    "heroDesc": "Centralized billing, monthly invoices, and full ride visibility for organizations of every size.",
+    "applyCta": "Apply for a business account",
+    "callSales": "Talk to sales",
+    "featuresTitle": "Built for organizations",
+    "feature1Title": "Monthly invoicing",
+    "feature1Desc": "Consolidated invoices with line-item ride detail, exportable for accounting.",
+    "feature2Title": "Cost centers & PO numbers",
+    "feature2Desc": "Tag every ride with a cost center or PO so reconciliation is effortless.",
+    "feature3Title": "Team management",
+    "feature3Desc": "Add bookers and viewers, set roles, and control who can spend.",
+    "feature4Title": "Spend controls",
+    "feature4Desc": "Credit limits, payment terms, and real-time balance visibility.",
+    "benefitsTitle": "Why teams choose PickYou",
+    "benefitsDesc": "Reliable Yellowknife transportation backed by transparent, City-regulated pricing.",
+    "benefit1": "No hidden fees — taxi rates follow the City bylaw",
+    "benefit2": "Single monthly invoice for the whole team",
+    "benefit3": "Per-ride cost-center and PO tagging",
+    "benefit4": "Real-time ride dashboard for admins",
+    "benefit5": "Net-30 payment terms available",
+    "benefit6": "Dedicated account support",
+    "ctaTitle": "Ready to streamline your team's transportation?",
+    "ctaDesc": "Apply in minutes and our team will reach out to finalize your account."
   }
 }

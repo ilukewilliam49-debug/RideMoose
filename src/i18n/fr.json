@@ -175,7 +175,14 @@
     "passwordTooWeak": "Le mot de passe ne respecte pas toutes les exigences",
     "capsLockOn": "Verr. Maj. activé",
     "rememberMe": "Se souvenir de moi sur cet appareil",
-    "clearEmail": "Effacer l'e-mail"
+    "clearEmail": "Effacer l'e-mail",
+    "accountExistsWrongPassword": "Un compte avec ce courriel existe déjà. Veuillez vérifier votre mot de passe.",
+    "business": "Entreprise",
+    "createDriverAccount": "Créer un compte chauffeur",
+    "driverAccountSubtitle": "Inscrivez-vous pour commencer à conduire avec PickYou.",
+    "driverApplication": "Demande de chauffeur",
+    "hidePassword": "Masquer le mot de passe",
+    "showPassword": "Afficher le mot de passe"
   },
   "dashboard": {
     "welcome": "Bienvenue, {{name}}",
@@ -218,7 +225,8 @@
     "getARide": "Obtenir un trajet",
     "go": "Aller",
     "recent": "Récent",
-    "supportDesc": "Obtenez de l'aide pour votre compte ou vos trajets"
+    "supportDesc": "Obtenez de l'aide pour votre compte ou vos trajets",
+    "enterAddressesFirst": "Entrez d'abord les adresses de prise en charge et de dépôt."
   },
   "bottomNav": {
     "home": "Accueil",
@@ -307,6 +315,28 @@
     "petRatesUpdated": "Tarifs de transport d'animaux mis à jour !"
   },
   "rider": {
+    "tripSummary": "Résumé du trajet",
+    "editStops": "Modifier les arrêts",
+    "fareNotReady": "L'estimation du tarif n'est pas encore prête — veuillez patienter.",
+    "guestInfoMissing": "Veuillez fournir le nom et le téléphone du passager invité.",
+    "guestNameRequired": "Le nom de l'invité est requis.",
+    "guestPhoneInvalid": "Veuillez entrer un numéro de téléphone valide pour l'invité.",
+    "in15": "Dans 15 min",
+    "in30": "Dans 30 min",
+    "in60": "Dans 1 heure",
+    "scheduleForLater": "Planifier plus tard",
+    "pickADate": "Choisissez une date et une heure",
+    "minLeadTimeError": "La prise en charge doit être dans au moins 15 minutes.",
+    "scheduledInPast": "L'heure planifiée doit être dans le futur.",
+    "itemCostRequired": "Le coût estimé des articles est requis.",
+    "largeGroupFee": "+6 $ supplément grand véhicule pour 5–6 passagers",
+    "moveUp": "Déplacer vers le haut",
+    "removeStop": "Retirer l'arrêt",
+    "stopN": "Arrêt {{n}}",
+    "stopPlaceholder": "Ajouter une adresse",
+    "stopUnnamed": "Arrêt sans nom",
+    "pickAddressError": "Veuillez choisir une adresse de prise en charge et de dépôt.",
+    "searchCancelFailed": "Impossible d'annuler la recherche. Veuillez réessayer.",
     "planYourRide": "Planifier votre trajet",
     "pickupNow": "Départ maintenant",
     "forMe": "Pour moi",
@@ -333,7 +363,7 @@
     "searchDropoff": "Rechercher l'adresse de dépôt...",
     "privateHireFlatRate": "PickYou – Tarif fixe",
     "pickYouEstimate": "Estimation PickYou",
-    "pickYouPricingNote": "Estimation basée sur la distance, le temps de trajet et la tarification PickYou en vigueur",
+    "pickYouPricingNote": "L'estimation utilise le tarif au compteur de la Ville de Yellowknife, plus 5 % de TPS et 0,97 $ de frais de plateforme PickYou. Le temps d'attente est facturé en direct par le compteur.",
     "taxiMeterEstimate": "Estimation du compteur taxi",
     "route": "Itinéraire",
     "eta": "ETA",
@@ -353,7 +383,6 @@
     "accessibilityToggle": "Accessibilité / fauteuil roulant requis",
     "accessibilityToggleNote": "Annule le supplément de 6 $ pour grand véhicule (règlement municipal)",
     "taxiPricingNote": "Tarif de taxi réglementé par la Ville de Yellowknife. Aucune TPS. Aucuns frais de service. Le temps d'attente est facturé en direct par le compteur (3 premières minutes gratuites).",
-    "pickYouPricingNote": "L'estimation utilise le tarif au compteur de la Ville de Yellowknife, plus 5 % de TPS et 0,97 $ de frais de plateforme PickYou. Le temps d'attente est facturé en direct par le compteur.",
     "estimatedPrice": "Prix estimé :",
     "seat": "siège",
     "seats": "sièges",
@@ -545,7 +574,12 @@
     "courierPricingNote": "8 $ de base + 1,50 $/km, minimum 12 $",
     "packageSmallDesc": "Tient dans un sac à dos (moins de 5 kg)",
     "packageMediumDesc": "Tient sur un siège (5–15 kg)",
-    "packageLargeDesc": "Tient dans un coffre (15–30 kg)"
+    "packageLargeDesc": "Tient dans un coffre (15–30 kg)",
+    "addAnotherStop": "Ajouter un autre arrêt",
+    "addStop": "Ajouter un arrêt",
+    "alreadyHasActiveRide": "Vous avez déjà un trajet actif.",
+    "completeAllStops": "Veuillez compléter chaque arrêt avec une adresse valide.",
+    "driverAcceptedFirst": "Un autre chauffeur a accepté ce trajet en premier."
   },
   "rating": {
     "rateYourRide": "Évaluez votre trajet",
@@ -595,7 +629,11 @@
     "english": "English",
     "french": "French",
     "and": "et",
-    "back": "Retour"
+    "back": "Retour",
+    "confirm": "Confirmer",
+    "done": "Terminé",
+    "set": "Définir",
+    "useMyLocation": "Utiliser ma position"
   },
   "dispatch": {
     "dispatchBoard": "Tableau de répartition",
@@ -724,5 +762,31 @@
     "sendTip": "Envoyer le pourboire",
     "sending": "Envoi…",
     "sentSuccess": "Pourboire envoyé. Merci !"
+  },
+  "business": {
+    "eyebrow": "PickYou pour les entreprises",
+    "heroTitle": "Déplacez votre équipe avec un seul compte transparent",
+    "heroDesc": "Facturation centralisée, factures mensuelles et visibilité complète des trajets pour les organisations de toutes tailles.",
+    "applyCta": "Demander un compte entreprise",
+    "callSales": "Parler aux ventes",
+    "featuresTitle": "Conçu pour les organisations",
+    "feature1Title": "Facturation mensuelle",
+    "feature1Desc": "Factures consolidées avec détail des trajets, exportables pour la comptabilité.",
+    "feature2Title": "Centres de coûts et bons de commande",
+    "feature2Desc": "Étiquetez chaque trajet avec un centre de coûts ou un bon de commande pour faciliter la réconciliation.",
+    "feature3Title": "Gestion d'équipe",
+    "feature3Desc": "Ajoutez des réservateurs et des observateurs, définissez les rôles et contrôlez qui peut dépenser.",
+    "feature4Title": "Contrôles de dépenses",
+    "feature4Desc": "Limites de crédit, conditions de paiement et visibilité du solde en temps réel.",
+    "benefitsTitle": "Pourquoi les équipes choisissent PickYou",
+    "benefitsDesc": "Transport fiable à Yellowknife avec une tarification transparente et réglementée par la Ville.",
+    "benefit1": "Aucuns frais cachés — les tarifs taxi suivent le règlement municipal",
+    "benefit2": "Une seule facture mensuelle pour toute l'équipe",
+    "benefit3": "Étiquetage par centre de coûts et bon de commande",
+    "benefit4": "Tableau de bord en temps réel pour les administrateurs",
+    "benefit5": "Conditions de paiement net 30 disponibles",
+    "benefit6": "Soutien de compte dédié",
+    "ctaTitle": "Prêt à simplifier le transport de votre équipe ?",
+    "ctaDesc": "Postulez en quelques minutes et notre équipe vous contactera pour finaliser votre compte."
   }
 }

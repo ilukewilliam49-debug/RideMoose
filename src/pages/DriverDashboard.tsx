@@ -38,22 +38,67 @@ const DriverDashboard = () => {
 
   const isOnline = !!profile?.is_available;
 
-  // ─── Live-ticking online duration ───
+  // Regulatory cap: City/HOS rules forbid more than 12 hours of continuous
+  // driving. Enforced client-side (block + auto-offline) and server-side
+  // (accept_ride RPC + auto_offline_overdue_shifts cron).
+  const SHIFT_LIMIT_MS = 12 * 60 * 60 * 1000;
+
+  // ─── Live-ticking online duration + 12h cap enforcement ───
   const [onlineDuration, setOnlineDuration] = useState<string | null>(null);
+  const [shiftCapped, setShiftCapped] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const tick = () => {
       const onlineSince = profile?.went_online_at;
-      if (!onlineSince) { setOnlineDuration(null); return; }
+      if (!onlineSince) { setOnlineDuration(null); setShiftCapped(false); return; }
       const diff = Date.now() - new Date(onlineSince).getTime();
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       setOnlineDuration(h > 0 ? `${h}h ${m}m` : `${m}m`);
+
+      // Enforce 12-hour cap: auto-offline + show summary, exactly once.
+      if (diff >= SHIFT_LIMIT_MS && !shiftCapped && profile?.id) {
+        setShiftCapped(true);
+        (async () => {
+          try {
+            setLastShiftStart(onlineSince);
+            const { data: openSession } = await supabase
+              .from("shift_sessions")
+              .select("id")
+              .eq("driver_id", profile.id)
+              .is("ended_at", null)
+              .order("started_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (openSession) {
+              await supabase
+                .from("shift_sessions")
+                .update({ ended_at: new Date().toISOString() })
+                .eq("id", openSession.id);
+            }
+            await supabase
+              .from("profiles")
+              .update({ is_available: false, went_online_at: null })
+              .eq("id", profile.id);
+            if (!cancelled) {
+              toast.error("12-hour shift limit reached", {
+                description: "You've been taken offline. Please rest before starting a new shift.",
+                duration: 10000,
+              });
+              setShiftSummaryOpen(true);
+              queryClient.invalidateQueries({ queryKey: ["auth-profile"] });
+            }
+          } catch (e) {
+            console.error("[shift-cap] auto-offline failed", e);
+          }
+        })();
+      }
     };
     tick();
     const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, [profile?.went_online_at]);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [profile?.went_online_at, profile?.id, shiftCapped, queryClient, SHIFT_LIMIT_MS]);
 
   // ─── Toggle online / offline ───
   const toggleAvailability = useCallback(async () => {
@@ -78,7 +123,34 @@ const DriverDashboard = () => {
       const updates: Record<string, any> = { is_available: newStatus };
 
       if (newStatus) {
+        // Regulatory: refuse to go online if there's an unresolved shift
+        // older than 12 hours — driver must rest before starting a new one.
+        const { data: openSession } = await supabase
+          .from("shift_sessions")
+          .select("id, started_at")
+          .eq("driver_id", profile.id)
+          .is("ended_at", null)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (openSession?.started_at) {
+          const age = Date.now() - new Date(openSession.started_at).getTime();
+          if (age >= SHIFT_LIMIT_MS) {
+            await supabase
+              .from("shift_sessions")
+              .update({ ended_at: new Date().toISOString() })
+              .eq("id", openSession.id);
+            toast.error("12-hour shift limit reached", {
+              description: "Please rest before starting a new shift.",
+            });
+            setTogglingAvailability(false);
+            return;
+          }
+        }
+
         updates.went_online_at = new Date().toISOString();
+        setShiftCapped(false);
         await supabase.from("shift_sessions").insert({
           driver_id: profile.id,
           started_at: new Date().toISOString(),
@@ -117,7 +189,7 @@ const DriverDashboard = () => {
     } finally {
       setTogglingAvailability(false);
     }
-  }, [profile, isOnline, queryClient, navigate]);
+  }, [profile, isOnline, queryClient, navigate, SHIFT_LIMIT_MS]);
 
   // ─── Dashboard stats ───
   const { data: stats, isLoading: statsLoading } = useQuery({

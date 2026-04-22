@@ -1988,6 +1988,7 @@ export type Database = {
         Args: { _channel: string; _user_id: string }
         Returns: boolean
       }
+      auto_offline_overdue_shifts: { Args: never; Returns: number }
       auto_offline_stale_drivers: { Args: never; Returns: number }
       check_notification_rate_limit: {
         Args: { _key: string; _max_requests?: number; _window_seconds?: number }
@@ -2006,6 +2007,10 @@ export type Database = {
           _service: Database["public"]["Enums"]["service_type"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      driver_shift_within_limit: {
+        Args: { _driver_profile_id: string }
         Returns: boolean
       }
       enqueue_email: {
