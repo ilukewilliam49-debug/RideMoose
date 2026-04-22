@@ -57,6 +57,9 @@ verify_jwt = false
 [functions.cleanup-stale-rides]
 verify_jwt = false
 
+[functions.cancel-ride]
+verify_jwt = false
+
 [functions.process-email-queue]
 verify_jwt = true
 

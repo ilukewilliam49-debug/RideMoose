@@ -53,20 +53,20 @@ export default function CancelRideDialog({
     }
     setCancelling(true);
     try {
-      const { error } = await supabase
-        .from("rides")
-        .update({
-          status: "cancelled" as any,
-          cancellation_reason: selectedReason,
-          cancellation_fee_cents: cancellationFeeCents,
-        } as any)
-        .eq("id", rideId);
+      // SECURITY: cancellation MUST go through the server-authoritative
+      // edge function. RLS no longer allows the client to write
+      // cancellation_fee_cents directly — the server computes the fee
+      // based on ride status and captures/releases the Stripe hold.
+      const { data, error } = await supabase.functions.invoke("cancel-ride", {
+        body: { ride_id: rideId, reason: selectedReason },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       toast.success(t("rider.rideCancelled"));
       onOpenChange(false);
       onCancelled?.();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message ?? "Could not cancel ride");
     } finally {
       setCancelling(false);
     }
