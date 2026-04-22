@@ -45,7 +45,6 @@ const DriverDashboard = () => {
   const SHIFT_LIMIT_MS = 12 * 60 * 60 * 1000;
 
   // ─── Live-ticking online duration + 12h cap enforcement ───
-  const [onlineDuration, setOnlineDuration] = useState<string | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [shiftCapped, setShiftCapped] = useState(false);
 
