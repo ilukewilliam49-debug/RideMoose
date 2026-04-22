@@ -185,7 +185,9 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
       "ride_id",
       "rider_id",
       "dispatch_log_id",
-      "timestamp",
+      "timestamp_iso",
+      "timestamp_local",
+      "timezone",
       "event",
       "hop",
       "status",
@@ -207,7 +209,9 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
         rideId,
         riderId,
         log.id,
-        log.created_at,
+        log.created_at, // canonical UTC ISO
+        formatTs(log.created_at), // matches on-screen display exactly
+        VIEWER_TZ,
         log.event,
         meta.hop ?? "",
         log.status,
@@ -229,7 +233,11 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dispatch-timeline-${rideId}-${format(new Date(), "yyyyMMdd-HHmmss")}.csv`;
+    // Filename uses a filesystem-safe local timestamp (no colons/spaces).
+    const stamp = formatTs(new Date().toISOString())
+      .replace(/[\s,:]+/g, "-")
+      .replace(/[^\w.-]/g, "");
+    a.download = `dispatch-timeline-${rideId}-${stamp}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
