@@ -1130,6 +1130,7 @@ export type Database = {
       }
       rides: {
         Row: {
+          accessibility_required: boolean
           authorized_amount_cents: number | null
           bidding_ends_at: string | null
           billed_to: string
@@ -1181,9 +1182,11 @@ export type Database = {
           payment_option: string
           payment_status: string
           pickup_address: string
+          pickup_delivery_no_passenger: boolean
           pickup_lat: number | null
           pickup_lng: number | null
           pickup_notes: string | null
+          pickyou_surcharge_cents: number
           po_number: string | null
           price_increase_count: number
           pricing_model: string
@@ -1214,6 +1217,7 @@ export type Database = {
           weight_estimate_kg: number | null
         }
         Insert: {
+          accessibility_required?: boolean
           authorized_amount_cents?: number | null
           bidding_ends_at?: string | null
           billed_to?: string
@@ -1265,9 +1269,11 @@ export type Database = {
           payment_option?: string
           payment_status?: string
           pickup_address: string
+          pickup_delivery_no_passenger?: boolean
           pickup_lat?: number | null
           pickup_lng?: number | null
           pickup_notes?: string | null
+          pickyou_surcharge_cents?: number
           po_number?: string | null
           price_increase_count?: number
           pricing_model?: string
@@ -1298,6 +1304,7 @@ export type Database = {
           weight_estimate_kg?: number | null
         }
         Update: {
+          accessibility_required?: boolean
           authorized_amount_cents?: number | null
           bidding_ends_at?: string | null
           billed_to?: string
@@ -1349,9 +1356,11 @@ export type Database = {
           payment_option?: string
           payment_status?: string
           pickup_address?: string
+          pickup_delivery_no_passenger?: boolean
           pickup_lat?: number | null
           pickup_lng?: number | null
           pickup_notes?: string | null
+          pickyou_surcharge_cents?: number
           po_number?: string | null
           price_increase_count?: number
           pricing_model?: string
@@ -1611,7 +1620,14 @@ export type Database = {
           created_at: string
           free_waiting_min: number
           id: string
+          included_meters: number
+          increment_meters: number
+          large_vehicle_surcharge_cents: number
+          per_increment_cents: number
           per_km_cents: number
+          pickup_delivery_surcharge_cents: number
+          pickyou_gst_rate: number
+          pickyou_platform_fee_cents: number
           waiting_per_min_cents: number
         }
         Insert: {
@@ -1620,7 +1636,14 @@ export type Database = {
           created_at?: string
           free_waiting_min?: number
           id?: string
+          included_meters?: number
+          increment_meters?: number
+          large_vehicle_surcharge_cents?: number
+          per_increment_cents?: number
           per_km_cents?: number
+          pickup_delivery_surcharge_cents?: number
+          pickyou_gst_rate?: number
+          pickyou_platform_fee_cents?: number
           waiting_per_min_cents?: number
         }
         Update: {
@@ -1629,7 +1652,14 @@ export type Database = {
           created_at?: string
           free_waiting_min?: number
           id?: string
+          included_meters?: number
+          increment_meters?: number
+          large_vehicle_surcharge_cents?: number
+          per_increment_cents?: number
           per_km_cents?: number
+          pickup_delivery_surcharge_cents?: number
+          pickyou_gst_rate?: number
+          pickyou_platform_fee_cents?: number
           waiting_per_min_cents?: number
         }
         Relationships: []
