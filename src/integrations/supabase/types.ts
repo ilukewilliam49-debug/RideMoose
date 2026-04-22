@@ -2031,6 +2031,18 @@ export type Database = {
       }
     }
     Functions: {
+      _test_cleanup_lifecycle_ride: {
+        Args: { _ride_id: string }
+        Returns: undefined
+      }
+      _test_seed_lifecycle_ride: {
+        Args: {
+          _driver_id: string
+          _service_type: Database["public"]["Enums"]["service_type"]
+          _status: Database["public"]["Enums"]["ride_status"]
+        }
+        Returns: string
+      }
       accept_ride: {
         Args: { _driver_profile_id: string; _ride_id: string }
         Returns: Json
