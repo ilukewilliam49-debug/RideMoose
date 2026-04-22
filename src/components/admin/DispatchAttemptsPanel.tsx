@@ -452,7 +452,7 @@ function ResolutionRow({
               {(meta.hops_attempted as number) === 1 ? "" : "s"} ·{" "}
             </>
           )}
-          Resolved {format(new Date(log.created_at), "PPpp")}
+          Resolved {formatTs(log.created_at)}
         </p>
       </div>
     </div>
