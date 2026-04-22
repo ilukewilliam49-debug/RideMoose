@@ -125,21 +125,45 @@ export const useRideQueries = ({
     [servicePricing, serviceType]
   );
 
+  // Coerce DB taxi_rates row to BylawRates (with fallbacks for older schema reads).
+  const bylawRates: BylawRates | null = useMemo(() => {
+    if (!taxiRates) return null;
+    const t: any = taxiRates;
+    return {
+      base_fare_cents: t.base_fare_cents ?? FALLBACK_BYLAW_RATES.base_fare_cents,
+      included_meters: t.included_meters ?? FALLBACK_BYLAW_RATES.included_meters,
+      per_increment_cents: t.per_increment_cents ?? FALLBACK_BYLAW_RATES.per_increment_cents,
+      increment_meters: t.increment_meters ?? FALLBACK_BYLAW_RATES.increment_meters,
+      waiting_per_min_cents: t.waiting_per_min_cents ?? FALLBACK_BYLAW_RATES.waiting_per_min_cents,
+      free_waiting_min: t.free_waiting_min ?? FALLBACK_BYLAW_RATES.free_waiting_min,
+      large_vehicle_surcharge_cents: t.large_vehicle_surcharge_cents ?? FALLBACK_BYLAW_RATES.large_vehicle_surcharge_cents,
+      pickup_delivery_surcharge_cents: t.pickup_delivery_surcharge_cents ?? FALLBACK_BYLAW_RATES.pickup_delivery_surcharge_cents,
+      pickyou_platform_fee_cents: t.pickyou_platform_fee_cents ?? FALLBACK_BYLAW_RATES.pickyou_platform_fee_cents,
+      pickyou_gst_rate: Number(t.pickyou_gst_rate ?? FALLBACK_BYLAW_RATES.pickyou_gst_rate),
+    };
+  }, [taxiRates]);
+
   // Helper to compute price for a given service type
   const computePrice = (svcType: string): string | null => {
     const routeKm = directionsData?.distance_km ?? distanceKm;
-    const routeDurationMin = directionsData
-      ? Math.max((directionsData.duration_in_traffic_sec ?? directionsData.duration_sec ?? 0) / 60, 0)
-      : 0;
 
-    const largeGroupSurcharge = passengerCount >= 5 ? 6 : 0;
     // Multi-stop surcharge — applied to all metered/distance-based services.
     const stopsSurcharge = (stopCount * PER_STOP_FEE_CENTS) / 100;
 
-    if (svcType === "private_hire") {
-      if (!routeKm || !taxiRates) return null;
-      const meterFare = (taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100;
-      return (meterFare + largeGroupSurcharge + stopsSurcharge).toFixed(2);
+    if (svcType === "taxi" || svcType === "private_hire") {
+      if (!routeKm || !bylawRates) return null;
+      const breakdown = computeFare(
+        svcType === "taxi" ? "taxi" : "pickyou",
+        bylawRates,
+        {
+          distanceKm: routeKm,
+          waitingMin: 0, // estimate assumes no waiting
+          largeVehicle: passengerCount >= 5,
+          accessibilityRequired,
+          pickupDeliveryNoPassenger: false,
+        }
+      );
+      return ((breakdown.totalCents / 100) + stopsSurcharge).toFixed(2);
     }
     if (svcType === "courier") {
       if (!routeKm) return null;
@@ -167,11 +191,6 @@ export const useRideQueries = ({
       const totalCents = deliveryFeeCents + shopperFeeCents + Number(estimatedItemCostCents || 0) + stopCount * PER_STOP_FEE_CENTS;
       return (totalCents / 100).toFixed(2);
     }
-    if (svcType === "taxi") {
-      if (!routeKm || !taxiRates) return null;
-      const meterFare = (taxiRates.base_fare_cents + routeKm * taxiRates.per_km_cents) / 100;
-      return (meterFare + largeGroupSurcharge + stopsSurcharge).toFixed(2);
-    }
     if (!distanceKm || !currentPricing) return null;
     let price = Number(currentPricing.base_fare) + distanceKm * Number(currentPricing.per_km_rate);
     if (currentPricing.per_seat_rate) price += passengerCount * Number(currentPricing.per_seat_rate);
@@ -181,20 +200,14 @@ export const useRideQueries = ({
 
   // Dynamic price estimate for current service
   const estimatedPrice = useMemo(() => computePrice(serviceType),
-    [distanceKm, currentPricing, taxiRates, serviceType, passengerCount, pickup, dropoff, directionsData, estimatedItemCostCents, servicePricing, stopCount]);
+    [distanceKm, currentPricing, bylawRates, serviceType, passengerCount, accessibilityRequired, pickup, dropoff, directionsData, estimatedItemCostCents, servicePricing, stopCount]);
 
-  // All main service prices for the selection cards
-  const allServicePrices = useMemo(() => {
-    const pickyouBase = computePrice("private_hire");
-    const pickyouTotal = pickyouBase
-      ? ((parseFloat(pickyouBase) + 2.99) * 1.05).toFixed(2)
-      : null;
-    return {
-      taxi: computePrice("taxi"),
-      private_hire: pickyouTotal,
-      courier: computePrice("courier"),
-    };
-  }, [distanceKm, taxiRates, pickup, dropoff, directionsData, servicePricing, currentPricing, passengerCount, stopCount]);
+  // All main service prices for the selection cards (now bylaw-correct on both sides)
+  const allServicePrices = useMemo(() => ({
+    taxi: computePrice("taxi"),
+    private_hire: computePrice("private_hire"),
+    courier: computePrice("courier"),
+  }), [distanceKm, bylawRates, pickup, dropoff, directionsData, servicePricing, currentPricing, passengerCount, accessibilityRequired, stopCount]);
 
   // Active ride
   const { data: activeRide } = useQuery({
