@@ -55,6 +55,9 @@ export const useRideBookingState = () => {
   const [manualRateRideId, setManualRateRideId] = useState<string | null>(null);
   const [manualRateDriverId, setManualRateDriverId] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  // Accessibility flag — when true and pax ≥ 5, the $6 large-vehicle
+  // surcharge is waived per the City of Yellowknife taxi bylaw.
+  const [accessibilityRequired, setAccessibilityRequired] = useState(false);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -187,6 +190,7 @@ export const useRideBookingState = () => {
     manualRateRideId, setManualRateRideId,
     manualRateDriverId, setManualRateDriverId,
     cancelDialogOpen, setCancelDialogOpen,
+    accessibilityRequired, setAccessibilityRequired,
     distanceKm,
     resetBookingForm,
   };
