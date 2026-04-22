@@ -337,6 +337,26 @@ serve(async (req) => {
           }
         }
 
+        // ── Audit row #3: final fan-out resolution (matched). ──
+        await admin.from("notification_logs").insert({
+          event: "dispatch.resolved",
+          method: "none",
+          status: "delivered",
+          ride_id,
+          target_profile_id: candidate.id,
+          recipients: 1,
+          completed_at: new Date().toISOString(),
+          metadata: {
+            outcome: "matched",
+            winner_driver_id: candidate.id,
+            winner_driver_name: candidate.full_name,
+            hops_attempted: hopIndex + 1,
+            total_candidates: ranked.length,
+            eta_seconds: etaSeconds,
+            distance_km: Math.round(distanceKm * 10) / 10,
+          },
+        });
+
         return jsonResponse({
           matched: true,
           driver_id: candidate.id,
@@ -359,6 +379,23 @@ serve(async (req) => {
       dispatched_to_driver_id: null,
       dispatch_expires_at: null,
     }).eq("id", ride_id);
+
+    // ── Audit row #3: final fan-out resolution (no driver accepted). ──
+    await admin.from("notification_logs").insert({
+      event: "dispatch.resolved",
+      method: "none",
+      status: "permanently_failed",
+      ride_id,
+      target_profile_id: null,
+      recipients: 0,
+      completed_at: new Date().toISOString(),
+      metadata: {
+        outcome: "no_driver_accepted",
+        hops_attempted: ranked.length,
+        total_candidates: ranked.length,
+        candidate_ids: ranked.map((c) => c.id),
+      },
+    });
 
     return jsonResponse({ matched: false, reason: "no_driver_accepted" });
   } catch (err: any) {
