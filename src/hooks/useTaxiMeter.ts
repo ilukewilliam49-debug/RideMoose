@@ -340,18 +340,16 @@ export function useTaxiMeter(
     setState((s) => ({ ...s, status: "completed", receipt, distanceKm: dist, waitingMin: wait, isWaiting: false, liveFareCents: receipt.totalCents }));
     queryClient.invalidateQueries({ queryKey: ["active-ride"] });
 
-    // Attempt to capture payment
+    // Trigger complete-ride (server flips status='completed' + runs capture-payment).
     try {
-      const { error: captureError } = await supabase.functions.invoke(
-        "capture-payment",
+      const { error: completeError } = await supabase.functions.invoke(
+        "complete-ride",
         { body: { ride_id: rideId } }
       );
-      if (captureError) {
-        console.error("Capture error:", captureError);
-      }
+      if (completeError) console.error("Complete error:", completeError);
       toast.success("Meter stopped – ride complete!");
     } catch (e) {
-      console.error("Payment capture failed:", e);
+      console.error("Complete failed:", e);
       toast.success("Meter stopped – ride complete! Payment will be processed.");
     }
   }, [rideId, stopGeo, stopTick, stopDbSync, computeReceipt, queryClient]);
