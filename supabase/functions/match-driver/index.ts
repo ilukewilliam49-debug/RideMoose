@@ -200,13 +200,20 @@ serve(async (req) => {
         dispatch_expires_at: new Date(Date.now() + DISPATCH_TIMEOUT_MS).toISOString(),
       }).eq("id", ride_id);
 
-      await admin.from("notifications").insert({
-        user_id: candidate.id,
-        title: "New ride request",
-        body: `Pickup at ${ride.pickup_address}`,
-        type: "dispatch",
-        ride_id: ride_id,
-      });
+      // Fire urgent push + in-app notification to this specific driver via the
+      // notifications service (handles push → SMS fallback + dedup + logging).
+      try {
+        await admin.functions.invoke("send-push-notification", {
+          body: {
+            mode: "ride_event",
+            event: "dispatched",
+            ride_id,
+            driver_profile_id: candidate.id,
+          },
+        });
+      } catch (pushErr) {
+        console.warn(`[match-driver] dispatch push failed for ${candidate.id}:`, pushErr);
+      }
 
       let accepted = false;
       const deadline = Date.now() + DISPATCH_TIMEOUT_MS;
