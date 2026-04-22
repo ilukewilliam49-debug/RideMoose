@@ -283,9 +283,12 @@ export default function AdminNotificationLogs() {
           </SelectContent>
         </Select>
         <Select value={eventFilter} onValueChange={setEventFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Event" /></SelectTrigger>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Event" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All events</SelectItem>
+            <SelectItem value="dispatch.attempt">Dispatch — attempt</SelectItem>
+            <SelectItem value="dispatch.outcome">Dispatch — outcome</SelectItem>
+            <SelectItem value="dispatch.resolved">Dispatch — resolved</SelectItem>
             <SelectItem value="requested">Requested</SelectItem>
             <SelectItem value="accepted">Accepted</SelectItem>
             <SelectItem value="arrived">Arrived</SelectItem>

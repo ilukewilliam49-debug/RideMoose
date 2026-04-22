@@ -193,15 +193,46 @@ serve(async (req) => {
       .slice(0, MAX_CANDIDATES);
 
     // Sequential dispatch
-    for (const candidate of ranked) {
+    for (let hopIndex = 0; hopIndex < ranked.length; hopIndex++) {
+      const candidate = ranked[hopIndex];
+      const dispatchedAt = new Date();
+      const deadlineDate = new Date(dispatchedAt.getTime() + DISPATCH_TIMEOUT_MS);
+
       await admin.from("rides").update({
         status: "dispatched",
         dispatched_to_driver_id: candidate.id,
-        dispatch_expires_at: new Date(Date.now() + DISPATCH_TIMEOUT_MS).toISOString(),
+        dispatch_expires_at: deadlineDate.toISOString(),
       }).eq("id", ride_id);
+
+      // ── Audit row #1: the dispatch attempt itself (target driver + hop). ──
+      const { data: attemptRow } = await admin
+        .from("notification_logs")
+        .insert({
+          event: "dispatch.attempt",
+          method: "push",
+          status: "pending",
+          ride_id,
+          target_profile_id: candidate.id,
+          recipients: 1,
+          metadata: {
+            hop: hopIndex + 1,
+            total_candidates: ranked.length,
+            distance_km: Math.round(candidate.distance_km * 100) / 100,
+            driver_name: candidate.full_name ?? null,
+            dispatched_at: dispatchedAt.toISOString(),
+            dispatch_expires_at: deadlineDate.toISOString(),
+            service_type: ride.service_type,
+          },
+        })
+        .select("id")
+        .single();
+
+      const attemptLogId = attemptRow?.id ?? null;
 
       // Fire urgent push + in-app notification to this specific driver via the
       // notifications service (handles push → SMS fallback + dedup + logging).
+      let pushFailed = false;
+      let pushErrorMessage: string | null = null;
       try {
         await admin.functions.invoke("send-push-notification", {
           body: {
@@ -212,7 +243,20 @@ serve(async (req) => {
           },
         });
       } catch (pushErr) {
+        pushFailed = true;
+        pushErrorMessage = (pushErr as Error)?.message ?? String(pushErr);
         console.warn(`[match-driver] dispatch push failed for ${candidate.id}:`, pushErr);
+      }
+
+      // Mark the attempt as delivered (push succeeded) before polling.
+      if (attemptLogId) {
+        await admin
+          .from("notification_logs")
+          .update({
+            status: pushFailed ? "failed" : "delivered",
+            error_message: pushErrorMessage,
+          })
+          .eq("id", attemptLogId);
       }
 
       let accepted = false;
@@ -230,9 +274,42 @@ serve(async (req) => {
           break;
         }
         if (updated?.status === "cancelled") {
+          // Audit row #2: outcome = ride_cancelled mid-fan-out
+          await admin.from("notification_logs").insert({
+            event: "dispatch.outcome",
+            method: "none",
+            status: "skipped",
+            ride_id,
+            target_profile_id: candidate.id,
+            recipients: 0,
+            metadata: {
+              hop: hopIndex + 1,
+              outcome: "ride_cancelled",
+              attempt_log_id: attemptLogId,
+            },
+          });
           return jsonResponse({ matched: false, reason: "ride_cancelled" });
         }
       }
+
+      // ── Audit row #2: outcome of this hop (accepted vs timeout/decline). ──
+      const respondedAt = new Date();
+      const responseLatencyMs = respondedAt.getTime() - dispatchedAt.getTime();
+      await admin.from("notification_logs").insert({
+        event: "dispatch.outcome",
+        method: "none",
+        status: accepted ? "delivered" : "skipped",
+        ride_id,
+        target_profile_id: candidate.id,
+        recipients: 0,
+        completed_at: respondedAt.toISOString(),
+        metadata: {
+          hop: hopIndex + 1,
+          outcome: accepted ? "accepted" : "timeout_or_decline",
+          attempt_log_id: attemptLogId,
+          response_latency_ms: responseLatencyMs,
+        },
+      });
 
       if (accepted) {
         await admin.from("rides").update({
@@ -260,6 +337,26 @@ serve(async (req) => {
           }
         }
 
+        // ── Audit row #3: final fan-out resolution (matched). ──
+        await admin.from("notification_logs").insert({
+          event: "dispatch.resolved",
+          method: "none",
+          status: "delivered",
+          ride_id,
+          target_profile_id: candidate.id,
+          recipients: 1,
+          completed_at: new Date().toISOString(),
+          metadata: {
+            outcome: "matched",
+            winner_driver_id: candidate.id,
+            winner_driver_name: candidate.full_name,
+            hops_attempted: hopIndex + 1,
+            total_candidates: ranked.length,
+            eta_seconds: etaSeconds,
+            distance_km: Math.round(distanceKm * 10) / 10,
+          },
+        });
+
         return jsonResponse({
           matched: true,
           driver_id: candidate.id,
@@ -282,6 +379,23 @@ serve(async (req) => {
       dispatched_to_driver_id: null,
       dispatch_expires_at: null,
     }).eq("id", ride_id);
+
+    // ── Audit row #3: final fan-out resolution (no driver accepted). ──
+    await admin.from("notification_logs").insert({
+      event: "dispatch.resolved",
+      method: "none",
+      status: "permanently_failed",
+      ride_id,
+      target_profile_id: null,
+      recipients: 0,
+      completed_at: new Date().toISOString(),
+      metadata: {
+        outcome: "no_driver_accepted",
+        hops_attempted: ranked.length,
+        total_candidates: ranked.length,
+        candidate_ids: ranked.map((c) => c.id),
+      },
+    });
 
     return jsonResponse({ matched: false, reason: "no_driver_accepted" });
   } catch (err: any) {

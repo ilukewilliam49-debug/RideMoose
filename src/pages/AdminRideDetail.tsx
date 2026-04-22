@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import RideEventsTimeline from "@/components/admin/RideEventsTimeline";
+import DispatchAttemptsPanel from "@/components/admin/DispatchAttemptsPanel";
 import { format } from "date-fns";
 import {
   MapPin, Clock, Car, User, DollarSign, CreditCard,
@@ -282,6 +283,9 @@ export default function AdminRideDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Per-ride dispatch attempts audit (notification_logs slice). */}
+      <DispatchAttemptsPanel rideId={id!} />
 
       {/* Admin Actions */}
       {ride && !["completed", "cancelled"].includes(ride.status) && (
