@@ -6,34 +6,58 @@
  *
  * Verifies server-side authorization:
  *  1. A driver who is NOT the assigned driver gets 403.
- *  2. A driver who IS assigned but lacks the per-service capability gets 403
- *     with code "service_not_permitted".
+ *  2. A driver who IS assigned but lacks the per-service capability
+ *     (large_delivery requires SUV/truck/van) gets 403 with code
+ *     "service_not_permitted".
  *
- * Test driver: testdriver@pickyou.test (has can_taxi=true, vehicle_type='Sedan',
- * so they cannot serve large_delivery — perfect for capability test).
+ * Test driver: testdriver@pickyou.test (can_taxi=true, vehicle_type='Sedan').
+ *
+ * Seeding strategy: uses psql (PG* env vars) to bypass RLS and the
+ * prevent_duplicate_active_rides trigger isolation requirements.
+ *
+ * Run: tested via `lovable-exec test` / supabase test_edge_functions tool.
  */
-import "https://deno.land/std@0.224.0/dotenv/load.ts";
 import {
-  assertEquals,
   assert,
+  assertEquals,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!;
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY =
+  Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ??
+  Deno.env.get("VITE_SUPABASE_ANON_KEY")!;
 
 const TEST_DRIVER_EMAIL = "testdriver@pickyou.test";
 const TEST_DRIVER_PASSWORD = "Test1234!";
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SERVICE_KEY) {
-  throw new Error(
-    "Missing env: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY",
-  );
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error("Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY");
 }
 
-const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+// -----------------------------------------------------------------------------
+// psql helper — uses PG* env vars to talk to the project DB directly.
+// -----------------------------------------------------------------------------
+async function psqlScalar(sql: string): Promise<string> {
+  const cmd = new Deno.Command("psql", {
+    args: ["-At", "-c", sql],
+    stdout: "piped",
+    stderr: "piped",
+  });
+  const { code, stdout, stderr } = await cmd.output();
+  const out = new TextDecoder().decode(stdout).trim();
+  const err = new TextDecoder().decode(stderr).trim();
+  if (code !== 0) throw new Error(`psql failed: ${err || out}`);
+  return out;
+}
 
+async function psqlExec(sql: string): Promise<void> {
+  await psqlScalar(sql);
+}
+
+// -----------------------------------------------------------------------------
+// Edge function caller
+// -----------------------------------------------------------------------------
 async function callFn(
   fn: "arrive-ride" | "start-ride" | "complete-ride",
   token: string,
@@ -52,8 +76,13 @@ async function callFn(
   return { status: res.status, body: json as Record<string, unknown> };
 }
 
+// -----------------------------------------------------------------------------
+// Setup helpers
+// -----------------------------------------------------------------------------
 async function signInTestDriver(): Promise<{ token: string; profileId: string }> {
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false },
+  });
   const { data, error } = await userClient.auth.signInWithPassword({
     email: TEST_DRIVER_EMAIL,
     password: TEST_DRIVER_PASSWORD,
@@ -61,113 +90,73 @@ async function signInTestDriver(): Promise<{ token: string; profileId: string }>
   if (error || !data.session) {
     throw new Error(`Failed to sign in test driver: ${error?.message}`);
   }
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("user_id", data.user!.id)
-    .single();
-  if (!profile) throw new Error("Test driver profile not found");
-  return { token: data.session.access_token, profileId: profile.id as string };
+  const profileId = await psqlScalar(
+    `SELECT id FROM public.profiles WHERE user_id = '${data.user!.id}' LIMIT 1;`,
+  );
+  if (!profileId) throw new Error("Test driver profile not found");
+  return { token: data.session.access_token, profileId };
 }
 
-/**
- * Find an "other" driver profile (NOT the test driver) to use as the
- * assigned driver_id, so the test driver becomes a "wrong driver".
- */
 async function findOtherDriver(excludeProfileId: string): Promise<string> {
-  const { data, error } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("is_driver", true)
-    .neq("id", excludeProfileId)
-    .limit(1);
-  if (error || !data?.[0]) throw new Error("No other driver available for test");
-  return data[0].id as string;
+  const id = await psqlScalar(
+    `SELECT id FROM public.profiles
+     WHERE is_driver = true AND id <> '${excludeProfileId}'
+     LIMIT 1;`,
+  );
+  if (!id) throw new Error("No other driver available for test");
+  return id;
 }
 
-/**
- * Find a rider profile to own the synthetic ride.
- */
-async function findRider(): Promise<string> {
-  const { data, error } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("is_rider", true)
-    .limit(1);
-  if (error || !data?.[0]) throw new Error("No rider profile available for test");
-  return data[0].id as string;
+async function findIdleRider(): Promise<string> {
+  const id = await psqlScalar(
+    `SELECT p.id FROM public.profiles p
+     WHERE p.is_rider = true
+       AND NOT EXISTS (
+         SELECT 1 FROM public.rides r
+         WHERE r.rider_id = p.id
+           AND r.status IN ('requested','accepted','arrived','in_progress')
+       )
+     LIMIT 1;`,
+  );
+  if (!id) throw new Error("No idle rider available for test");
+  return id;
 }
 
-/**
- * Insert a synthetic ride row directly via service role. Bypasses
- * the prevent_duplicate_active_rides trigger by using a freshly-found
- * rider that has no active rides — and we clean up at the end.
- */
 async function seedRide(opts: {
   rider_id: string;
   driver_id: string;
   service_type: "taxi" | "large_delivery";
   status: "accepted" | "in_progress";
 }): Promise<string> {
-  // Pick a rider with no active ride
-  const { data: riders } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("is_rider", true)
-    .limit(20);
-  let usableRider: string | null = null;
-  for (const r of riders ?? []) {
-    const { data: active } = await admin
-      .from("rides")
-      .select("id")
-      .eq("rider_id", r.id)
-      .in("status", ["requested", "accepted", "arrived", "in_progress"])
-      .limit(1);
-    if (!active || active.length === 0) {
-      usableRider = r.id as string;
-      break;
-    }
-  }
-  if (!usableRider) {
-    throw new Error("No rider without an active ride available for seeding");
-  }
-
-  const { data, error } = await admin
-    .from("rides")
-    .insert({
-      rider_id: usableRider,
-      driver_id: opts.driver_id,
-      status: opts.status,
-      service_type: opts.service_type,
-      pickup_address: "TEST PICKUP",
-      dropoff_address: "TEST DROPOFF",
-      pickup_lat: 62.454,
-      pickup_lng: -114.371,
-      dropoff_lat: 62.46,
-      dropoff_lng: -114.38,
-      payment_option: "in_app",
-      pricing_model: "metered",
-    })
-    .select("id")
-    .single();
-  if (error || !data) throw new Error(`Failed to seed ride: ${error?.message}`);
-  return data.id as string;
+  const id = await psqlScalar(
+    `INSERT INTO public.rides (
+       rider_id, driver_id, status, service_type,
+       pickup_address, dropoff_address,
+       pickup_lat, pickup_lng, dropoff_lat, dropoff_lng,
+       payment_option, pricing_model
+     ) VALUES (
+       '${opts.rider_id}', '${opts.driver_id}', '${opts.status}', '${opts.service_type}',
+       'TEST PICKUP', 'TEST DROPOFF',
+       62.454, -114.371, 62.46, -114.38,
+       'in_app', 'metered'
+     ) RETURNING id;`,
+  );
+  if (!id) throw new Error("Failed to seed test ride");
+  return id;
 }
 
 async function deleteRide(rideId: string) {
-  // ride_events FK references rides — delete dependent rows first
-  await admin.from("ride_events").delete().eq("ride_id", rideId);
-  await admin.from("rides").delete().eq("id", rideId);
+  await psqlExec(`DELETE FROM public.ride_events WHERE ride_id = '${rideId}';`);
+  await psqlExec(`DELETE FROM public.rides WHERE id = '${rideId}';`);
 }
 
 // -----------------------------------------------------------------------------
-// Tests
+// Tests — wrong driver
 // -----------------------------------------------------------------------------
-
 Deno.test("arrive-ride rejects wrong driver with 403", async () => {
   const { token, profileId } = await signInTestDriver();
   const otherDriver = await findOtherDriver(profileId);
-  const rider = await findRider();
+  const rider = await findIdleRider();
   const rideId = await seedRide({
     rider_id: rider,
     driver_id: otherDriver,
@@ -179,7 +168,7 @@ Deno.test("arrive-ride rejects wrong driver with 403", async () => {
       ride_id: rideId,
       override_geofence: true,
     });
-    assertEquals(status, 403, `expected 403, got ${status} body=${JSON.stringify(body)}`);
+    assertEquals(status, 403, `body=${JSON.stringify(body)}`);
     assert(
       String(body.error ?? "").toLowerCase().includes("assigned driver"),
       `expected "assigned driver" error, got: ${JSON.stringify(body)}`,
@@ -192,7 +181,7 @@ Deno.test("arrive-ride rejects wrong driver with 403", async () => {
 Deno.test("start-ride rejects wrong driver with 403", async () => {
   const { token, profileId } = await signInTestDriver();
   const otherDriver = await findOtherDriver(profileId);
-  const rider = await findRider();
+  const rider = await findIdleRider();
   const rideId = await seedRide({
     rider_id: rider,
     driver_id: otherDriver,
@@ -204,7 +193,7 @@ Deno.test("start-ride rejects wrong driver with 403", async () => {
       ride_id: rideId,
       override_geofence: true,
     });
-    assertEquals(status, 403, `expected 403, got ${status} body=${JSON.stringify(body)}`);
+    assertEquals(status, 403, `body=${JSON.stringify(body)}`);
     assert(
       String(body.error ?? "").toLowerCase().includes("assigned driver"),
       `expected "assigned driver" error, got: ${JSON.stringify(body)}`,
@@ -217,7 +206,7 @@ Deno.test("start-ride rejects wrong driver with 403", async () => {
 Deno.test("complete-ride rejects wrong driver with 403", async () => {
   const { token, profileId } = await signInTestDriver();
   const otherDriver = await findOtherDriver(profileId);
-  const rider = await findRider();
+  const rider = await findIdleRider();
   const rideId = await seedRide({
     rider_id: rider,
     driver_id: otherDriver,
@@ -230,7 +219,7 @@ Deno.test("complete-ride rejects wrong driver with 403", async () => {
       distance_km: 1,
       duration_min: 5,
     });
-    assertEquals(status, 403, `expected 403, got ${status} body=${JSON.stringify(body)}`);
+    assertEquals(status, 403, `body=${JSON.stringify(body)}`);
     assert(
       String(body.error ?? "").toLowerCase().includes("assigned driver"),
       `expected "assigned driver" error, got: ${JSON.stringify(body)}`,
@@ -240,13 +229,15 @@ Deno.test("complete-ride rejects wrong driver with 403", async () => {
   }
 });
 
+// -----------------------------------------------------------------------------
+// Tests — capability gate (service_not_permitted)
+// -----------------------------------------------------------------------------
 Deno.test("arrive-ride rejects disallowed service_type with 403 service_not_permitted", async () => {
-  // Test driver has can_taxi=true but vehicle_type='Sedan' — cannot serve large_delivery.
   const { token, profileId } = await signInTestDriver();
-  const rider = await findRider();
+  const rider = await findIdleRider();
   const rideId = await seedRide({
     rider_id: rider,
-    driver_id: profileId, // assign to test driver so we hit the capability check
+    driver_id: profileId,
     service_type: "large_delivery",
     status: "accepted",
   });
@@ -255,7 +246,7 @@ Deno.test("arrive-ride rejects disallowed service_type with 403 service_not_perm
       ride_id: rideId,
       override_geofence: true,
     });
-    assertEquals(status, 403, `expected 403, got ${status} body=${JSON.stringify(body)}`);
+    assertEquals(status, 403, `body=${JSON.stringify(body)}`);
     assertEquals(body.code, "service_not_permitted");
   } finally {
     await deleteRide(rideId);
@@ -264,7 +255,7 @@ Deno.test("arrive-ride rejects disallowed service_type with 403 service_not_perm
 
 Deno.test("start-ride rejects disallowed service_type with 403 service_not_permitted", async () => {
   const { token, profileId } = await signInTestDriver();
-  const rider = await findRider();
+  const rider = await findIdleRider();
   const rideId = await seedRide({
     rider_id: rider,
     driver_id: profileId,
@@ -276,7 +267,7 @@ Deno.test("start-ride rejects disallowed service_type with 403 service_not_permi
       ride_id: rideId,
       override_geofence: true,
     });
-    assertEquals(status, 403, `expected 403, got ${status} body=${JSON.stringify(body)}`);
+    assertEquals(status, 403, `body=${JSON.stringify(body)}`);
     assertEquals(body.code, "service_not_permitted");
   } finally {
     await deleteRide(rideId);
@@ -285,7 +276,7 @@ Deno.test("start-ride rejects disallowed service_type with 403 service_not_permi
 
 Deno.test("complete-ride rejects disallowed service_type with 403 service_not_permitted", async () => {
   const { token, profileId } = await signInTestDriver();
-  const rider = await findRider();
+  const rider = await findIdleRider();
   const rideId = await seedRide({
     rider_id: rider,
     driver_id: profileId,
@@ -298,7 +289,7 @@ Deno.test("complete-ride rejects disallowed service_type with 403 service_not_pe
       distance_km: 1,
       duration_min: 5,
     });
-    assertEquals(status, 403, `expected 403, got ${status} body=${JSON.stringify(body)}`);
+    assertEquals(status, 403, `body=${JSON.stringify(body)}`);
     assertEquals(body.code, "service_not_permitted");
   } finally {
     await deleteRide(rideId);
