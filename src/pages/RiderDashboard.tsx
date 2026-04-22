@@ -246,6 +246,8 @@ const RiderDashboard = () => {
         booking_for: bookingForFinal,
         guest_name: bookingForFinal === "guest" ? guestNameFinal : null,
         guest_phone: bookingForFinal === "guest" ? guestPhoneFinal : null,
+        accessibility_required: state.accessibilityRequired,
+        pickup_delivery_no_passenger: state.serviceType === "courier",
         ...(state.serviceType === "courier" ? {
           package_size: state.packageSize, pickup_notes: state.pickupNotes || null,
           dropoff_notes: state.dropoffNotes || null, proof_photo_required: true,
