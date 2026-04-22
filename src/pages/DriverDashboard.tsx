@@ -375,35 +375,15 @@ const DriverDashboard = () => {
         </button>
       </div>
 
-      {/* ── Online status strip ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`
-          flex items-center justify-between rounded-2xl px-4 py-3
-          ${isOnline
-            ? "bg-green-500/10 ring-1 ring-green-500/20"
-            : "bg-muted/50 ring-1 ring-border/50"
-          }
-        `}
-      >
-        <div className="flex items-center gap-3">
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${
-              isOnline ? "bg-green-500 animate-pulse" : "bg-muted-foreground"
-            }`}
-          />
-          <span className="text-sm font-semibold">
-            {isOnline ? "Online — accepting trips" : "Offline"}
-          </span>
-        </div>
-        {isOnline && onlineDuration && (
-          <span className="text-xs font-medium text-muted-foreground">
-            <Clock3 className="mr-1 inline h-3 w-3" />
-            {onlineDuration}
-          </span>
-        )}
-      </motion.div>
+      {/* ── Shift status panel (12-hour HOS cap) ── */}
+      <ShiftStatusPanel
+        isOnline={isOnline}
+        elapsedMs={elapsedMs}
+        limitMs={SHIFT_LIMIT_MS}
+        capped={shiftCapped}
+        toggling={togglingAvailability}
+        onGoOffline={toggleAvailability}
+      />
 
       {/* ── Active trip banner ── */}
       {activeRide && (
