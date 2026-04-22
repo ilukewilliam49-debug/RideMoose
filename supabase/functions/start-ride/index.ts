@@ -78,7 +78,7 @@ serve(async (req) => {
     // Get caller's profile
     const { data: profile } = await admin
       .from("profiles")
-      .select("id, role")
+      .select("id")
       .eq("user_id", userData.user.id)
       .single();
 
