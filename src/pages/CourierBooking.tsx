@@ -113,6 +113,7 @@ const CourierBooking = () => {
         distance_km: distanceKm ? parseFloat(distanceKm.toFixed(2)) : null,
         service_type: "courier" as const,
         passenger_count: 1,
+        pickup_delivery_no_passenger: true,
         pricing_model: "courier",
         status: "requested",
         payment_option: paymentOption,

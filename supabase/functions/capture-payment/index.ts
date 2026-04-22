@@ -114,39 +114,72 @@ serve(async (req) => {
       }
     }
 
-    // SERVER-AUTHORITATIVE FARE COMPUTATION
-    // Never trust client-supplied final_fare_cents alone for taxi/private_hire.
-    // Recompute from authoritative taxi_rates + stored distance_km, then add
-    // stops surcharge ($2 each) and large group surcharge ($6 for 5+ pax).
+    // SERVER-AUTHORITATIVE FARE COMPUTATION (City of Yellowknife bylaw + PickYou)
+    //   • Taxi: meter only — no service fee, no GST.
+    //   • PickYou (private_hire): meter + 5% GST + $0.97 platform fee.
+    // Surcharges: $6 large vehicle (waived if accessibility_required),
+    //             $3 pickup/delivery (no passenger), $2 per intermediate stop.
     const PER_STOP_CENTS = 200;
     const stopsCount = Array.isArray(ride.stops) ? ride.stops.length : 0;
     const isMetered = ride.service_type === "taxi" || ride.service_type === "private_hire";
+    const isPrivateHire = ride.service_type === "private_hire";
     let grossFareCents = ride.final_fare_cents || 0;
+    let surchargeCents = 0;
+    let taxCents = 0;
+    let SERVICE_FEE_CENTS = 0; // City taxi has no service fee.
 
     if (isMetered) {
       const { data: rates } = await serviceClient
         .from("taxi_rates")
-        .select("base_fare_cents, per_km_cents")
+        .select("*")
         .eq("active", true)
         .limit(1)
         .maybeSingle();
-      const distKm = Number(ride.distance_km || 0);
-      const meterCents = rates ? rates.base_fare_cents + Math.round(distKm * rates.per_km_cents) : (ride.final_fare_cents || 0);
+
+      const r = (rates ?? {}) as any;
+      const baseCents          = Number(r.base_fare_cents ?? 470);
+      const includedMeters     = Number(r.included_meters ?? 150);
+      const perIncrementCents  = Number(r.per_increment_cents ?? 24);
+      const incrementMeters    = Number(r.increment_meters ?? 100);
+      const waitPerMinCents    = Number(r.waiting_per_min_cents ?? 95);
+      const freeWaitingMin     = Number(r.free_waiting_min ?? 3);
+      const largeVehCents      = Number(r.large_vehicle_surcharge_cents ?? 600);
+      const pickupDeliverCents = Number(r.pickup_delivery_surcharge_cents ?? 300);
+      const platformFeeCents   = Number(r.pickyou_platform_fee_cents ?? 97);
+      const gstRate            = Number(r.pickyou_gst_rate ?? 0.05);
+
+      const distKm  = Number(ride.distance_km || 0);
+      const waitMin = Number(ride.waiting_min || 0);
+
+      // Distance: $0.24 per 100 m after the first 150 m
+      const totalMeters = distKm * 1000;
+      const billableMeters = Math.max(0, totalMeters - includedMeters);
+      const increments = Math.ceil(billableMeters / incrementMeters);
+      const distanceChargeCents = increments * perIncrementCents;
+
+      // Waiting: first 3 min free
+      const billableWait = Math.max(0, waitMin - freeWaitingMin);
+      const waitingChargeCents = Math.round(billableWait * waitPerMinCents);
+
+      // Surcharges
+      const accessibilityWaiver = Boolean((ride as any).accessibility_required);
+      const largeVehicle = (ride.passenger_count ?? 1) >= 5;
+      const largeVehicleCents = largeVehicle && !accessibilityWaiver ? largeVehCents : 0;
+      const pickupDeliveryCents = (ride as any).pickup_delivery_no_passenger ? pickupDeliverCents : 0;
       const stopsCents = stopsCount * PER_STOP_CENTS;
-      const largeGroupCents = (ride.passenger_count ?? 1) >= 5 ? 600 : 0;
-      grossFareCents = meterCents + stopsCents + largeGroupCents;
+
+      surchargeCents = largeVehicleCents + pickupDeliveryCents + stopsCents;
+      grossFareCents = baseCents + distanceChargeCents + waitingChargeCents + surchargeCents;
+
+      if (isPrivateHire) {
+        taxCents = Math.round(grossFareCents * gstRate);
+        SERVICE_FEE_CENTS = platformFeeCents; // $0.97 PickYou platform fee
+      }
     }
 
-    // Differentiate tax by service type:
-    // Taxi: NO GST, no surcharge
-    // Private Hire: $2.99 surcharge + 5% GST on (fare + surcharge)
-    const isPrivateHire = ride.service_type === "private_hire";
-    const surchargeCents = isPrivateHire ? PICKYOU_SURCHARGE_CENTS : 0;
-    const taxCents = isPrivateHire ? Math.round((grossFareCents + surchargeCents) * 0.05) : 0;
-
     const commissionCents = Math.round(grossFareCents * effectiveCommissionRate);
-    const SERVICE_FEE_CENTS = cfg.service_fee_cents ?? 99;
-    const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS + surchargeCents + taxCents;
+    const riderTotalCents = grossFareCents + SERVICE_FEE_CENTS + taxCents;
+
 
     // Organization billing — skip Stripe
     if (ride.billed_to === "organization" && ride.organization_id) {
