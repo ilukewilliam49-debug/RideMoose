@@ -78,7 +78,9 @@ const NotificationBell = () => {
 
   const handleClick = (notif: any) => {
     markAsRead(notif.id);
-    if (notif.type === "large_delivery_bid" && notif.ride_id) {
+    if (notif.type === "dispatch" && profile?.is_driver) {
+      navigate("/driver/dispatch");
+    } else if (notif.type === "large_delivery_bid" && notif.ride_id) {
       if (profile?.is_driver) {
         navigate("/driver/dispatch");
       }
