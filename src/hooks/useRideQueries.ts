@@ -334,6 +334,7 @@ export const useRideQueries = ({
 
   return {
     savedPlaces, riderOrgMembership, servicePricing, taxiRates,
+    bylawRates,
     directionsData, directionsFetching, trafficDelayMin,
     currentPricing,
     estimatedPrice, allServicePrices,
