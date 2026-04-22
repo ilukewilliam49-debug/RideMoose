@@ -37,7 +37,7 @@ serve(async (req) => {
     const isPrivateHire = service_type === "private_hire";
     let fareWithExtras = estimated_fare_cents;
     if (isPrivateHire) {
-      const subtotal = estimated_fare_cents + PICKYOU_SURCHARGE_CENTS;
+      const subtotal = estimated_fare_cents + PICKYOU_PLATFORM_FEE_CENTS;
       const taxCents = Math.round(subtotal * 0.05);
       fareWithExtras = subtotal + taxCents;
     }
