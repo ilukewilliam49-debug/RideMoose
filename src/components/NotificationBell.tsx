@@ -93,6 +93,7 @@ const NotificationBell = () => {
   };
 
   const iconForType = (type: string) => {
+    if (type === "dispatch") return <Truck className="h-4 w-4 text-primary shrink-0" />;
     if (type === "large_delivery_bid") return <Truck className="h-4 w-4 text-primary shrink-0" />;
     if (type === "verification_approved") return <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />;
     if (type === "verification_rejected") return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
