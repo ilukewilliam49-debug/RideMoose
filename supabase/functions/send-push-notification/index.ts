@@ -21,7 +21,8 @@ const DirectSchema = z.object({
 const RideEventSchema = z.object({
   mode: z.literal("ride_event"),
   ride_id: z.string().uuid(),
-  event: z.enum(["requested", "accepted", "arrived", "completed"]),
+  event: z.enum(["requested", "dispatched", "accepted", "arrived", "completed"]),
+  driver_profile_id: z.string().uuid().optional(),
 });
 
 const TestSchema = z.object({ mode: z.literal("test") });
