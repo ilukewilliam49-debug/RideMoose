@@ -53,15 +53,11 @@ const DriverDashboard = () => {
     const tick = () => {
       const onlineSince = profile?.went_online_at;
       if (!onlineSince) {
-        setOnlineDuration(null);
         setElapsedMs(0);
         setShiftCapped(false);
         return;
       }
       const diff = Date.now() - new Date(onlineSince).getTime();
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      setOnlineDuration(h > 0 ? `${h}h ${m}m` : `${m}m`);
       setElapsedMs(diff);
 
       // Enforce 12-hour cap: auto-offline + show summary, exactly once.
