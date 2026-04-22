@@ -172,7 +172,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
 
     fareRow("Fare", cents(grossFare));
     if (serviceFee > 0) fareRow("Service fee", cents(serviceFee));
-    if (surchargeCents > 0) fareRow("PickYou Surcharge", cents(surchargeCents));
     if (tax > 0) fareRow("GST (5%)", cents(tax));
     if (tip > 0) fareRow("Tip", cents(tip));
 
