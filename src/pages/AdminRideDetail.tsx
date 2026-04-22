@@ -284,6 +284,9 @@ export default function AdminRideDetail() {
         </Card>
       </div>
 
+      {/* Per-ride dispatch attempts audit (notification_logs slice). */}
+      <DispatchAttemptsPanel rideId={id!} />
+
       {/* Admin Actions */}
       {ride && !["completed", "cancelled"].includes(ride.status) && (
         <Card>
