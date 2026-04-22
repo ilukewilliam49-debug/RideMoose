@@ -244,19 +244,21 @@ export function useTaxiMeter(
     }
   }, []);
 
-  // DB sync
+  // DB sync — routed through update-meter (server-authoritative).
+  // RLS no longer permits direct driver writes to distance_km / waiting_min.
   const syncToDb = useCallback(async () => {
     if (!rideId) return;
     const totalWait = waitRef.current + (waitingOn.current && waitingStartedAt.current
       ? (Date.now() - waitingStartedAt.current) / 60_000
       : 0);
-    await supabase
-      .from("rides")
-      .update({
+    await supabase.functions.invoke("update-meter", {
+      body: {
+        ride_id: rideId,
+        action: "tick",
         distance_km: Math.round(distRef.current * 1000) / 1000,
         waiting_min: Math.round(totalWait * 100) / 100,
-      })
-      .eq("id", rideId);
+      },
+    });
   }, [rideId]);
 
   const startDbSync = useCallback(() => {
@@ -275,27 +277,17 @@ export function useTaxiMeter(
 
   const startMeter = useCallback(async () => {
     if (!rideId) return;
-    const now = new Date();
     distRef.current = 0;
     waitRef.current = 0;
     waitingOn.current = false;
     waitingStartedAt.current = null;
     lastPos.current = null;
 
-    const { error } = await supabase
-      .from("rides")
-      .update({
-        meter_status: "running",
-        meter_started_at: now.toISOString(),
-        status: "in_progress",
-        started_at: now.toISOString(),
-        distance_km: 0,
-        waiting_min: 0,
-      })
-      .eq("id", rideId);
-
-    if (error) {
-      toast.error(error.message);
+    const { data, error } = await supabase.functions.invoke("update-meter", {
+      body: { ride_id: rideId, action: "start" },
+    });
+    if (error || data?.error) {
+      toast.error(error?.message || data?.error || "Could not start meter");
       return;
     }
 
@@ -320,7 +312,6 @@ export function useTaxiMeter(
       waitingStartedAt.current = null;
     }
 
-    const now = new Date();
     const dist = distRef.current;
     const wait = waitRef.current;
 
@@ -330,24 +321,19 @@ export function useTaxiMeter(
       return;
     }
 
-    // SECURITY: Drivers cannot write financial columns directly (RLS-locked).
-    // Only operational meter fields are updated here; capture-payment will
-    // recompute final_fare_cents, final_price, tax_cents, service_fee_cents
-    // from authoritative taxi_rates × distance_km on the server.
-    const { error } = await supabase
-      .from("rides")
-      .update({
-        meter_status: "completed",
-        meter_ended_at: now.toISOString(),
-        status: "completed",
-        completed_at: now.toISOString(),
+    // SECURITY: Drivers cannot write distance_km / waiting_min directly
+    // (RLS-locked). Push final telemetry through update-meter, then let
+    // complete-ride flip status='completed' and trigger capture-payment.
+    const { data: stopData, error: stopErr } = await supabase.functions.invoke("update-meter", {
+      body: {
+        ride_id: rideId,
+        action: "stop",
         distance_km: Math.round(dist * 1000) / 1000,
         waiting_min: Math.round(wait * 100) / 100,
-      })
-      .eq("id", rideId);
-
-    if (error) {
-      toast.error(error.message);
+      },
+    });
+    if (stopErr || stopData?.error) {
+      toast.error(stopErr?.message || stopData?.error || "Could not finalize meter");
       return;
     }
 
