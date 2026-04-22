@@ -27,6 +27,7 @@ import { DashboardStatsSkeleton, RecentTripsSkeleton } from "@/components/driver
 import ShiftSummaryDialog from "@/components/driver/ShiftSummaryDialog";
 import ShiftStatusPanel from "@/components/driver/ShiftStatusPanel";
 import DriverWelcomeFlow from "@/components/driver/DriverWelcomeFlow";
+import { logDriverShiftEvent } from "@/lib/shift-events";
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
@@ -84,6 +85,19 @@ const DriverDashboard = () => {
               .from("profiles")
               .update({ is_available: false, went_online_at: null })
               .eq("id", profile.id);
+
+            // Audit log: client-side cap watcher tripped the 12h limit.
+            // The server-side reaper also writes one if the client is offline,
+            // so admins always see the breach.
+            await logDriverShiftEvent({
+              driverId: profile.id,
+              eventType: "auto_capped",
+              shiftSessionId: openSession?.id ?? null,
+              shiftStartedAt: onlineSince,
+              source: "client_cap",
+              metadata: { limit_hours: 12, reason: "hos_12h_cap" },
+            });
+
             if (!cancelled) {
               toast.error("12-hour shift limit reached", {
                 description: "You've been taken offline. Please rest before starting a new shift.",
@@ -160,9 +174,22 @@ const DriverDashboard = () => {
 
         updates.went_online_at = new Date().toISOString();
         setShiftCapped(false);
-        await supabase.from("shift_sessions").insert({
-          driver_id: profile.id,
-          started_at: new Date().toISOString(),
+        const { data: insertedSession } = await supabase
+          .from("shift_sessions")
+          .insert({
+            driver_id: profile.id,
+            started_at: updates.went_online_at as string,
+          })
+          .select("id, started_at")
+          .single();
+
+        // Audit log: driver went online.
+        await logDriverShiftEvent({
+          driverId: profile.id,
+          eventType: "online",
+          shiftSessionId: insertedSession?.id ?? null,
+          shiftStartedAt: insertedSession?.started_at ?? (updates.went_online_at as string),
+          source: "driver_app",
         });
       } else {
         // Show shift summary before clearing
@@ -170,7 +197,7 @@ const DriverDashboard = () => {
         updates.went_online_at = null;
         const { data: openSession } = await supabase
           .from("shift_sessions")
-          .select("id")
+          .select("id, started_at")
           .eq("driver_id", profile.id)
           .is("ended_at", null)
           .order("started_at", { ascending: false })
@@ -182,6 +209,17 @@ const DriverDashboard = () => {
             .update({ ended_at: new Date().toISOString() })
             .eq("id", openSession.id);
         }
+
+        // Audit log: driver manually went offline mid-shift.
+        await logDriverShiftEvent({
+          driverId: profile.id,
+          eventType: "offline",
+          shiftSessionId: openSession?.id ?? null,
+          shiftStartedAt: openSession?.started_at ?? profile.went_online_at ?? null,
+          source: "driver_app",
+          metadata: { trigger: "manual_toggle" },
+        });
+
         setShiftSummaryOpen(true);
       }
 
