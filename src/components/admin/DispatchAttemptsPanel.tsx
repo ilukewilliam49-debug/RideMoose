@@ -153,6 +153,9 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
 
   const handleExportCsv = () => {
     const headers = [
+      "ride_id",
+      "rider_id",
+      "dispatch_log_id",
       "timestamp",
       "event",
       "hop",
@@ -165,12 +168,16 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
       "recipients",
       "error_message",
     ];
+    const riderId = rideMeta?.rider_id ?? "";
     const rows = logs.map((log) => {
       const meta = (log.metadata || {}) as Record<string, unknown>;
       const driverName = log.target_profile_id
         ? driverMap.get(log.target_profile_id) ?? (meta.driver_name as string) ?? ""
         : "";
       return [
+        rideId,
+        riderId,
+        log.id,
         log.created_at,
         log.event,
         meta.hop ?? "",
