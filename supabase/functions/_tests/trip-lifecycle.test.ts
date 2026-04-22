@@ -73,24 +73,11 @@ async function signInTestDriver(): Promise<DriverSession> {
 }
 
 async function findOtherDriver(session: DriverSession): Promise<string> {
-  // Test driver can read its own profile only via RLS, so we query rides
-  // where someone else is the driver. Fall back: query profiles via RLS-
-  // bypassing seed function would be nicer, but rides are visible to any
-  // authenticated driver via the "Drivers can view requested rides" policy.
-  // Simpler: hardcode-discover via an existing assigned ride.
-  const { data, error } = await session.client
-    .from("rides")
-    .select("driver_id")
-    .not("driver_id", "is", null)
-    .neq("driver_id", session.profileId)
-    .limit(1);
-  if (error) throw new Error(`findOtherDriver query failed: ${error.message}`);
-  if (!data?.[0]?.driver_id) {
-    throw new Error(
-      "No other driver could be discovered via rides table. Seed at least one ride assigned to a non-test driver before running these tests.",
-    );
+  const { data, error } = await session.client.rpc("_test_find_other_driver");
+  if (error || !data) {
+    throw new Error(`findOtherDriver failed: ${error?.message ?? "no id"}`);
   }
-  return data[0].driver_id as string;
+  return data as string;
 }
 
 async function seedRide(
