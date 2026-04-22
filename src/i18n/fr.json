@@ -138,6 +138,7 @@
     "attemptsRemaining": "{{count}} tentatives restantes avant verrouillage temporaire",
     "lastAttemptWarning": "Dernière tentative — le compte sera temporairement verrouillé après celle-ci",
     "lastAttempt": "C'était votre dernière tentative.",
+    "enterPhoneNumber": "Entrez votre numéro de téléphone",
     "getStarted": "Commencez avec PickYou",
     "mobileNumber": "Numéro de mobile",
     "continue": "Continuer",

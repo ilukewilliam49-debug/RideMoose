@@ -138,6 +138,7 @@
     "attemptsRemaining": "{{count}} attempts remaining before temporary lockout",
     "lastAttemptWarning": "Final attempt - account will be temporarily locked after this",
     "lastAttempt": "This was your final attempt.",
+    "enterPhoneNumber": "Enter Phone Number",
     "getStarted": "Get started with PickYou",
     "mobileNumber": "Mobile number",
     "continue": "Continue",
