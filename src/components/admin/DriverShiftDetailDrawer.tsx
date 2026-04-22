@@ -455,8 +455,6 @@ export function DriverShiftDetailDrawer({
             )}
           </div>
         </ScrollArea>
-          </div>
-        </ScrollArea>
       </SheetContent>
     </Sheet>
   );
