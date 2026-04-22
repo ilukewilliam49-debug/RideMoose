@@ -32,13 +32,14 @@ serve(async (req) => {
 
     const isPrivateHire = service_type === "private_hire";
 
-    // Taxi: no GST, no platform fee (city-regulated meter only)
-    // Private Hire: $0.97 platform fee + 5% GST on (fare + platform fee)
+    // Taxi: no GST, no platform fee (city-regulated meter only).
+    // Private Hire: 5% GST on the metered subtotal, then add the $0.97
+    // platform fee POST-TAX. Mirrors src/lib/pricing.ts (single source of
+    // truth) and src/components/rider/RideReceipt.tsx exactly.
     let fareWithExtras = estimated_fare_cents;
     if (isPrivateHire) {
-      const subtotal = estimated_fare_cents + PICKYOU_PLATFORM_FEE_CENTS;
-      const taxCents = Math.round(subtotal * 0.05);
-      fareWithExtras = subtotal + taxCents;
+      const taxCents = Math.round(estimated_fare_cents * 0.05);
+      fareWithExtras = estimated_fare_cents + taxCents + PICKYOU_PLATFORM_FEE_CENTS;
     }
 
     // Calculate authorized amount: 125% of estimate (including tax if applicable), minimum $20
