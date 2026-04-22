@@ -36,6 +36,8 @@ import { useRideBookingState } from "@/hooks/useRideBookingState";
 import DriverMatchingOverlay from "@/components/rider/DriverMatchingOverlay";
 import { useRideQueries } from "@/hooks/useRideQueries";
 import { useNearestDriverETAs } from "@/hooks/useNearestDriverETAs";
+import PriceEstimate from "@/components/rider/PriceEstimate";
+import { Accessibility } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   requested: "text-yellow-400",
@@ -72,6 +74,7 @@ const RiderDashboard = () => {
     passengerCount: state.passengerCount,
     estimatedItemCostCents: state.estimatedItemCostCents,
     stops: state.stops,
+    accessibilityRequired: state.accessibilityRequired,
   });
 
   const driverETAs = useNearestDriverETAs(state.userLocation);
@@ -243,6 +246,8 @@ const RiderDashboard = () => {
         booking_for: bookingForFinal,
         guest_name: bookingForFinal === "guest" ? guestNameFinal : null,
         guest_phone: bookingForFinal === "guest" ? guestPhoneFinal : null,
+        accessibility_required: state.accessibilityRequired,
+        pickup_delivery_no_passenger: state.serviceType === "courier",
         ...(state.serviceType === "courier" ? {
           package_size: state.packageSize, pickup_notes: state.pickupNotes || null,
           dropoff_notes: state.dropoffNotes || null, proof_photo_required: true,
@@ -605,6 +610,40 @@ const RiderDashboard = () => {
             prices={queries.allServicePrices}
             etaText={queries.directionsData?.duration_in_traffic_text || null}
             driverETAs={driverETAs}
+          />
+
+          {/* Accessibility toggle — waives $6 large-vehicle surcharge per City bylaw */}
+          {state.passengerCount >= 5 && (state.serviceType === "taxi" || state.serviceType === "private_hire") && (
+            <button
+              type="button"
+              onClick={() => state.setAccessibilityRequired(!state.accessibilityRequired)}
+              className={cn(
+                "flex items-center gap-3 w-full p-3 rounded-lg border transition-all",
+                state.accessibilityRequired ? "border-primary bg-primary/10" : "border-border bg-secondary hover:bg-accent"
+              )}
+            >
+              <Accessibility className={cn("h-5 w-5", state.accessibilityRequired ? "text-primary" : "text-muted-foreground")} />
+              <div className="text-left flex-1">
+                <p className="text-xs font-semibold">{t("rider.accessibilityToggle", "Wheelchair / accessibility needed")}</p>
+                <p className="text-[10px] text-muted-foreground">{t("rider.accessibilityToggleNote", "Waives the $6 large-vehicle surcharge (City bylaw)")}</p>
+              </div>
+              <div className={cn("h-4 w-4 rounded-full border-2 flex items-center justify-center", state.accessibilityRequired ? "border-primary" : "border-muted-foreground")}>
+                {state.accessibilityRequired && <div className="h-2 w-2 rounded-full bg-primary" />}
+              </div>
+            </button>
+          )}
+
+          {/* Bylaw fare breakdown for metered services */}
+          <PriceEstimate
+            serviceType={state.serviceType}
+            estimatedPrice={queries.estimatedPrice}
+            directionsData={queries.directionsData}
+            trafficDelayMin={queries.trafficDelayMin}
+            directionsFetching={queries.directionsFetching}
+            passengerCount={state.passengerCount}
+            stopCount={(state.stops ?? []).filter((s) => s.address && s.lat && s.lng).length}
+            bylawRates={queries.bylawRates}
+            accessibilityRequired={state.accessibilityRequired}
           />
 
           {/* All rides are paid in-app via card on file */}
