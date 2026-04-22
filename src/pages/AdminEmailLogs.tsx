@@ -420,6 +420,47 @@ export default function AdminEmailLogs() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={pendingResend !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingResend(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resend this email?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  This will queue a new send of{" "}
+                  <span className="font-mono text-foreground">{pendingResend?.template_name}</span>{" "}
+                  to{" "}
+                  <span className="font-mono text-foreground">{pendingResend?.recipient_email}</span>.
+                </p>
+                <p className="text-amber-600 text-sm">
+                  The recipient may receive a duplicate notification if the original was actually delivered. Only resend if you've confirmed the previous attempt failed.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingResend) {
+                  const log = pendingResend;
+                  setPendingResend(null);
+                  handleResend(log);
+                }
+              }}
+            >
+              <Send className="h-3 w-3 mr-1" />
+              Confirm resend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
