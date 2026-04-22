@@ -19,7 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, Mail, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { RefreshCw, Mail, CheckCircle, XCircle, AlertTriangle, Send, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+const FAILED_STATUSES = ["dlq", "failed", "bounced"];
+const RESENDABLE_TEMPLATE_PREFIX = "driver-application";
 
 interface EmailLog {
   id: string;
