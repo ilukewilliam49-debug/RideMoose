@@ -91,6 +91,20 @@ serve(async (req) => {
       return jsonRes({ error: "Only the assigned driver can complete this ride" }, 403);
     }
 
+    // Capability gate: caller must be a driver permitted to serve this service_type
+    if (!isAdmin) {
+      const { data: canServe, error: capErr } = await admin.rpc("driver_can_serve", {
+        _user_id: userData.user.id,
+        _service: ride.service_type,
+      });
+      if (capErr || canServe !== true) {
+        return jsonRes({
+          error: `You are not authorized to operate ${ride.service_type} trips.`,
+          code: "service_not_permitted",
+        }, 403);
+      }
+    }
+
     // Ride must be in_progress
     if (ride.status !== "in_progress") {
       return jsonRes({ error: `Cannot complete ride in '${ride.status}' status. Must be 'in_progress'.` }, 400);
