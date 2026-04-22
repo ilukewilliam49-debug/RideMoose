@@ -203,7 +203,7 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     (doc as any).internal.pageSize.height = pageHeight;
 
     return doc;
-  }, [ride, grossFare, serviceFee, surchargeCents, tax, totalFare, captured, outstanding, tip, tripId, dateStr]);
+  }, [ride, grossFare, serviceFee, tax, totalFare, captured, outstanding, tip, tripId, dateStr]);
 
   const handleDownload = useCallback(async () => {
     try {
