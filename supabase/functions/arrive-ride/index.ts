@@ -81,16 +81,37 @@ serve(async (req) => {
 
     if (!profile) return jsonRes({ error: "Profile not found" }, 404);
 
+    // Admin bypass via user_roles.has_role
+    const { data: isAdminData } = await admin.rpc("has_role", {
+      _user_id: userData.user.id,
+      _role: "admin",
+    });
+    const isAdmin = isAdminData === true;
+
     const { data: ride, error: rideErr } = await admin
       .from("rides")
-      .select("id, status, driver_id, pickup_lat, pickup_lng")
+      .select("id, status, driver_id, service_type, pickup_lat, pickup_lng")
       .eq("id", ride_id)
       .single();
 
     if (rideErr || !ride) return jsonRes({ error: "Ride not found" }, 404);
 
-    if (ride.driver_id !== profile.id) {
+    if (ride.driver_id !== profile.id && !isAdmin) {
       return jsonRes({ error: "Only the assigned driver can mark arrival" }, 403);
+    }
+
+    // Capability gate: caller must be a driver permitted to serve this service_type
+    if (!isAdmin) {
+      const { data: canServe, error: capErr } = await admin.rpc("driver_can_serve", {
+        _user_id: userData.user.id,
+        _service: ride.service_type,
+      });
+      if (capErr || canServe !== true) {
+        return jsonRes({
+          error: `You are not authorized to operate ${ride.service_type} trips.`,
+          code: "service_not_permitted",
+        }, 403);
+      }
     }
 
     if (ride.status !== "accepted") {
