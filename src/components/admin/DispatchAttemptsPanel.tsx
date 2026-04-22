@@ -6,8 +6,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CheckCircle2, XCircle, Clock, Bell, Trophy, Download } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+
+// Viewer's IANA timezone, resolved once at module load.
+// Used for both on-screen displays AND the CSV export so the two match exactly.
+const VIEWER_TZ =
+  Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+// e.g. "Apr 22, 2026, 3:14:09 PM MDT"
+const tsFormatter = new Intl.DateTimeFormat(undefined, {
+  timeZone: VIEWER_TZ,
+  year: "numeric",
+  month: "short",
+  day: "2-digit",
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+  timeZoneName: "short",
+});
+
+// Short label used in the header chip, e.g. "MDT" or "GMT-6"
+const tzAbbrev = (() => {
+  const parts = new Intl.DateTimeFormat(undefined, {
+    timeZone: VIEWER_TZ,
+    timeZoneName: "short",
+  }).formatToParts(new Date());
+  return parts.find((p) => p.type === "timeZoneName")?.value ?? VIEWER_TZ;
+})();
+
+const formatTs = (iso: string) => tsFormatter.format(new Date(iso));
 
 interface DispatchLog {
   id: string;
