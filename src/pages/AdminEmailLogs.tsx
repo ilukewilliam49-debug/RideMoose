@@ -19,7 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, Mail, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { RefreshCw, Mail, CheckCircle, XCircle, AlertTriangle, Send, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+const FAILED_STATUSES = ["dlq", "failed", "bounced"];
+const RESENDABLE_TEMPLATE_PREFIX = "driver-application";
 
 interface EmailLog {
   id: string;
@@ -81,6 +85,32 @@ export default function AdminEmailLogs() {
   const [rangeKey, setRangeKey] = useState<string>("7d");
   const [templateFilter, setTemplateFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResend = async (log: EmailLog) => {
+    setResendingId(log.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: log.template_name,
+          recipientEmail: log.recipient_email,
+          // Fresh idempotency key so the queue treats this as a new send
+          idempotencyKey: `resend-${log.id}-${Date.now()}`,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Resend queued for ${log.recipient_email}`);
+      // Realtime will refresh, but trigger a refetch as a fallback
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["admin-email-logs"] });
+      }, 1500);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to resend email";
+      toast.error(message);
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const sinceIso = useMemo(() => {
     const opt = RANGE_OPTIONS.find((o) => o.value === rangeKey);
@@ -300,44 +330,75 @@ export default function AdminEmailLogs() {
                 <TableHead>Recipient</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="max-w-[280px]">Error</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : filteredLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     No email events found for the selected filters.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredLogs.slice(0, 200).map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(log.created_at).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{log.template_name}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm font-mono">{log.recipient_email}</TableCell>
-                    <TableCell>
-                      <Badge className={`text-xs ${statusBadgeClass(log.status)}`}>
-                        {log.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell
-                      className="text-xs text-destructive max-w-[280px] truncate"
-                      title={log.error_message || ""}
-                    >
-                      {log.error_message || "—"}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredLogs.slice(0, 200).map((log) => {
+                  const isFailed = FAILED_STATUSES.includes(log.status);
+                  const isDriverApp = log.template_name.startsWith(RESENDABLE_TEMPLATE_PREFIX);
+                  const canResend = isFailed && isDriverApp;
+                  const isResending = resendingId === log.id;
+                  return (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(log.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{log.template_name}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm font-mono">{log.recipient_email}</TableCell>
+                      <TableCell>
+                        <Badge className={`text-xs ${statusBadgeClass(log.status)}`}>
+                          {log.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className="text-xs text-destructive max-w-[280px] truncate"
+                        title={log.error_message || ""}
+                      >
+                        {log.error_message || "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canResend ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isResending}
+                            onClick={() => handleResend(log)}
+                          >
+                            {isResending ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                Resending
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-3 w-3 mr-1" />
+                                Resend
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
