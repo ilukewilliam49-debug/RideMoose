@@ -137,17 +137,78 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
     );
   }
 
+  const handleExportCsv = () => {
+    const headers = [
+      "timestamp",
+      "event",
+      "hop",
+      "status",
+      "outcome",
+      "driver_id",
+      "driver_name",
+      "distance_km",
+      "response_latency_ms",
+      "recipients",
+      "error_message",
+    ];
+    const rows = logs.map((log) => {
+      const meta = (log.metadata || {}) as Record<string, unknown>;
+      const driverName = log.target_profile_id
+        ? driverMap.get(log.target_profile_id) ?? (meta.driver_name as string) ?? ""
+        : "";
+      return [
+        log.created_at,
+        log.event,
+        meta.hop ?? "",
+        log.status,
+        meta.outcome ?? "",
+        log.target_profile_id ?? "",
+        driverName,
+        meta.distance_km ?? "",
+        meta.response_latency_ms ?? "",
+        log.recipients ?? "",
+        log.error_message ?? "",
+      ];
+    });
+    const escape = (v: unknown) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [headers.join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dispatch-timeline-${rideId}-${format(new Date(), "yyyyMMdd-HHmmss")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <Bell className="h-4 w-4" /> Dispatch Attempts
-          {attempts.length > 0 && (
-            <Badge variant="outline" className="ml-1 text-xs">
-              {attempts.length} hop{attempts.length === 1 ? "" : "s"}
-            </Badge>
-          )}
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Bell className="h-4 w-4" /> Dispatch Attempts
+            {attempts.length > 0 && (
+              <Badge variant="outline" className="ml-1 text-xs">
+                {attempts.length} hop{attempts.length === 1 ? "" : "s"}
+              </Badge>
+            )}
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={logs.length === 0}
+            className="h-8 gap-1.5"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {attempts.length === 0 ? (
