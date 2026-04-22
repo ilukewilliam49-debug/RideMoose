@@ -64,11 +64,18 @@ serve(async (req) => {
     // Get caller's profile
     const { data: profile } = await admin
       .from("profiles")
-      .select("id, role")
+      .select("id")
       .eq("user_id", userData.user.id)
       .single();
 
     if (!profile) return jsonRes({ error: "Profile not found" }, 404);
+
+    // Check admin role via user_roles table (has_role RPC)
+    const { data: isAdminData } = await admin.rpc("has_role", {
+      _user_id: userData.user.id,
+      _role: "admin",
+    });
+    const isAdmin = isAdminData === true;
 
     // Fetch ride
     const { data: ride, error: rideErr } = await admin
@@ -80,7 +87,6 @@ serve(async (req) => {
     if (rideErr || !ride) return jsonRes({ error: "Ride not found" }, 404);
 
     // Only the assigned driver (or admin) can complete
-    const isAdmin = profile.role === "admin";
     if (ride.driver_id !== profile.id && !isAdmin) {
       return jsonRes({ error: "Only the assigned driver can complete this ride" }, 403);
     }
