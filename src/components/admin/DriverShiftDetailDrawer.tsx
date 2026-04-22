@@ -80,6 +80,81 @@ function formatDuration(min: number | null) {
   return `${h}h ${m.toString().padStart(2, "0")}m`;
 }
 
+type SessionGroup = {
+  key: string;
+  sessionId: string | null;
+  events: ShiftEventRow[];
+  startEvent: ShiftEventRow | null;
+  endEvent: ShiftEventRow | null;
+  startedAt: Date | null;
+  endedAt: Date | null;
+  durationMin: number | null;
+  capped: boolean;
+  ongoing: boolean;
+};
+
+function groupBySession(events: ShiftEventRow[]): SessionGroup[] {
+  const map = new Map<string, ShiftEventRow[]>();
+  let orphanCounter = 0;
+  for (const ev of events) {
+    const key = ev.shift_session_id ?? `__orphan_${orphanCounter++}_${ev.id}`;
+    const arr = map.get(key) ?? [];
+    arr.push(ev);
+    map.set(key, arr);
+  }
+
+  const groups: SessionGroup[] = [];
+  for (const [key, evs] of map) {
+    const asc = [...evs].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const startEvent = asc.find((e) => e.event_type === "online") ?? null;
+    const endEvent =
+      [...asc]
+        .reverse()
+        .find(
+          (e) => e.event_type === "offline" || e.event_type === "auto_capped"
+        ) ?? null;
+    const startedAt =
+      (startEvent?.shift_started_at
+        ? new Date(startEvent.shift_started_at)
+        : null) ??
+      (startEvent ? new Date(startEvent.created_at) : null);
+    const endedAt = endEvent ? new Date(endEvent.created_at) : null;
+    const durationMin =
+      endEvent?.shift_duration_minutes ??
+      (startedAt && endedAt
+        ? Math.max(
+            0,
+            Math.round((endedAt.getTime() - startedAt.getTime()) / 60_000)
+          )
+        : null);
+    const capped = asc.some((e) => e.event_type === "auto_capped");
+    const ongoing = !endEvent && !!startEvent;
+
+    groups.push({
+      key,
+      sessionId: evs[0].shift_session_id,
+      events: asc,
+      startEvent,
+      endEvent,
+      startedAt,
+      endedAt,
+      durationMin,
+      capped,
+      ongoing,
+    });
+  }
+
+  groups.sort((a, b) => {
+    const at = a.startedAt?.getTime() ?? 0;
+    const bt = b.startedAt?.getTime() ?? 0;
+    return bt - at;
+  });
+  return groups;
+}
+
 export function DriverShiftDetailDrawer({
   driverId,
   driverName,
