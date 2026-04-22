@@ -101,6 +101,57 @@ export type Database = {
           },
         ]
       }
+      driver_shift_events: {
+        Row: {
+          created_at: string
+          driver_id: string
+          event_type: string
+          id: string
+          metadata: Json
+          shift_duration_minutes: number | null
+          shift_session_id: string | null
+          shift_started_at: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          shift_duration_minutes?: number | null
+          shift_session_id?: string | null
+          shift_started_at?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          shift_duration_minutes?: number | null
+          shift_session_id?: string | null
+          shift_started_at?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_shift_events_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_shift_events_shift_session_id_fkey"
+            columns: ["shift_session_id"]
+            isOneToOne: false
+            referencedRelation: "shift_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
