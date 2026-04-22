@@ -1,6 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { format, formatDistanceStrict } from "date-fns";
-import { AlertTriangle, Clock, Power, PlayCircle, User, Phone } from "lucide-react";
+import {
+  AlertTriangle,
+  Clock,
+  Power,
+  PlayCircle,
+  User,
+  Phone,
+  CheckCircle2,
+  CircleDot,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sheet,
