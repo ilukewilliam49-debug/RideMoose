@@ -1,50 +1,42 @@
 
-The user is asking why a page refresh feels slower than expected. Let me think through the current bootstrap sequence.
 
-Looking at `src/main.tsx`, the boot sequence runs **sequentially** before React even starts mounting:
+## Driver Application Email Notifications
 
-1. `runKillSwitchOnce()` — reads localStorage, may unregister SWs + clear caches
-2. `redirectToCanonicalHost()` — checks hostname, awaits SW unregister + cache clear on legacy hosts
-3. `normalizePathname()` — synchronous
-4. If preview/iframe → `await unregisterServiceWorkers()` — **runs on every preview reload**
-5. `shouldRecoverOAuthRoute()` — only on /~oauth/ paths
-6. `installSessionOnlyTokenWipe()` — adds listener
-7. `createRoot().render(<App />)` — finally mounts React
+**Short answer to your question:** No — right now you do **not** receive an email when a driver applies. Only the **business/corporate** application sends an email to `contact@pickyou.ca`. Drivers just submit their documents and an in-app admin notification is created (no email).
 
-Plus a 4s blank-screen watchdog timer.
+Here's what I'll add so you get email alerts the same way you do for business applications.
 
-### Root causes of slow refresh
+### What you'll get
 
-1. **Service Worker unregister on every preview reload** (step 4): `await unregisterServiceWorkers()` blocks React mount on the preview/iframe host. This is a network/IO call that delays first paint by hundreds of ms every single refresh.
+1. **Email to admin (you, at `contact@pickyou.ca`)** when a driver finishes their onboarding submission, with:
+   - Driver name, email, phone
+   - Vehicle (year, make, model, color, plate, type)
+   - Number of documents uploaded
+   - Submitted timestamp
+   - One-click link to `/admin/verifications` to review
 
-2. **Sequential awaits**: kill-switch check → host redirect → SW unregister all run one after another even though they're independent on a normal load.
+2. **Confirmation email to the driver** acknowledging their application is received and under review (sets expectation: 1–3 business days, what happens next).
 
-3. **Pre-mount loader animation**: works fine, but the *real* delay is the JS bundle download + parse + the awaits above. The loader masks it but doesn't fix it.
+### How it will work
 
-4. **Vite dev mode in preview**: in the Lovable preview/iframe, modules are fetched on-demand (waterfall). This is unavoidable in dev but feels slower than prod. Production build (pickyou.ca) won't have this.
+- Two new React Email templates in `supabase/functions/_shared/transactional-email-templates/`:
+  - `driver-application-notification.tsx` → sent to admin
+  - `driver-application-confirmation.tsx` → sent to applicant
+- Both registered in `registry.ts`.
+- Triggered from `src/pages/DriverOnboarding.tsx` inside `handleSubmit()` — fired exactly once when the driver hits "Submit application", using an `idempotencyKey` of `driver-app-${profile.id}-${timestamp-bucket}` so retries never duplicate.
+- Uses the existing `send-transactional-email` Edge Function (no new function created — per platform rules).
+- Branded with PickYou dark theme accent (#2F80ED on white email body, per email standards).
 
-### Plan: speed up the bootstrap
+### Technical notes
 
-**File: `src/main.tsx`**
+- Email infrastructure is already provisioned (corporate-application-notification works), so no `setup_email_infra` call needed — only `deploy_edge_functions(["send-transactional-email"])` after registry update.
+- Admin recipient is hardcoded to `contact@pickyou.ca` (matching the existing corporate flow). If you'd like a different address or multiple recipients later, that's a one-line change.
+- Both emails are strictly transactional (1:1, triggered by the applicant's own action) — fully compliant with the platform's email policy.
 
-1. **Skip SW unregister when there's nothing to unregister.** Guard with `navigator.serviceWorker?.getRegistrations()` early-return: if zero registrations, skip the await entirely. This makes every reload after the first essentially free.
+### Files to be created / edited
 
-2. **Move the preview-host SW unregister off the critical path.** Don't `await` it before mounting React — fire it in the background after `createRoot().render()`. The SW can't affect the already-loaded page, so unregistering it after mount is safe.
+- **Create:** `supabase/functions/_shared/transactional-email-templates/driver-application-notification.tsx`
+- **Create:** `supabase/functions/_shared/transactional-email-templates/driver-application-confirmation.tsx`
+- **Edit:** `supabase/functions/_shared/transactional-email-templates/registry.ts` (register both)
+- **Edit:** `src/pages/DriverOnboarding.tsx` (invoke both emails inside `handleSubmit`)
 
-3. **Mount React first, run side-effects after.** Reorder `bootstrap()`:
-   - Run kill-switch check (must stay first — it may reload)
-   - Run host redirect check (must stay — may navigate away)
-   - `normalizePathname()` (sync, cheap)
-   - `installSessionOnlyTokenWipe()` (sync, cheap)
-   - **Mount React immediately**
-   - Then asynchronously: SW unregister on preview, watchdog setup
-
-4. **Tighten the blank-screen watchdog**: 4s is reasonable, keep as-is.
-
-### Expected result
-On a normal refresh of the preview/canonical host with no stale SW, React mounts as soon as the JS bundle is parsed — no extra awaits in front. The pulsing loader stays visible only for the genuine bundle-download time, not artificial blocking.
-
-### Files to edit
-- `src/main.tsx` — reorder bootstrap, move SW unregister off the critical path, early-return when no SWs to unregister.
-
-No other files need changes.
