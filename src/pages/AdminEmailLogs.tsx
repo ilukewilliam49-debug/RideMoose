@@ -95,7 +95,7 @@ export default function AdminEmailLogs() {
   const [rangeKey, setRangeKey] = useState<string>("7d");
   const [templateFilter, setTemplateFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [pendingResend, setPendingResend] = useState<EmailLog | null>(null);
 
   const handleResend = async (log: EmailLog) => {
     setResendingId(log.id);
