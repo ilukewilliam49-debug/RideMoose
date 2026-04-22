@@ -1,4 +1,4 @@
-import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList, Bell, Radio, FileText, WifiOff, Timer } from "lucide-react";
+import { Home, Car, Shield, BarChart3, LogOut, Users, DollarSign, MapPinned, Building2, MessageSquare, CalendarCheck, Clock, Zap, ClipboardList, Bell, Radio, FileText, WifiOff, Timer, Mail } from "lucide-react";
 import { useIsOnline } from "@/hooks/useNetworkStatus";
 import logoImg from "@/assets/logo.png";
 import { useQuery } from "@tanstack/react-query";
@@ -58,6 +58,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
     { icon: Radio, title: "Live Map", url: "/admin/live-map" },
     { icon: Zap, title: "Simulator", url: "/admin/simulator" },
     { icon: Bell, title: "Notification Logs", url: "/admin/notifications" },
+    { icon: Mail, title: "Email Logs", url: "/admin/email-logs" },
     { icon: FileText, title: "Audit Log", url: "/admin/audit-log" },
     { icon: Timer, title: "Shift Events", url: "/admin/shift-events" },
   ],
