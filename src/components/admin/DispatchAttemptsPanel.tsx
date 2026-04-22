@@ -237,13 +237,13 @@ function OutcomeBadge({ outcome, pushFailed }: { outcome: string; pushFailed: bo
   switch (outcome) {
     case "accepted":
       return (
-        <Badge className="text-xs bg-green-500/10 text-green-600 border-green-200">
+        <Badge className="text-xs bg-primary/10 text-primary border-primary/30">
           <CheckCircle2 className="h-3 w-3 mr-1" /> Accepted
         </Badge>
       );
     case "timeout_or_decline":
       return (
-        <Badge className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-200">
+        <Badge className="text-xs bg-accent/10 text-accent border-accent/30">
           <Clock className="h-3 w-3 mr-1" /> Declined / timed out
         </Badge>
       );
