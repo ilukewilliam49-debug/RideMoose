@@ -46,17 +46,24 @@ const DriverDashboard = () => {
 
   // ─── Live-ticking online duration + 12h cap enforcement ───
   const [onlineDuration, setOnlineDuration] = useState<string | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [shiftCapped, setShiftCapped] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const tick = () => {
       const onlineSince = profile?.went_online_at;
-      if (!onlineSince) { setOnlineDuration(null); setShiftCapped(false); return; }
+      if (!onlineSince) {
+        setOnlineDuration(null);
+        setElapsedMs(0);
+        setShiftCapped(false);
+        return;
+      }
       const diff = Date.now() - new Date(onlineSince).getTime();
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       setOnlineDuration(h > 0 ? `${h}h ${m}m` : `${m}m`);
+      setElapsedMs(diff);
 
       // Enforce 12-hour cap: auto-offline + show summary, exactly once.
       if (diff >= SHIFT_LIMIT_MS && !shiftCapped && profile?.id) {
@@ -97,7 +104,13 @@ const DriverDashboard = () => {
       }
     };
     tick();
-    const id = setInterval(tick, 30_000);
+    // Tick every 30s normally, but every 5s in the final hour for a smoother countdown.
+    const intervalMs =
+      profile?.went_online_at &&
+      Date.now() - new Date(profile.went_online_at).getTime() > SHIFT_LIMIT_MS - 60 * 60 * 1000
+        ? 5_000
+        : 30_000;
+    const id = setInterval(tick, intervalMs);
     return () => { cancelled = true; clearInterval(id); };
   }, [profile?.went_online_at, profile?.id, shiftCapped, queryClient, SHIFT_LIMIT_MS]);
 
