@@ -77,7 +77,8 @@ describe("RideReceipt — TAXI (City-Regulated) UI compliance", () => {
     expect(screen.queryByText(/Service fee/i)).not.toBeInTheDocument();
     expect(screen.queryByText("$0.97")).not.toBeInTheDocument();
     // Total must equal the bylaw fare only — no leaked cents.
-    expect(screen.getByText("$18.36")).toBeInTheDocument();
+    // ($18.36 appears twice: once in the Fare row, once in the Total row.)
+    expect(screen.getAllByText("$18.36").length).toBeGreaterThanOrEqual(2);
   });
 
   it("renders only Fare + Total (no fee/tax rows) for a regulated trip", () => {
