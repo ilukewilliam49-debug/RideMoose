@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Radio,
-  Clock3,
+  
   DollarSign,
   ArrowRight,
   MapPin,
