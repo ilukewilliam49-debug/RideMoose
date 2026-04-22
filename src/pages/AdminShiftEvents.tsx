@@ -100,6 +100,11 @@ export default function AdminShiftEvents() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [selectedDriver, setSelectedDriver] = useState<{
+    id: string;
+    name: string | null;
+    phone: string | null;
+  } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: [
