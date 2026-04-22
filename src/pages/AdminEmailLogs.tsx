@@ -85,6 +85,32 @@ export default function AdminEmailLogs() {
   const [rangeKey, setRangeKey] = useState<string>("7d");
   const [templateFilter, setTemplateFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResend = async (log: EmailLog) => {
+    setResendingId(log.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: log.template_name,
+          recipientEmail: log.recipient_email,
+          // Fresh idempotency key so the queue treats this as a new send
+          idempotencyKey: `resend-${log.id}-${Date.now()}`,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Resend queued for ${log.recipient_email}`);
+      // Realtime will refresh, but trigger a refetch as a fallback
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["admin-email-logs"] });
+      }, 1500);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to resend email";
+      toast.error(message);
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const sinceIso = useMemo(() => {
     const opt = RANGE_OPTIONS.find((o) => o.value === rangeKey);
