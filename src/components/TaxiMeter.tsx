@@ -42,8 +42,14 @@ function ReceiptBreakdown({ receipt }: { receipt: FareReceipt }) {
       <div className="grid grid-cols-2 gap-1 text-xs border-t border-border pt-2">
         <span className="text-muted-foreground">{t("meter.subtotal")}</span>
         <span className="text-right font-mono">{cents(receipt.grossFareCents)}</span>
-        <span className="text-muted-foreground">{t("meter.serviceFee")}</span>
-        <span className="text-right font-mono">{cents(receipt.serviceFeeCents)}</span>
+        {/* Compliance: Taxi (City-Regulated) must NEVER display "Service Fee",
+            "Platform Fee", or "GST". These rows are PickYou-only. */}
+        {receipt.serviceFeeCents > 0 && (
+          <>
+            <span className="text-muted-foreground">{t("meter.serviceFee")}</span>
+            <span className="text-right font-mono">{cents(receipt.serviceFeeCents)}</span>
+          </>
+        )}
         {receipt.surchargeCents > 0 && (
           <>
             <span className="text-muted-foreground">PickYou Surcharge</span>

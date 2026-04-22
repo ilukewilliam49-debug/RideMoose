@@ -36,8 +36,12 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const grossFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
-  const serviceFee = ride.service_fee_cents || 0;
-  const tax = ride.tax_cents || 0;
+  // Compliance: Taxi (City-Regulated) rides must NEVER display GST or
+  // platform/service fee lines. Gate on service_type AS WELL AS amount so a
+  // future data bug cannot leak PickYou-only rows onto a Taxi receipt.
+  const isPickYou = ride.service_type === "private_hire";
+  const serviceFee = isPickYou ? (ride.service_fee_cents || 0) : 0;
+  const tax = isPickYou ? (ride.tax_cents || 0) : 0;
   const totalFare = grossFare + serviceFee + tax;
   const captured = ride.captured_amount_cents || 0;
   const outstanding = ride.outstanding_amount_cents || 0;
@@ -60,7 +64,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     licensePlate ? `Plate: ${licensePlate}` : "",
     `--- Fare Breakdown ---`,
     `Fare: ${cents(grossFare)}`,
-    serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
     serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
     tax > 0 ? `GST (5%): ${cents(tax)}` : "",
     tip > 0 ? `Tip: ${cents(tip)}` : "",
