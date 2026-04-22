@@ -57,6 +57,20 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
     },
   });
 
+  // Fetch the ride's rider_id so audit CSV rows are self-contained.
+  const { data: rideMeta } = useQuery({
+    queryKey: ["dispatch-logs-ride-meta", rideId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rides")
+        .select("id, rider_id")
+        .eq("id", rideId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; rider_id: string } | null;
+    },
+  });
+
   // Realtime: refresh as the dispatch unfolds.
   useEffect(() => {
     const channel = supabase
@@ -139,6 +153,9 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
 
   const handleExportCsv = () => {
     const headers = [
+      "ride_id",
+      "rider_id",
+      "dispatch_log_id",
       "timestamp",
       "event",
       "hop",
@@ -151,12 +168,16 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
       "recipients",
       "error_message",
     ];
+    const riderId = rideMeta?.rider_id ?? "";
     const rows = logs.map((log) => {
       const meta = (log.metadata || {}) as Record<string, unknown>;
       const driverName = log.target_profile_id
         ? driverMap.get(log.target_profile_id) ?? (meta.driver_name as string) ?? ""
         : "";
       return [
+        rideId,
+        riderId,
+        log.id,
         log.created_at,
         log.event,
         meta.hop ?? "",
