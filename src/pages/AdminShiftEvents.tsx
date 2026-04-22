@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { DriverShiftDetailDrawer } from "@/components/admin/DriverShiftDetailDrawer";
 
 const PAGE_SIZE = 25;
 
@@ -99,6 +100,11 @@ export default function AdminShiftEvents() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [selectedDriver, setSelectedDriver] = useState<{
+    id: string;
+    name: string | null;
+    phone: string | null;
+  } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: [
@@ -378,7 +384,17 @@ export default function AdminShiftEvents() {
                     ? meta.note
                     : "";
                 return (
-                  <TableRow key={row.id}>
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer hover:bg-muted/40"
+                    onClick={() =>
+                      setSelectedDriver({
+                        id: row.driver_id,
+                        name: row.profiles?.full_name ?? null,
+                        phone: row.profiles?.phone ?? null,
+                      })
+                    }
+                  >
                     <TableCell className="whitespace-nowrap text-xs">
                       <div>{format(new Date(row.created_at), "PP p")}</div>
                       <div className="text-muted-foreground">
@@ -390,7 +406,7 @@ export default function AdminShiftEvents() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      <div className="font-medium">
+                      <div className="font-medium underline-offset-2 hover:underline">
                         {row.profiles?.full_name || "Unknown driver"}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -455,6 +471,14 @@ export default function AdminShiftEvents() {
           </div>
         </div>
       )}
+
+      <DriverShiftDetailDrawer
+        driverId={selectedDriver?.id ?? null}
+        driverName={selectedDriver?.name}
+        driverPhone={selectedDriver?.phone}
+        open={!!selectedDriver}
+        onOpenChange={(o) => !o && setSelectedDriver(null)}
+      />
     </div>
   );
 }
