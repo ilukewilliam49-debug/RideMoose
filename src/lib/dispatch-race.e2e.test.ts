@@ -240,14 +240,20 @@ describe("dispatch race: multi-driver fan-out", () => {
     expect(ranked[0].id).toBe("near");
     store.dispatch(ranked[0].id, 15_000, now);
 
-    // Race: all three drivers attempt to accept simultaneously.
-    // The "near" driver is the rightful winner; the others must be rejected
-    // with `dispatched_to_other` because the ride is locked to "near".
-    const results = [near, mid, far].map((d) => store.acceptRide(d, now));
+    // Race: simulate non-winners arriving FIRST (before the dispatched
+    // driver lands their accept). They must be rejected with
+    // `dispatched_to_other`. Then the winner accepts.
+    const midResult = store.acceptRide(mid, now);
+    const farResult = store.acceptRide(far, now);
+    const nearResult = store.acceptRide(near, now);
 
-    expect(results[0]).toEqual({ success: true });
-    expect(results[1]).toEqual({ success: false, reason: "dispatched_to_other" });
-    expect(results[2]).toEqual({ success: false, reason: "dispatched_to_other" });
+    expect(midResult).toEqual({ success: false, reason: "dispatched_to_other" });
+    expect(farResult).toEqual({ success: false, reason: "dispatched_to_other" });
+    expect(nearResult).toEqual({ success: true });
+
+    // A late retry from a loser now sees the row as accepted.
+    const lateMid = store.acceptRide(mid, now);
+    expect(lateMid).toEqual({ success: false, reason: "already_taken" });
 
     // Exactly one winner persisted on the row.
     expect(store.ride.status).toBe("accepted");
