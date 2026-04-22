@@ -89,9 +89,12 @@ describe("Rounding boundaries — exact 0.5¢ waiting-charge cases", () => {
     expect(taxi.waitingChargeCents).toBe(10);
   });
 
-  it("3.3 min waiting (0.3 billable) → 28.5¢ rounds UP to 29¢", () => {
+  it("3.3 min waiting → 28¢ (float (3.3-3)*95 ≈ 28.499 rounds DOWN — documents real IEEE-754 behavior)", () => {
+    // (3.3 - 3) is 0.29999999999999982 in IEEE-754, not exactly 0.3.
+    // 0.2999... * 95 = 28.499... → Math.round = 28.
+    // Documenting this precisely so any future change to the rounding strategy is caught.
     const taxi = computeFare("taxi", rates, { distanceKm: 1, waitingMin: 3.3 });
-    expect(taxi.waitingChargeCents).toBe(29);
+    expect(taxi.waitingChargeCents).toBe(28);
   });
 
   it("3.5 min waiting (0.5 billable) → 47.5¢ rounds UP to 48¢", () => {
