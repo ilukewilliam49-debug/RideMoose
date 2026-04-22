@@ -27,6 +27,7 @@ import { DashboardStatsSkeleton, RecentTripsSkeleton } from "@/components/driver
 import ShiftSummaryDialog from "@/components/driver/ShiftSummaryDialog";
 import ShiftStatusPanel from "@/components/driver/ShiftStatusPanel";
 import DriverWelcomeFlow from "@/components/driver/DriverWelcomeFlow";
+import { logDriverShiftEvent } from "@/lib/shift-events";
 
 const DriverDashboard = () => {
   const navigate = useNavigate();

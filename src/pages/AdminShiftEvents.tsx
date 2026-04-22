@@ -70,7 +70,7 @@ function eventBadge(event: string) {
   }
   if (event === "online") {
     return (
-      <Badge className="gap-1 bg-green-500/15 text-green-600 hover:bg-green-500/20">
+      <Badge className="gap-1 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/30">
         <PlayCircle className="h-3 w-3" />
         Online
       </Badge>
@@ -157,7 +157,7 @@ export default function AdminShiftEvents() {
         .select("event_type")
         .gte("created_at", since);
       if (error) throw error;
-      const arr = (data ?? []) as { event_type: string }[];
+      const arr = ((data ?? []) as unknown) as { event_type: string }[];
       return {
         online: arr.filter((r) => r.event_type === "online").length,
         offline: arr.filter((r) => r.event_type === "offline").length,
