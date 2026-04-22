@@ -656,6 +656,29 @@ serve(async (req) => {
         });
       }
 
+      // ── A2. Direct dispatch → single driver (urgent, time-limited) ──
+      case "dispatched": {
+        const targetId = input.driver_profile_id;
+        if (!targetId) {
+          return jsonRes({ error: "driver_profile_id required for dispatched event" }, 400);
+        }
+
+        const heading = "🚨 Ride dispatched to you";
+        const body = `Pickup: ${ride.pickup_address}. Tap to accept within 15s.`;
+
+        const r = await notifyUser(
+          supabase, onesignalAppId, onesignalApiKey,
+          targetId, heading, body, "/driver/dispatch",
+          "dispatched", ride_id
+        );
+        await writeNotification(supabase, targetId, heading, body, "dispatch", ride_id);
+        results.push({ target: targetId, ...r });
+
+        const elapsed = Date.now() - startTime;
+        console.log(`[ride_event:dispatched] ride=${ride_id} driver=${targetId} elapsed=${elapsed}ms`);
+        return jsonRes({ results, elapsed_ms: elapsed });
+      }
+
       // ── B–D. Driver Accepted / Arrived / Completed → Notify rider
       case "accepted":
       case "arrived":
