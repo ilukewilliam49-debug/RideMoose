@@ -4,8 +4,9 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, XCircle, Clock, Bell, Trophy } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Bell, Trophy, Download } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface DispatchLog {
