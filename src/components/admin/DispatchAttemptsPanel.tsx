@@ -57,6 +57,20 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
     },
   });
 
+  // Fetch the ride's rider_id so audit CSV rows are self-contained.
+  const { data: rideMeta } = useQuery({
+    queryKey: ["dispatch-logs-ride-meta", rideId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rides")
+        .select("id, rider_id")
+        .eq("id", rideId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; rider_id: string } | null;
+    },
+  });
+
   // Realtime: refresh as the dispatch unfolds.
   useEffect(() => {
     const channel = supabase
