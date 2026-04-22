@@ -21,7 +21,8 @@ const DirectSchema = z.object({
 const RideEventSchema = z.object({
   mode: z.literal("ride_event"),
   ride_id: z.string().uuid(),
-  event: z.enum(["requested", "accepted", "arrived", "completed"]),
+  event: z.enum(["requested", "dispatched", "accepted", "arrived", "completed"]),
+  driver_profile_id: z.string().uuid().optional(),
 });
 
 const TestSchema = z.object({ mode: z.literal("test") });
@@ -653,6 +654,29 @@ serve(async (req) => {
           elapsed_ms: elapsed,
           results,
         });
+      }
+
+      // ── A2. Direct dispatch → single driver (urgent, time-limited) ──
+      case "dispatched": {
+        const targetId = input.driver_profile_id;
+        if (!targetId) {
+          return jsonRes({ error: "driver_profile_id required for dispatched event" }, 400);
+        }
+
+        const heading = "🚨 Ride dispatched to you";
+        const body = `Pickup: ${ride.pickup_address}. Tap to accept within 15s.`;
+
+        const r = await notifyUser(
+          supabase, onesignalAppId, onesignalApiKey,
+          targetId, heading, body, "/driver/dispatch",
+          "dispatched", ride_id
+        );
+        await writeNotification(supabase, targetId, heading, body, "dispatch", ride_id);
+        results.push({ target: targetId, ...r });
+
+        const elapsed = Date.now() - startTime;
+        console.log(`[ride_event:dispatched] ride=${ride_id} driver=${targetId} elapsed=${elapsed}ms`);
+        return jsonRes({ results, elapsed_ms: elapsed });
       }
 
       // ── B–D. Driver Accepted / Arrived / Completed → Notify rider

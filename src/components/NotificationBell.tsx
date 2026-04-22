@@ -78,7 +78,9 @@ const NotificationBell = () => {
 
   const handleClick = (notif: any) => {
     markAsRead(notif.id);
-    if (notif.type === "large_delivery_bid" && notif.ride_id) {
+    if (notif.type === "dispatch" && profile?.is_driver) {
+      navigate("/driver/dispatch");
+    } else if (notif.type === "large_delivery_bid" && notif.ride_id) {
       if (profile?.is_driver) {
         navigate("/driver/dispatch");
       }
@@ -91,6 +93,7 @@ const NotificationBell = () => {
   };
 
   const iconForType = (type: string) => {
+    if (type === "dispatch") return <Truck className="h-4 w-4 text-primary shrink-0" />;
     if (type === "large_delivery_bid") return <Truck className="h-4 w-4 text-primary shrink-0" />;
     if (type === "verification_approved") return <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />;
     if (type === "verification_rejected") return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
