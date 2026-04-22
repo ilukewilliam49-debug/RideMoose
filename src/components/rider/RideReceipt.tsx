@@ -31,18 +31,14 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-const PICKYOU_SURCHARGE_CENTS = 299; // $2.99
-
 export default function RideReceipt({ ride, driverName, vehicleMake, vehicleModel, vehicleYear, vehicleColor, licensePlate }: RideReceiptProps) {
   const { t } = useTranslation();
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const isPrivateHire = ride.service_type === "private_hire";
   const grossFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
   const serviceFee = ride.service_fee_cents || 0;
-  const surchargeCents = isPrivateHire ? PICKYOU_SURCHARGE_CENTS : 0;
   const tax = ride.tax_cents || 0;
-  const totalFare = grossFare + serviceFee + surchargeCents + tax;
+  const totalFare = grossFare + serviceFee + tax;
   const captured = ride.captured_amount_cents || 0;
   const outstanding = ride.outstanding_amount_cents || 0;
   const tip = ride.tip_cents || 0;
