@@ -17,8 +17,10 @@
  *
  * MODE 2 — PICKYOU INDEPENDENT
  *   Same metered base + surcharges as Taxi, then:
- *     +5% GST on the running subtotal
- *     +$0.97 PickYou platform fee (post-tax)
+ *     +5% GST on the bylaw subtotal (base + distance + waiting + surcharges)
+ *     +$0.97 PickYou platform fee, added AFTER GST and itself NOT subject
+ *       to GST (it is a flat service charge layered on top of the regulated
+ *       taxable supply, not part of the metered fare).
  */
 
 export interface BylawRates {
