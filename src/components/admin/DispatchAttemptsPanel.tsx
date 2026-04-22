@@ -278,13 +278,13 @@ function ResolutionRow({
     <div
       className={`flex items-start gap-3 rounded-lg border p-3 ${
         matched
-          ? "bg-green-500/5 border-green-200"
+          ? "bg-primary/5 border-primary/30"
           : "bg-destructive/5 border-destructive/30"
       }`}
     >
       <Trophy
         className={`h-5 w-5 shrink-0 mt-0.5 ${
-          matched ? "text-green-600" : "text-destructive"
+          matched ? "text-primary" : "text-destructive"
         }`}
       />
       <div className="flex-1 text-sm">
