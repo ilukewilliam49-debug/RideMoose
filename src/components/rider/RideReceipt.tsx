@@ -309,12 +309,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
               <span className="font-mono">{cents(serviceFee)}</span>
             </div>
           )}
-          {surchargeCents > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">PickYou Surcharge</span>
-              <span className="font-mono">{cents(surchargeCents)}</span>
-            </div>
-          )}
           {tax > 0 && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("receipt.gst", "GST (5%)")}</span>
