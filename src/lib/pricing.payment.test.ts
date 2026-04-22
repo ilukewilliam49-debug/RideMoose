@@ -28,19 +28,20 @@ const STRIPE_HOLD_MAX_CENTS = 50000;
  *   - supabase/functions/create-payment-intent/index.ts
  *   - supabase/functions/pay-with-saved-card/index.ts
  *
- * Given the metered fare (computeFare subtotal — i.e. *before* tax & platform
- * fee), returns the cents Stripe will hold on the rider's card.
+ * Given the metered fare (computeFare subtotalCents — i.e. *before* tax &
+ * platform fee), returns the cents Stripe will hold on the rider's card.
+ *
+ * PickYou: tax = round(subtotal × 0.05); fareWithExtras = subtotal + tax + 97
+ * Taxi:    fareWithExtras = subtotal
  */
 function stripeAuthorizationAmount(
   meteredFareCents: number,
   serviceType: "taxi" | "private_hire"
 ): number {
-  const isPrivateHire = serviceType === "private_hire";
   let fareWithExtras = meteredFareCents;
-  if (isPrivateHire) {
-    const subtotal = meteredFareCents + PICKYOU_PLATFORM_FEE_CENTS;
-    const taxCents = Math.round(subtotal * 0.05);
-    fareWithExtras = subtotal + taxCents;
+  if (serviceType === "private_hire") {
+    const taxCents = Math.round(meteredFareCents * 0.05);
+    fareWithExtras = meteredFareCents + taxCents + PICKYOU_PLATFORM_FEE_CENTS;
   }
   return Math.min(
     Math.max(Math.round(fareWithExtras * STRIPE_HOLD_MULTIPLIER), STRIPE_HOLD_MIN_CENTS),
