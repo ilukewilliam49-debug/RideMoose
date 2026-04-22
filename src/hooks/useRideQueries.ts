@@ -18,11 +18,14 @@ interface UseRideQueriesParams {
   estimatedItemCostCents: number | "";
   /** Intermediate stops between pickup and dropoff (max 3). */
   stops?: RideStop[];
+  /** True when the rider has flagged a wheelchair / accessibility need. */
+  accessibilityRequired?: boolean;
 }
 
 export const useRideQueries = ({
   profileId, userId, serviceType, pickupCoords, dropoffCoords,
   pickup, dropoff, distanceKm, passengerCount, estimatedItemCostCents, stops = [],
+  accessibilityRequired = false,
 }: UseRideQueriesParams) => {
   const queryClient = useQueryClient();
   const stopCount = stops.length;
