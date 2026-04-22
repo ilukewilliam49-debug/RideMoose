@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ServiceType } from "./useRideBookingState";
 import { PER_STOP_FEE_CENTS, type RideStop } from "@/types/stops";
+import { computeFare, FALLBACK_BYLAW_RATES, type BylawRates } from "@/lib/pricing";
 
 interface UseRideQueriesParams {
   profileId?: string;
