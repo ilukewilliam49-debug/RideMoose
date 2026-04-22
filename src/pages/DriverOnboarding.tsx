@@ -307,8 +307,58 @@ const DriverOnboarding = () => {
   const allRequiredUploaded = uploadedRequiredCount === REQUIRED_DOC_TYPES.length;
   const docProgress = (uploadedRequiredCount / REQUIRED_DOC_TYPES.length) * 100;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSubmitted(true);
+
+    // Fire-and-forget admin + applicant notification emails.
+    // Idempotency key bucketed by hour so accidental retries within the same
+    // hour don't produce duplicate emails.
+    try {
+      const hourBucket = Math.floor(Date.now() / (60 * 60 * 1000));
+      const idemBase = `driver-app-${profile?.id}-${hourBucket}`;
+      const submittedAt = new Date().toLocaleString();
+      const docsCount = (verifications || []).length;
+
+      await Promise.all([
+        supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "driver-application-notification",
+            recipientEmail: "contact@pickyou.ca",
+            idempotencyKey: `${idemBase}-admin`,
+            templateData: {
+              driverName: fullName || profile?.full_name || "Unknown Driver",
+              driverEmail: user?.email || "N/A",
+              driverPhone: phone || profile?.phone || "N/A",
+              vehicleYear: vehicleYear || "N/A",
+              vehicleMake: vehicleMake || "N/A",
+              vehicleModel: vehicleModel || "N/A",
+              vehicleColor: vehicleColor || "N/A",
+              vehicleType: vehicleType || "N/A",
+              licensePlate: (licensePlate || "N/A").toUpperCase(),
+              documentsUploaded: docsCount,
+              submittedAt,
+            },
+          },
+        }),
+        user?.email
+          ? supabase.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "driver-application-confirmation",
+                recipientEmail: user.email,
+                idempotencyKey: `${idemBase}-applicant`,
+                templateData: {
+                  driverName:
+                    (fullName || profile?.full_name || "").split(" ")[0] || undefined,
+                },
+              },
+            })
+          : Promise.resolve(),
+      ]);
+    } catch (err) {
+      // Non-blocking: emails are best-effort; user still proceeds.
+      console.error("Failed to send driver application emails", err);
+    }
+
     setTimeout(() => {
       navigate("/driver/onboarding/pending", { replace: true });
     }, 2000);
