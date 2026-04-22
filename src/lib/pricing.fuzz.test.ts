@@ -116,7 +116,7 @@ describe("computeFare — property-based invariants", () => {
         const f = computeFare("pickyou", rates, input);
         const exact = f.subtotalCents * rates.pickyou_gst_rate;
         // Math.round may differ from exact by < 0.5
-        expect(Math.abs(f.taxCents - exact)).toBeLessThan(0.5);
+        expect(Math.abs(f.taxCents - exact)).toBeLessThanOrEqual(0.5);
       }),
     );
   });
