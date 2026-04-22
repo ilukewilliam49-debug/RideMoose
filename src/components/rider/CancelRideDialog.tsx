@@ -43,7 +43,8 @@ export default function CancelRideDialog({
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // Fee only applies when driver has already accepted
+  // Display-only: actual fee is computed and enforced server-side in cancel-ride.
+  // We mirror the same rule here purely for UI copy.
   const cancellationFeeCents = driverAccepted ? 500 : 0;
 
   const handleCancel = async () => {
