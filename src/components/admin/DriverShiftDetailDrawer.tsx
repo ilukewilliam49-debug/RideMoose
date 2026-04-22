@@ -208,6 +208,8 @@ export function DriverShiftDetailDrawer({
     return { online, offline, capped, total: events.length };
   })();
 
+  const sessions = events ? groupBySession(events) : [];
+
   const displayName = profile?.full_name || driverName || "Unknown driver";
   const displayPhone = profile?.phone || driverPhone || null;
   const isCurrentlyOnline = profile?.is_available === true;
