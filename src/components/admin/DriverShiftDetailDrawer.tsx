@@ -284,110 +284,177 @@ export function DriverShiftDetailDrawer({
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">Activity timeline</h3>
-              {events && (
+              <h3 className="text-sm font-medium">Shift sessions</h3>
+              {sessions.length > 0 && (
                 <Badge variant="outline" className="text-xs ml-auto">
-                  {events.length} {events.length === 1 ? "event" : "events"}
+                  {sessions.length}{" "}
+                  {sessions.length === 1 ? "session" : "sessions"}
                 </Badge>
               )}
             </div>
 
             {isLoading ? (
               <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 w-full" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32 w-full" />
                 ))}
               </div>
-            ) : !events || events.length === 0 ? (
+            ) : sessions.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                No shift events recorded for this driver yet.
+                No shift sessions recorded for this driver yet.
               </div>
             ) : (
-              <ol className="relative border-l-2 border-border ml-3 space-y-4">
-                {events.map((ev) => {
-                  const v = eventVisuals(ev.event_type);
-                  const Icon = v.icon;
-                  const meta = (ev.metadata ?? {}) as Record<string, unknown>;
-                  const duration = formatDuration(ev.shift_duration_minutes);
-                  const note =
-                    ev.event_type === "auto_capped"
-                      ? `Mandatory rest period — ${
-                          meta.reason ?? "12h HOS cap"
-                        }`
-                      : typeof meta.note === "string"
-                      ? meta.note
-                      : null;
+              <div className="space-y-5">
+                {sessions.map((session) => {
+                  const StatusIcon = session.capped
+                    ? AlertTriangle
+                    : session.ongoing
+                    ? CircleDot
+                    : CheckCircle2;
+                  const statusColor = session.capped
+                    ? "text-destructive"
+                    : session.ongoing
+                    ? "text-emerald-600"
+                    : "text-muted-foreground";
+                  const statusLabel = session.capped
+                    ? "Capped at 12h"
+                    : session.ongoing
+                    ? "In progress"
+                    : "Completed";
+                  const cardRing = session.capped
+                    ? "ring-destructive/30 bg-destructive/5"
+                    : session.ongoing
+                    ? "ring-emerald-500/30 bg-emerald-500/5"
+                    : "ring-border bg-card";
+
                   return (
-                    <li key={ev.id} className="ml-6">
-                      <span
-                        className={cn(
-                          "absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full ring-4 ring-background",
-                          v.dot
-                        )}
-                      />
-                      <div
-                        className={cn(
-                          "rounded-lg border p-3 ring-1",
-                          v.bg,
-                          v.ring
-                        )}
-                      >
+                    <div
+                      key={session.key}
+                      className={cn(
+                        "rounded-lg border ring-1 overflow-hidden",
+                        cardRing
+                      )}
+                    >
+                      {/* Session header */}
+                      <div className="p-3 border-b border-border/50 bg-background/50">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <Icon className={cn("h-4 w-4", v.color)} />
+                            <StatusIcon
+                              className={cn("h-4 w-4", statusColor)}
+                            />
                             <span
-                              className={cn("text-sm font-medium", v.color)}
+                              className={cn("text-sm font-semibold", statusColor)}
                             >
-                              {v.label}
+                              {statusLabel}
                             </span>
                           </div>
-                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                            {formatDistanceStrict(
-                              new Date(ev.created_at),
-                              new Date(),
-                              { addSuffix: true }
-                            )}
-                          </span>
+                          {session.sessionId && (
+                            <span className="text-[10px] text-muted-foreground/70 font-mono">
+                              #{session.sessionId.slice(0, 8)}
+                            </span>
+                          )}
                         </div>
 
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {format(new Date(ev.created_at), "PPpp")}
-                        </div>
-
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                          <span className="capitalize text-muted-foreground">
-                            via {ev.source.replace(/_/g, " ")}
-                          </span>
-                          {duration && (
-                            <span
+                        <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">
+                              Start
+                            </p>
+                            <p className="font-medium mt-0.5">
+                              {session.startedAt
+                                ? format(session.startedAt, "MMM d, p")
+                                : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">
+                              End
+                            </p>
+                            <p className="font-medium mt-0.5">
+                              {session.endedAt
+                                ? format(session.endedAt, "MMM d, p")
+                                : session.ongoing
+                                ? "Ongoing"
+                                : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">
+                              Duration
+                            </p>
+                            <p
                               className={cn(
-                                "font-medium",
-                                ev.event_type === "auto_capped"
-                                  ? "text-destructive"
-                                  : "text-foreground"
+                                "font-semibold mt-0.5",
+                                session.capped && "text-destructive"
                               )}
                             >
-                              Shift: {duration}
-                            </span>
-                          )}
-                          {ev.shift_session_id && (
-                            <span className="text-muted-foreground/70 font-mono text-[10px]">
-                              #{ev.shift_session_id.slice(0, 8)}
-                            </span>
-                          )}
+                              {formatDuration(session.durationMin) ?? "—"}
+                            </p>
+                          </div>
                         </div>
-
-                        {note && (
-                          <p className="mt-2 text-xs text-foreground/80 border-t border-border/50 pt-2">
-                            {note}
-                          </p>
-                        )}
                       </div>
-                    </li>
+
+                      {/* Session events */}
+                      <ol className="relative border-l-2 border-border/60 ml-5 my-3 mr-3 space-y-3 py-1">
+                        {session.events.map((ev) => {
+                          const v = eventVisuals(ev.event_type);
+                          const Icon = v.icon;
+                          const meta = (ev.metadata ?? {}) as Record<
+                            string,
+                            unknown
+                          >;
+                          const note =
+                            ev.event_type === "auto_capped"
+                              ? `Mandatory rest period — ${
+                                  meta.reason ?? "12h HOS cap"
+                                }`
+                              : typeof meta.note === "string"
+                              ? meta.note
+                              : null;
+                          return (
+                            <li key={ev.id} className="ml-4">
+                              <span
+                                className={cn(
+                                  "absolute -left-[7px] flex h-3 w-3 rounded-full ring-2 ring-background",
+                                  v.dot
+                                )}
+                              />
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <Icon className={cn("h-3.5 w-3.5", v.color)} />
+                                  <span
+                                    className={cn(
+                                      "text-xs font-medium",
+                                      v.color
+                                    )}
+                                  >
+                                    {v.label}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  {format(new Date(ev.created_at), "p")}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                {format(new Date(ev.created_at), "PP")} · via{" "}
+                                {ev.source.replace(/_/g, " ")}
+                              </div>
+                              {note && (
+                                <p className="mt-1 text-[11px] text-foreground/80">
+                                  {note}
+                                </p>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </div>
                   );
                 })}
-              </ol>
+              </div>
             )}
+          </div>
+        </ScrollArea>
           </div>
         </ScrollArea>
       </SheetContent>
