@@ -389,7 +389,7 @@ export default function AdminEmailLogs() {
                             size="sm"
                             variant="outline"
                             disabled={isResending}
-                            onClick={() => handleResend(log)}
+                            onClick={() => setPendingResend(log)}
                           >
                             {isResending ? (
                               <>
