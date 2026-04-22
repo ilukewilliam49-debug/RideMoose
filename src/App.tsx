@@ -37,6 +37,7 @@ const AdminSimulator = lazy(() => import("./pages/AdminSimulator"));
 const AdminNotificationLogs = lazy(() => import("./pages/AdminNotificationLogs"));
 const AdminLiveMap = lazy(() => import("./pages/AdminLiveMap"));
 const AdminAuditLog = lazy(() => import("./pages/AdminAuditLog"));
+const AdminShiftEvents = lazy(() => import("./pages/AdminShiftEvents"));
 
 const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 const DriverDispatch = lazy(() => import("./pages/DriverDispatch"));
@@ -154,6 +155,7 @@ const AppContent = () => {
             <Route path="notifications" element={<AdminNotificationLogs />} />
             <Route path="live-map" element={<AdminLiveMap />} />
             <Route path="audit-log" element={<AdminAuditLog />} />
+            <Route path="shift-events" element={<AdminShiftEvents />} />
           </Route>
 
           <Route path="/driver" element={<ProtectedRoute allowedRoles={["driver"]}><RoleLayout /></ProtectedRoute>}>
