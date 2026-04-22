@@ -21,6 +21,16 @@ import {
 } from "@/components/ui/table";
 import { RefreshCw, Mail, CheckCircle, XCircle, AlertTriangle, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const FAILED_STATUSES = ["dlq", "failed", "bounced"];
 const RESENDABLE_TEMPLATE_PREFIX = "driver-application";
@@ -86,6 +96,7 @@ export default function AdminEmailLogs() {
   const [templateFilter, setTemplateFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [pendingResend, setPendingResend] = useState<EmailLog | null>(null);
 
   const handleResend = async (log: EmailLog) => {
     setResendingId(log.id);
@@ -378,7 +389,7 @@ export default function AdminEmailLogs() {
                             size="sm"
                             variant="outline"
                             disabled={isResending}
-                            onClick={() => handleResend(log)}
+                            onClick={() => setPendingResend(log)}
                           >
                             {isResending ? (
                               <>
@@ -409,6 +420,47 @@ export default function AdminEmailLogs() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={pendingResend !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingResend(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resend this email?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  This will queue a new send of{" "}
+                  <span className="font-mono text-foreground">{pendingResend?.template_name}</span>{" "}
+                  to{" "}
+                  <span className="font-mono text-foreground">{pendingResend?.recipient_email}</span>.
+                </p>
+                <p className="text-amber-600 text-sm">
+                  The recipient may receive a duplicate notification if the original was actually delivered. Only resend if you've confirmed the previous attempt failed.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingResend) {
+                  const log = pendingResend;
+                  setPendingResend(null);
+                  handleResend(log);
+                }
+              }}
+            >
+              <Send className="h-3 w-3 mr-1" />
+              Confirm resend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
