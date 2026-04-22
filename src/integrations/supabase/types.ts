@@ -2035,6 +2035,7 @@ export type Database = {
         Args: { _ride_id: string }
         Returns: undefined
       }
+      _test_find_other_driver: { Args: never; Returns: string }
       _test_seed_lifecycle_ride: {
         Args: {
           _driver_id: string
