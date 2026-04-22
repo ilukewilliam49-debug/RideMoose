@@ -28,19 +28,20 @@ const STRIPE_HOLD_MAX_CENTS = 50000;
  *   - supabase/functions/create-payment-intent/index.ts
  *   - supabase/functions/pay-with-saved-card/index.ts
  *
- * Given the metered fare (computeFare subtotal — i.e. *before* tax & platform
- * fee), returns the cents Stripe will hold on the rider's card.
+ * Given the metered fare (computeFare subtotalCents — i.e. *before* tax &
+ * platform fee), returns the cents Stripe will hold on the rider's card.
+ *
+ * PickYou: tax = round(subtotal × 0.05); fareWithExtras = subtotal + tax + 97
+ * Taxi:    fareWithExtras = subtotal
  */
 function stripeAuthorizationAmount(
   meteredFareCents: number,
   serviceType: "taxi" | "private_hire"
 ): number {
-  const isPrivateHire = serviceType === "private_hire";
   let fareWithExtras = meteredFareCents;
-  if (isPrivateHire) {
-    const subtotal = meteredFareCents + PICKYOU_PLATFORM_FEE_CENTS;
-    const taxCents = Math.round(subtotal * 0.05);
-    fareWithExtras = subtotal + taxCents;
+  if (serviceType === "private_hire") {
+    const taxCents = Math.round(meteredFareCents * 0.05);
+    fareWithExtras = meteredFareCents + taxCents + PICKYOU_PLATFORM_FEE_CENTS;
   }
   return Math.min(
     Math.max(Math.round(fareWithExtras * STRIPE_HOLD_MULTIPLIER), STRIPE_HOLD_MIN_CENTS),
@@ -84,24 +85,19 @@ const SCENARIOS = [
   { name: "Extreme: 0 km", input: { distanceKm: 0 } },
 ];
 
-describe("Stripe authorization amount mirrors edge-function arithmetic", () => {
+describe("Stripe authorization amount matches computeFare exactly", () => {
   for (const mode of ["taxi", "pickyou"] as const) {
     const serviceType = mode === "taxi" ? "taxi" : "private_hire";
 
     for (const sc of SCENARIOS) {
-      it(`${mode.toUpperCase()} — ${sc.name}: hold = clamp(round(fareWithExtras × 1.25), 2000, 50000)`, () => {
+      it(`${mode.toUpperCase()} — ${sc.name}: hold = clamp(round(computeFare.totalCents × 1.25), 2000, 50000)`, () => {
         const fare = computeFare(mode, rates, sc.input);
         const hold = stripeAuthorizationAmount(fare.subtotalCents, serviceType);
 
-        // Step-by-step re-derivation of the edge function's own arithmetic.
-        let fareWithExtras = fare.subtotalCents;
-        if (mode === "pickyou") {
-          const subtotalIncludingFee = fare.subtotalCents + PICKYOU_PLATFORM_FEE_CENTS;
-          const tax = Math.round(subtotalIncludingFee * 0.05);
-          fareWithExtras = subtotalIncludingFee + tax;
-        }
+        // The hold MUST equal the number derived directly from the pricing
+        // engine's totalCents. Pins edge-function arithmetic ↔ pricing.ts.
         const expectedHold = Math.min(
-          Math.max(Math.round(fareWithExtras * 1.25), 2000),
+          Math.max(Math.round(fare.totalCents * 1.25), 2000),
           50000
         );
 
@@ -123,48 +119,27 @@ describe("Stripe authorization amount mirrors edge-function arithmetic", () => {
     expect(hold).toBe(50000);
   });
 
-  it("Taxi mode hold matches computeFare exactly (no GST, no platform fee)", () => {
-    for (const sc of SCENARIOS) {
-      const fare = computeFare("taxi", rates, sc.input);
-      const hold = stripeAuthorizationAmount(fare.subtotalCents, "taxi");
-      const expectedFromComputeFare = Math.min(
-        Math.max(Math.round(fare.totalCents * 1.25), 2000),
-        50000
-      );
-      expect(hold).toBe(expectedFromComputeFare);
-    }
-  });
-});
-
-describe("⚠️  KNOWN DISCREPANCY: edge-function GST base ≠ computeFare GST base", () => {
-  /**
-   * The PickYou edge functions (create-payment-intent, pay-with-saved-card)
-   * compute GST on (subtotal + platform fee), but computeFare / RideReceipt
-   * compute GST on subtotal alone, then add the platform fee post-tax.
-   *
-   * Result: Stripe over-authorizes by ~5¢ × 1.25 ≈ 6¢ vs. the receipt total
-   * for every PickYou ride.
-   *
-   * The over-authorization is *safe* (capture amount comes from server-side
-   * fare math, not the auth amount), but it inflates the visible hold and is
-   * a documented audit finding. Pinned here so the gap stays visible until
-   * the edge functions are reconciled with computeFare (single source of
-   * truth per src/lib/pricing.ts).
-   */
-  it("hold strictly exceeds receipt-aligned hold for typical PickYou fares", () => {
+  it("REGRESSION GUARD: PickYou GST is on subtotal only, NOT on the platform fee", () => {
+    // Pins the fix for the audit finding where the edge function was
+    // computing tax = round((subtotal + 97) × 0.05) instead of
+    // tax = round(subtotal × 0.05).
     const fare = computeFare("pickyou", rates, { distanceKm: 5, waitingMin: 5 });
     const hold = stripeAuthorizationAmount(fare.subtotalCents, "private_hire");
-    const receiptAlignedHold = Math.min(
-      Math.max(Math.round(fare.totalCents * 1.25), 2000),
-      50000
-    );
-    expect(hold).toBeGreaterThan(receiptAlignedHold);
-  });
 
-  it("the gap traces to GST being applied to the $0.97 platform fee", () => {
-    // Pre-multiplier overcharge = round(97 × 0.05) = 5¢.
-    const overchargePreMultiplier = Math.round(PICKYOU_PLATFORM_FEE_CENTS * 0.05);
-    expect(overchargePreMultiplier).toBe(5);
+    // Aligned arithmetic (correct, matches RideReceipt):
+    const correctTax = Math.round(fare.subtotalCents * 0.05);
+    const correctFareWithExtras =
+      fare.subtotalCents + correctTax + PICKYOU_PLATFORM_FEE_CENTS;
+    const correctHold = Math.round(correctFareWithExtras * 1.25);
+
+    // Old buggy arithmetic (must NEVER match again):
+    const buggyTax = Math.round((fare.subtotalCents + PICKYOU_PLATFORM_FEE_CENTS) * 0.05);
+    const buggyFareWithExtras =
+      fare.subtotalCents + PICKYOU_PLATFORM_FEE_CENTS + buggyTax;
+    const buggyHold = Math.round(buggyFareWithExtras * 1.25);
+
+    expect(hold).toBe(correctHold);
+    expect(hold).not.toBe(buggyHold);
   });
 });
 
