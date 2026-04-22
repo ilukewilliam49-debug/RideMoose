@@ -328,12 +328,31 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Notified{" "}
-                      {a.attemptLog
-                        ? `${formatDistanceToNow(new Date(a.attemptLog.created_at), { addSuffix: true })} · ${format(
-                            new Date(a.attemptLog.created_at),
-                            "PPpp",
-                          )}`
-                        : "—"}
+                      {a.attemptLog ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help underline decoration-dotted underline-offset-2">
+                              {formatDistanceToNow(new Date(a.attemptLog.created_at), {
+                                addSuffix: true,
+                              })}{" "}
+                              · {formatTs(a.attemptLog.created_at)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="space-y-0.5 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">UTC:</span>{" "}
+                                {a.attemptLog.created_at}
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Zone:</span> {VIEWER_TZ}
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        "—"
+                      )}
                     </div>
                     {pushFailed && a.attemptLog?.error_message && (
                       <p className="text-xs text-destructive">
