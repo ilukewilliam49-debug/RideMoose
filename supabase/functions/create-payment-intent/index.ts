@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PICKYOU_SURCHARGE_CENTS = 299; // $2.99
+const PICKYOU_PLATFORM_FEE_CENTS = 97; // $0.97 bylaw-aligned platform fee
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -32,11 +32,11 @@ serve(async (req) => {
 
     const isPrivateHire = service_type === "private_hire";
 
-    // Taxi: no GST, no surcharge
-    // Private Hire: $2.99 surcharge + 5% GST on (fare + surcharge)
+    // Taxi: no GST, no platform fee (city-regulated meter only)
+    // Private Hire: $0.97 platform fee + 5% GST on (fare + platform fee)
     let fareWithExtras = estimated_fare_cents;
     if (isPrivateHire) {
-      const subtotal = estimated_fare_cents + PICKYOU_SURCHARGE_CENTS;
+      const subtotal = estimated_fare_cents + PICKYOU_PLATFORM_FEE_CENTS;
       const taxCents = Math.round(subtotal * 0.05);
       fareWithExtras = subtotal + taxCents;
     }

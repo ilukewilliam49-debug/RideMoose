@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PICKYOU_SURCHARGE_CENTS = 299;
+const PICKYOU_PLATFORM_FEE_CENTS = 97; // $0.97 bylaw-aligned platform fee
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,7 +37,7 @@ serve(async (req) => {
     const isPrivateHire = service_type === "private_hire";
     let fareWithExtras = estimated_fare_cents;
     if (isPrivateHire) {
-      const subtotal = estimated_fare_cents + PICKYOU_SURCHARGE_CENTS;
+      const subtotal = estimated_fare_cents + PICKYOU_PLATFORM_FEE_CENTS;
       const taxCents = Math.round(subtotal * 0.05);
       fareWithExtras = subtotal + taxCents;
     }

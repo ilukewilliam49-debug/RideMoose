@@ -31,18 +31,14 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-const PICKYOU_SURCHARGE_CENTS = 299; // $2.99
-
 export default function RideReceipt({ ride, driverName, vehicleMake, vehicleModel, vehicleYear, vehicleColor, licensePlate }: RideReceiptProps) {
   const { t } = useTranslation();
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const isPrivateHire = ride.service_type === "private_hire";
   const grossFare = ride.final_fare_cents || Math.round((ride.final_price || 0) * 100) || Math.round((ride.estimated_price || 0) * 100);
   const serviceFee = ride.service_fee_cents || 0;
-  const surchargeCents = isPrivateHire ? PICKYOU_SURCHARGE_CENTS : 0;
   const tax = ride.tax_cents || 0;
-  const totalFare = grossFare + serviceFee + surchargeCents + tax;
+  const totalFare = grossFare + serviceFee + tax;
   const captured = ride.captured_amount_cents || 0;
   const outstanding = ride.outstanding_amount_cents || 0;
   const tip = ride.tip_cents || 0;
@@ -65,7 +61,7 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     `--- Fare Breakdown ---`,
     `Fare: ${cents(grossFare)}`,
     serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
-    surchargeCents > 0 ? `PickYou Surcharge: ${cents(surchargeCents)}` : "",
+    serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
     tax > 0 ? `GST (5%): ${cents(tax)}` : "",
     tip > 0 ? `Tip: ${cents(tip)}` : "",
     `Total: ${cents(totalFare + tip)}`,
@@ -176,7 +172,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
 
     fareRow("Fare", cents(grossFare));
     if (serviceFee > 0) fareRow("Service fee", cents(serviceFee));
-    if (surchargeCents > 0) fareRow("PickYou Surcharge", cents(surchargeCents));
     if (tax > 0) fareRow("GST (5%)", cents(tax));
     if (tip > 0) fareRow("Tip", cents(tip));
 
@@ -208,7 +203,7 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     (doc as any).internal.pageSize.height = pageHeight;
 
     return doc;
-  }, [ride, grossFare, serviceFee, surchargeCents, tax, totalFare, captured, outstanding, tip, tripId, dateStr]);
+  }, [ride, grossFare, serviceFee, tax, totalFare, captured, outstanding, tip, tripId, dateStr]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -312,12 +307,6 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("receipt.serviceFee", "Service fee")}</span>
               <span className="font-mono">{cents(serviceFee)}</span>
-            </div>
-          )}
-          {surchargeCents > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">PickYou Surcharge</span>
-              <span className="font-mono">{cents(surchargeCents)}</span>
             </div>
           )}
           {tax > 0 && (
