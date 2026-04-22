@@ -384,7 +384,17 @@ export default function AdminShiftEvents() {
                     ? meta.note
                     : "";
                 return (
-                  <TableRow key={row.id}>
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer hover:bg-muted/40"
+                    onClick={() =>
+                      setSelectedDriver({
+                        id: row.driver_id,
+                        name: row.profiles?.full_name ?? null,
+                        phone: row.profiles?.phone ?? null,
+                      })
+                    }
+                  >
                     <TableCell className="whitespace-nowrap text-xs">
                       <div>{format(new Date(row.created_at), "PP p")}</div>
                       <div className="text-muted-foreground">
@@ -396,7 +406,7 @@ export default function AdminShiftEvents() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      <div className="font-medium">
+                      <div className="font-medium underline-offset-2 hover:underline">
                         {row.profiles?.full_name || "Unknown driver"}
                       </div>
                       <div className="text-xs text-muted-foreground">
