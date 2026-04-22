@@ -471,6 +471,14 @@ export default function AdminShiftEvents() {
           </div>
         </div>
       )}
+
+      <DriverShiftDetailDrawer
+        driverId={selectedDriver?.id ?? null}
+        driverName={selectedDriver?.name}
+        driverPhone={selectedDriver?.phone}
+        open={!!selectedDriver}
+        onOpenChange={(o) => !o && setSelectedDriver(null)}
+      />
     </div>
   );
 }
