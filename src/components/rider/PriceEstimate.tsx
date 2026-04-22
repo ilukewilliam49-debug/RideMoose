@@ -106,7 +106,7 @@ const PriceEstimate = ({
         )}
 
         {accessibilityRequired && passengerCount >= 5 && (
-          <div className="flex justify-between text-xs text-emerald-600">
+          <div className="flex justify-between text-xs text-primary">
             <span className="flex items-center gap-1">
               <Accessibility className="h-3 w-3" />
               {t("rider.accessibilityWaived", "Accessibility — surcharge waived")}
@@ -157,7 +157,7 @@ const PriceEstimate = ({
             <span>{t("rider.eta")}: {directionsData.duration_in_traffic_text || directionsData.duration_text}</span>
           </div>
           {trafficDelayMin >= 1 && (
-            <div className="flex items-center gap-2 text-sm text-yellow-500">
+            <div className="flex items-center gap-2 text-sm text-warning">
               <AlertTriangle className="h-3.5 w-3.5" />
               <span>{t("rider.trafficDelay", { min: Math.round(trafficDelayMin) })}</span>
             </div>
