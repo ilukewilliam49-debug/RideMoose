@@ -6,8 +6,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CheckCircle2, XCircle, Clock, Bell, Trophy, Download } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+
+// Viewer's IANA timezone, resolved once at module load.
+// Used for both on-screen displays AND the CSV export so the two match exactly.
+const VIEWER_TZ =
+  Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+// e.g. "Apr 22, 2026, 3:14:09 PM MDT"
+const tsFormatter = new Intl.DateTimeFormat(undefined, {
+  timeZone: VIEWER_TZ,
+  year: "numeric",
+  month: "short",
+  day: "2-digit",
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+  timeZoneName: "short",
+});
+
+// Short label used in the header chip, e.g. "MDT" or "GMT-6"
+const tzAbbrev = (() => {
+  const parts = new Intl.DateTimeFormat(undefined, {
+    timeZone: VIEWER_TZ,
+    timeZoneName: "short",
+  }).formatToParts(new Date());
+  return parts.find((p) => p.type === "timeZoneName")?.value ?? VIEWER_TZ;
+})();
+
+const formatTs = (iso: string) => tsFormatter.format(new Date(iso));
 
 interface DispatchLog {
   id: string;
@@ -156,7 +185,9 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
       "ride_id",
       "rider_id",
       "dispatch_log_id",
-      "timestamp",
+      "timestamp_iso",
+      "timestamp_local",
+      "timezone",
       "event",
       "hop",
       "status",
@@ -178,7 +209,9 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
         rideId,
         riderId,
         log.id,
-        log.created_at,
+        log.created_at, // canonical UTC ISO
+        formatTs(log.created_at), // matches on-screen display exactly
+        VIEWER_TZ,
         log.event,
         meta.hop ?? "",
         log.status,
@@ -200,7 +233,11 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dispatch-timeline-${rideId}-${format(new Date(), "yyyyMMdd-HHmmss")}.csv`;
+    // Filename uses a filesystem-safe local timestamp (no colons/spaces).
+    const stamp = formatTs(new Date().toISOString())
+      .replace(/[\s,:]+/g, "-")
+      .replace(/[^\w.-]/g, "");
+    a.download = `dispatch-timeline-${rideId}-${stamp}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -208,6 +245,7 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
@@ -218,6 +256,17 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
                 {attempts.length} hop{attempts.length === 1 ? "" : "s"}
               </Badge>
             )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="ml-1 text-xs font-normal">
+                  Times in {tzAbbrev}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                Timestamps shown in your local timezone ({VIEWER_TZ}). The CSV export includes both
+                the canonical UTC ISO timestamp and this same local rendering.
+              </TooltipContent>
+            </Tooltip>
           </CardTitle>
           <Button
             variant="outline"
@@ -279,12 +328,31 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Notified{" "}
-                      {a.attemptLog
-                        ? `${formatDistanceToNow(new Date(a.attemptLog.created_at), { addSuffix: true })} · ${format(
-                            new Date(a.attemptLog.created_at),
-                            "PPpp",
-                          )}`
-                        : "—"}
+                      {a.attemptLog ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help underline decoration-dotted underline-offset-2">
+                              {formatDistanceToNow(new Date(a.attemptLog.created_at), {
+                                addSuffix: true,
+                              })}{" "}
+                              · {formatTs(a.attemptLog.created_at)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="space-y-0.5 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">UTC:</span>{" "}
+                                {a.attemptLog.created_at}
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Zone:</span> {VIEWER_TZ}
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        "—"
+                      )}
                     </div>
                     {pushFailed && a.attemptLog?.error_message && (
                       <p className="text-xs text-destructive">
@@ -306,6 +374,7 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
         {resolution && <ResolutionRow log={resolution} driverMap={driverMap} />}
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
 
@@ -383,7 +452,7 @@ function ResolutionRow({
               {(meta.hops_attempted as number) === 1 ? "" : "s"} ·{" "}
             </>
           )}
-          Resolved {format(new Date(log.created_at), "PPpp")}
+          Resolved {formatTs(log.created_at)}
         </p>
       </div>
     </div>
