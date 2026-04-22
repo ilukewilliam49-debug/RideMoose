@@ -21,6 +21,16 @@ import {
 } from "@/components/ui/table";
 import { RefreshCw, Mail, CheckCircle, XCircle, AlertTriangle, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const FAILED_STATUSES = ["dlq", "failed", "bounced"];
 const RESENDABLE_TEMPLATE_PREFIX = "driver-application";
