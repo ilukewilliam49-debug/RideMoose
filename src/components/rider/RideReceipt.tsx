@@ -61,7 +61,7 @@ export default function RideReceipt({ ride, driverName, vehicleMake, vehicleMode
     `--- Fare Breakdown ---`,
     `Fare: ${cents(grossFare)}`,
     serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
-    surchargeCents > 0 ? `PickYou Surcharge: ${cents(surchargeCents)}` : "",
+    serviceFee > 0 ? `Service fee: ${cents(serviceFee)}` : "",
     tax > 0 ? `GST (5%): ${cents(tax)}` : "",
     tip > 0 ? `Tip: ${cents(tip)}` : "",
     `Total: ${cents(totalFare + tip)}`,
