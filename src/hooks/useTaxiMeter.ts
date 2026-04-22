@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-
-interface TaxiRates {
-  base_fare_cents: number;
-  per_km_cents: number;
-  waiting_per_min_cents: number;
-  free_waiting_min: number;
-}
+import {
+  computeFare as computeBylawFare,
+  modeForServiceType,
+  type BylawRates,
+  type FareBreakdown,
+  FALLBACK_BYLAW_RATES,
+} from "@/lib/pricing";
 
 interface MeterState {
   status: "idle" | "running" | "paused" | "completed";
@@ -19,23 +19,27 @@ interface MeterState {
   receipt: FareReceipt | null;
 }
 
+/**
+ * Receipt shape preserved for backwards compatibility with existing UI.
+ * Fields map to the bylaw breakdown.
+ */
 export interface FareReceipt {
   baseFare: number;
   distanceCharge: number;
   waitingCharge: number;
   freeWaitingMin: number;
   billableWaitingMin: number;
-  grossFareCents: number;
-  serviceFeeCents: number;
-  surchargeCents: number;
-  taxCents: number;
+  grossFareCents: number;       // = subtotalCents (flag + distance + wait + surcharges)
+  serviceFeeCents: number;      // = PickYou platform fee ($0.97), 0 for Taxi
+  surchargeCents: number;       // large vehicle + pickup/delivery
+  taxCents: number;             // 5% GST on PickYou only
   totalCents: number;
   distanceKm: number;
   totalWaitingMin: number;
+  breakdown: FareBreakdown;
 }
 
 const DB_SYNC_INTERVAL = 12_000;
-const PICKYOU_SURCHARGE_CENTS = 299; // $2.99
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
@@ -47,9 +51,20 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: string | undefined, serviceType?: string) {
+interface UseTaxiMeterOptions {
+  largeVehicle?: boolean;
+  accessibilityRequired?: boolean;
+  pickupDeliveryNoPassenger?: boolean;
+}
+
+export function useTaxiMeter(
+  rideId: string | undefined,
+  meterStatusFromDb: string | undefined,
+  serviceType?: string,
+  options: UseTaxiMeterOptions = {}
+) {
   const queryClient = useQueryClient();
-  const [rates, setRates] = useState<TaxiRates | null>(null);
+  const [rates, setRates] = useState<BylawRates | null>(null);
   const [state, setState] = useState<MeterState>({
     status: "idle",
     distanceKm: 0,
@@ -68,9 +83,10 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   const tickInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const syncInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const isPrivateHire = serviceType === "private_hire";
+  const fareMode = modeForServiceType(serviceType ?? "") ?? "taxi";
+  const { largeVehicle, accessibilityRequired, pickupDeliveryNoPassenger } = options;
 
-  // Load rates
+  // Load bylaw rates
   useEffect(() => {
     supabase
       .from("taxi_rates")
@@ -82,10 +98,18 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
         if (data && !error) {
           setRates({
             base_fare_cents: data.base_fare_cents,
-            per_km_cents: data.per_km_cents,
+            included_meters: (data as any).included_meters ?? FALLBACK_BYLAW_RATES.included_meters,
+            per_increment_cents: (data as any).per_increment_cents ?? FALLBACK_BYLAW_RATES.per_increment_cents,
+            increment_meters: (data as any).increment_meters ?? FALLBACK_BYLAW_RATES.increment_meters,
             waiting_per_min_cents: data.waiting_per_min_cents,
-            free_waiting_min: (data as any).free_waiting_min ?? 3,
+            free_waiting_min: (data as any).free_waiting_min ?? FALLBACK_BYLAW_RATES.free_waiting_min,
+            large_vehicle_surcharge_cents: (data as any).large_vehicle_surcharge_cents ?? FALLBACK_BYLAW_RATES.large_vehicle_surcharge_cents,
+            pickup_delivery_surcharge_cents: (data as any).pickup_delivery_surcharge_cents ?? FALLBACK_BYLAW_RATES.pickup_delivery_surcharge_cents,
+            pickyou_platform_fee_cents: (data as any).pickyou_platform_fee_cents ?? FALLBACK_BYLAW_RATES.pickyou_platform_fee_cents,
+            pickyou_gst_rate: Number((data as any).pickyou_gst_rate ?? FALLBACK_BYLAW_RATES.pickyou_gst_rate),
           });
+        } else {
+          setRates(FALLBACK_BYLAW_RATES);
         }
       });
   }, []);
@@ -102,51 +126,47 @@ export function useTaxiMeter(rideId: string | undefined, meterStatusFromDb: stri
   const computeFare = useCallback(
     (dist: number, waitMin: number): number => {
       if (!rates) return 0;
-      const billableWait = Math.max(waitMin - rates.free_waiting_min, 0);
-      const grossFare =
-        rates.base_fare_cents +
-        Math.round(dist * rates.per_km_cents) +
-        Math.round(billableWait * rates.waiting_per_min_cents);
-      
-      if (isPrivateHire) {
-        const subtotal = grossFare + PICKYOU_SURCHARGE_CENTS;
-        const tax = Math.round(subtotal * 0.05);
-        return subtotal + tax + 99; // + service fee
-      }
-      return grossFare + 99; // + service fee, no tax for taxi
+      return computeBylawFare(fareMode, rates, {
+        distanceKm: dist,
+        waitingMin: waitMin,
+        largeVehicle,
+        accessibilityRequired,
+        pickupDeliveryNoPassenger,
+      }).totalCents;
     },
-    [rates, isPrivateHire]
+    [rates, fareMode, largeVehicle, accessibilityRequired, pickupDeliveryNoPassenger]
   );
 
   const computeReceipt = useCallback(
     (dist: number, waitMin: number): FareReceipt | null => {
       if (!rates) return null;
-      const billableWait = Math.max(waitMin - rates.free_waiting_min, 0);
-      const distCharge = Math.round(dist * rates.per_km_cents);
-      const waitCharge = Math.round(billableWait * rates.waiting_per_min_cents);
-      const grossFare = rates.base_fare_cents + distCharge + waitCharge;
-      const serviceFeeCents = 99;
-
-      const surchargeCents = isPrivateHire ? PICKYOU_SURCHARGE_CENTS : 0;
-      const taxableAmount = grossFare + surchargeCents;
-      const taxCents = isPrivateHire ? Math.round(taxableAmount * 0.05) : 0;
+      const breakdown = computeBylawFare(fareMode, rates, {
+        distanceKm: dist,
+        waitingMin: waitMin,
+        largeVehicle,
+        accessibilityRequired,
+        pickupDeliveryNoPassenger,
+      });
 
       return {
-        baseFare: rates.base_fare_cents,
-        distanceCharge: distCharge,
-        waitingCharge: waitCharge,
-        freeWaitingMin: rates.free_waiting_min,
-        billableWaitingMin: billableWait,
-        grossFareCents: grossFare,
-        serviceFeeCents,
-        surchargeCents,
-        taxCents,
-        totalCents: grossFare + serviceFeeCents + surchargeCents + taxCents,
+        baseFare: breakdown.baseFareCents,
+        distanceCharge: breakdown.distanceChargeCents,
+        waitingCharge: breakdown.waitingChargeCents,
+        freeWaitingMin: breakdown.freeWaitingMin,
+        billableWaitingMin: breakdown.billableWaitingMin,
+        grossFareCents: breakdown.subtotalCents,
+        serviceFeeCents: breakdown.platformFeeCents,
+        surchargeCents:
+          breakdown.largeVehicleSurchargeCents +
+          breakdown.pickupDeliverySurchargeCents,
+        taxCents: breakdown.taxCents,
+        totalCents: breakdown.totalCents,
         distanceKm: dist,
         totalWaitingMin: waitMin,
+        breakdown,
       };
     },
-    [rates, isPrivateHire]
+    [rates, fareMode, largeVehicle, accessibilityRequired, pickupDeliveryNoPassenger]
   );
 
   // Live tick: update fare every second
