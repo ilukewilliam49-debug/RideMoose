@@ -245,6 +245,7 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
@@ -255,6 +256,17 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
                 {attempts.length} hop{attempts.length === 1 ? "" : "s"}
               </Badge>
             )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="ml-1 text-xs font-normal">
+                  Times in {tzAbbrev}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                Timestamps shown in your local timezone ({VIEWER_TZ}). The CSV export includes both
+                the canonical UTC ISO timestamp and this same local rendering.
+              </TooltipContent>
+            </Tooltip>
           </CardTitle>
           <Button
             variant="outline"
