@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Radio,
-  Clock3,
+  
   DollarSign,
   ArrowRight,
   MapPin,
@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { serviceLabels, fmt } from "@/lib/driver-constants";
 import { DashboardStatsSkeleton, RecentTripsSkeleton } from "@/components/driver/DriverDashboardSkeletons";
 import ShiftSummaryDialog from "@/components/driver/ShiftSummaryDialog";
+import ShiftStatusPanel from "@/components/driver/ShiftStatusPanel";
 import DriverWelcomeFlow from "@/components/driver/DriverWelcomeFlow";
 
 const DriverDashboard = () => {
@@ -44,18 +45,20 @@ const DriverDashboard = () => {
   const SHIFT_LIMIT_MS = 12 * 60 * 60 * 1000;
 
   // ─── Live-ticking online duration + 12h cap enforcement ───
-  const [onlineDuration, setOnlineDuration] = useState<string | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [shiftCapped, setShiftCapped] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const tick = () => {
       const onlineSince = profile?.went_online_at;
-      if (!onlineSince) { setOnlineDuration(null); setShiftCapped(false); return; }
+      if (!onlineSince) {
+        setElapsedMs(0);
+        setShiftCapped(false);
+        return;
+      }
       const diff = Date.now() - new Date(onlineSince).getTime();
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      setOnlineDuration(h > 0 ? `${h}h ${m}m` : `${m}m`);
+      setElapsedMs(diff);
 
       // Enforce 12-hour cap: auto-offline + show summary, exactly once.
       if (diff >= SHIFT_LIMIT_MS && !shiftCapped && profile?.id) {
@@ -96,7 +99,13 @@ const DriverDashboard = () => {
       }
     };
     tick();
-    const id = setInterval(tick, 30_000);
+    // Tick every 30s normally, but every 5s in the final hour for a smoother countdown.
+    const intervalMs =
+      profile?.went_online_at &&
+      Date.now() - new Date(profile.went_online_at).getTime() > SHIFT_LIMIT_MS - 60 * 60 * 1000
+        ? 5_000
+        : 30_000;
+    const id = setInterval(tick, intervalMs);
     return () => { cancelled = true; clearInterval(id); };
   }, [profile?.went_online_at, profile?.id, shiftCapped, queryClient, SHIFT_LIMIT_MS]);
 
@@ -361,35 +370,15 @@ const DriverDashboard = () => {
         </button>
       </div>
 
-      {/* ── Online status strip ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`
-          flex items-center justify-between rounded-2xl px-4 py-3
-          ${isOnline
-            ? "bg-green-500/10 ring-1 ring-green-500/20"
-            : "bg-muted/50 ring-1 ring-border/50"
-          }
-        `}
-      >
-        <div className="flex items-center gap-3">
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${
-              isOnline ? "bg-green-500 animate-pulse" : "bg-muted-foreground"
-            }`}
-          />
-          <span className="text-sm font-semibold">
-            {isOnline ? "Online — accepting trips" : "Offline"}
-          </span>
-        </div>
-        {isOnline && onlineDuration && (
-          <span className="text-xs font-medium text-muted-foreground">
-            <Clock3 className="mr-1 inline h-3 w-3" />
-            {onlineDuration}
-          </span>
-        )}
-      </motion.div>
+      {/* ── Shift status panel (12-hour HOS cap) ── */}
+      <ShiftStatusPanel
+        isOnline={isOnline}
+        elapsedMs={elapsedMs}
+        limitMs={SHIFT_LIMIT_MS}
+        capped={shiftCapped}
+        toggling={togglingAvailability}
+        onGoOffline={toggleAvailability}
+      />
 
       {/* ── Active trip banner ── */}
       {activeRide && (
