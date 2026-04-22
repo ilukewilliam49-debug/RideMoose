@@ -374,6 +374,7 @@ export default function DispatchAttemptsPanel({ rideId }: Props) {
         {resolution && <ResolutionRow log={resolution} driverMap={driverMap} />}
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
 
