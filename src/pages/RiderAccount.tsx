@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, Car } from "lucide-react";
+import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, Car, Eye, EyeOff } from "lucide-react";
+import { maskPhone } from "@/lib/phone";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import SupportChatDialog from "@/components/SupportChatDialog";
@@ -34,6 +35,7 @@ const RiderAccount = () => {
   const [nameSaving, setNameSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [testingSend, setTestingSend] = useState(false);
+  const [phoneRevealed, setPhoneRevealed] = useState(false);
 
   const handleTestNotification = async () => {
     setTestingSend(true);
@@ -266,9 +268,19 @@ const RiderAccount = () => {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
-              {profile.phone}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground font-mono">
+                {phoneRevealed ? profile.phone : maskPhone(profile.phone)}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPhoneRevealed((v) => !v)}
+                className="text-muted-foreground/70 hover:text-foreground transition-colors"
+                aria-label={phoneRevealed ? "Hide phone number" : "Reveal phone number"}
+              >
+                {phoneRevealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
             <Button
               variant="ghost"
               size="sm"
