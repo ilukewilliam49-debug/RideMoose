@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { logAdminAction } from "@/lib/audit-log";
 import { User, Phone, Car, CalendarDays, MapPin, Shield, Package, Bus, Briefcase, Pencil, Check, X, Percent, Wallet, Armchair, Star, AlertTriangle } from "lucide-react";
+import { maskPhone } from "@/lib/phone";
 import ErrorRetry from "@/components/driver/ErrorRetry";
 import { format } from "date-fns";
 import { useState, useCallback } from "react";
@@ -19,13 +20,14 @@ import { useAuth } from "@/hooks/useAuth";
 
 const VEHICLE_TYPES = ["sedan", "SUV", "van", "truck"] as const;
 
-function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }: {
+function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix, displayValue }: {
   value: string;
   onSave: (val: string) => void;
   icon: React.ElementType;
   label: string;
   type?: string;
   suffix?: string;
+  displayValue?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -59,10 +61,11 @@ function InlineEdit({ value, onSave, icon: Icon, label, type = "text", suffix }:
     );
   }
 
+  const shown = value ? (displayValue ?? value) : `No ${label.toLowerCase()}`;
   return (
     <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setDraft(value); setEditing(true); }}>
       <Icon className="h-4 w-4 text-muted-foreground" />
-      <span className="text-sm">{value || `No ${label.toLowerCase()}`}</span>
+      <span className={`text-sm ${displayValue && value ? "font-mono" : ""}`}>{shown}</span>
       <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );
@@ -286,6 +289,7 @@ export default function AdminUserDetail() {
                 icon={Phone}
                 label="Phone"
                 value={profile?.phone || ""}
+                displayValue={maskPhone(profile?.phone)}
                 onSave={(val) => handleUpdate("phone", val)}
               />
               {profile?.phone_verified && (
