@@ -54,6 +54,7 @@ const DriverAccount = () => {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [testingSend, setTestingSend] = useState(false);
+  const [phoneRevealed, setPhoneRevealed] = useState(false);
 
   const handleTestNotification = async () => {
     setTestingSend(true);
@@ -404,7 +405,17 @@ const DriverAccount = () => {
           {!editing && profile?.phone && (
             <div className="flex items-center gap-1.5 ml-auto">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{profile.phone}</span>
+              <span className="text-sm text-muted-foreground font-mono">
+                {phoneRevealed ? profile.phone : maskPhone(profile.phone)}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPhoneRevealed((v) => !v)}
+                className="text-muted-foreground/70 hover:text-foreground transition-colors"
+                aria-label={phoneRevealed ? "Hide phone number" : "Reveal phone number"}
+              >
+                {phoneRevealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
               {profile.phone_verified && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
             </div>
           )}
