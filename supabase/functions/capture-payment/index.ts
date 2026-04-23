@@ -8,7 +8,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PICKYOU_SURCHARGE_CENTS = 299; // $2.99
+// NOTE: PickYou platform fee ($0.97) is read from `taxi_rates.pickyou_platform_fee_cents`
+// and applied only for `private_hire`. Do not reintroduce a hard-coded constant here —
+// it has caused drift in the past. See src/lib/pricing.ts for the single source of truth.
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
