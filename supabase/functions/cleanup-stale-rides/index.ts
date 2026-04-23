@@ -17,6 +17,19 @@ const CANCELLABLE_PI_STATUSES = new Set([
   "processing",
 ]);
 
+// Stable hash so the idempotency key fits Stripe's 255-char limit
+// even if the PI id format changes. Scoped to (rideId, paymentIntentId)
+// so a ride that somehow gets re-issued a new PI cannot collide with the
+// previous attempt.
+async function buildIdempotencyKey(rideId: string, piId: string): Promise<string> {
+  const data = new TextEncoder().encode(`${rideId}:${piId}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const hex = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `cleanup-cancel-${hex.slice(0, 32)}`;
+}
+
 async function releaseStripeHold(
   stripe: Stripe | null,
   admin: ReturnType<typeof createClient>,
@@ -36,15 +49,31 @@ async function releaseStripeHold(
     return { released: false, error: "no_payment_intent" };
   }
 
+  const piId = ride.stripe_payment_intent_id as string;
+
   // Don't touch already-captured / already-paid intents
   if (ride.payment_status === "paid" || (ride.captured_amount_cents ?? 0) > 0) {
     return { released: false, error: "already_captured" };
   }
 
+  // Race guard: if another cleanup run already marked this ride refunded,
+  // there is nothing to do. Avoids a second Stripe round-trip and prevents
+  // the small window where two parallel runs both retrieve the PI.
+  if (ride.payment_status === "refunded" && (ride.authorized_amount_cents ?? 0) === 0) {
+    return { released: true, status: "already_released" };
+  }
+
   try {
-    const pi = await stripe.paymentIntents.retrieve(ride.stripe_payment_intent_id);
+    const pi = await stripe.paymentIntents.retrieve(piId);
 
     if (pi.status === "canceled") {
+      // Sync DB to reflect the canceled PI so the safety-net loop won't keep
+      // retrying it on subsequent runs.
+      await admin
+        .from("rides")
+        .update({ payment_status: "refunded", authorized_amount_cents: 0 })
+        .eq("id", ride.id)
+        .neq("payment_status", "paid");
       return { released: true, status: "already_canceled" };
     }
 
@@ -53,22 +82,31 @@ async function releaseStripeHold(
       return { released: false, status: pi.status, error: "non_cancellable_status" };
     }
 
+    const idempotencyKey = await buildIdempotencyKey(ride.id, piId);
+
     const cancelled = await stripe.paymentIntents.cancel(
-      ride.stripe_payment_intent_id,
+      piId,
       { cancellation_reason: reason },
-      { idempotencyKey: `cleanup-cancel-${ride.id}` },
+      { idempotencyKey },
     );
 
+    // Conditional update: only flip to refunded if the row hasn't already been
+    // moved to a terminal payment state by another worker. Prevents clobbering
+    // a concurrent capture that may have raced with us.
     await admin
       .from("rides")
       .update({
         payment_status: "refunded",
         authorized_amount_cents: 0,
       })
-      .eq("id", ride.id);
+      .eq("id", ride.id)
+      .eq("stripe_payment_intent_id", piId)
+      .not("payment_status", "in", "(paid,refunded)");
 
     return { released: true, status: cancelled.status };
   } catch (err: any) {
+    // Stripe returns a clear error if the PI is in a state that can't be
+    // cancelled — surface it without exploding the whole batch.
     console.error(`[cleanup-stale-rides] stripe cancel failed for ride ${ride.id}:`, err.message);
     return { released: false, error: err.message };
   }
