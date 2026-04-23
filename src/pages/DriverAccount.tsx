@@ -26,7 +26,10 @@ import {
   Edit3,
   X,
   Upload,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { maskPhone } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
