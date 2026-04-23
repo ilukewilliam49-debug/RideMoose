@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import {
+  coerceRatesRow,
+  computeFare,
+  modeForServiceType,
+} from "../_shared/pricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,9 +13,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// NOTE: PickYou platform fee ($0.97) is read from `taxi_rates.pickyou_platform_fee_cents`
-// and applied only for `private_hire`. Do not reintroduce a hard-coded constant here —
-// it has caused drift in the past. See src/lib/pricing.ts for the single source of truth.
+// SINGLE SOURCE OF TRUTH for fare math: supabase/functions/_shared/pricing.ts
+// (mirrors src/lib/pricing.ts). Do not inline rate constants or formulas here.
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
