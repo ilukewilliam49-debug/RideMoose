@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import {
+  coerceRatesRow,
+  computeFare,
+  modeForServiceType,
+} from "../_shared/pricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,9 +13,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// NOTE: PickYou platform fee ($0.97) is read from `taxi_rates.pickyou_platform_fee_cents`
-// and applied only for `private_hire`. Do not reintroduce a hard-coded constant here —
-// it has caused drift in the past. See src/lib/pricing.ts for the single source of truth.
+// SINGLE SOURCE OF TRUTH for fare math: supabase/functions/_shared/pricing.ts
+// (mirrors src/lib/pricing.ts). Do not inline rate constants or formulas here.
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -126,56 +130,42 @@ serve(async (req) => {
     const isMetered = ride.service_type === "taxi" || ride.service_type === "private_hire";
     const isPrivateHire = ride.service_type === "private_hire";
     let grossFareCents = ride.final_fare_cents || 0;
-    let surchargeCents = 0;
     let taxCents = 0;
     let SERVICE_FEE_CENTS = 0; // City taxi has no service fee.
 
     if (isMetered) {
-      const { data: rates } = await serviceClient
+      const { data: ratesRow } = await serviceClient
         .from("taxi_rates")
         .select("*")
         .eq("active", true)
         .limit(1)
         .maybeSingle();
 
-      const r = (rates ?? {}) as any;
-      const baseCents          = Number(r.base_fare_cents ?? 470);
-      const includedMeters     = Number(r.included_meters ?? 150);
-      const perIncrementCents  = Number(r.per_increment_cents ?? 24);
-      const incrementMeters    = Number(r.increment_meters ?? 100);
-      const waitPerMinCents    = Number(r.waiting_per_min_cents ?? 95);
-      const freeWaitingMin     = Number(r.free_waiting_min ?? 3);
-      const largeVehCents      = Number(r.large_vehicle_surcharge_cents ?? 600);
-      const pickupDeliverCents = Number(r.pickup_delivery_surcharge_cents ?? 300);
-      const platformFeeCents   = Number(r.pickyou_platform_fee_cents ?? 97);
-      const gstRate            = Number(r.pickyou_gst_rate ?? 0.05);
+      // Single source of truth — see _shared/pricing.ts.
+      const rates = coerceRatesRow(ratesRow);
+      const mode = modeForServiceType(ride.service_type) ?? "taxi";
 
-      const distKm  = Number(ride.distance_km || 0);
-      const waitMin = Number(ride.waiting_min || 0);
-
-      // Distance: $0.24 per 100 m after the first 150 m
-      const totalMeters = distKm * 1000;
-      const billableMeters = Math.max(0, totalMeters - includedMeters);
-      const increments = Math.ceil(billableMeters / incrementMeters);
-      const distanceChargeCents = increments * perIncrementCents;
-
-      // Waiting: first 3 min free
-      const billableWait = Math.max(0, waitMin - freeWaitingMin);
-      const waitingChargeCents = Math.round(billableWait * waitPerMinCents);
-
-      // Surcharges
       const accessibilityWaiver = Boolean((ride as any).accessibility_required);
       const largeVehicle = (ride.passenger_count ?? 1) >= 5;
-      const largeVehicleCents = largeVehicle && !accessibilityWaiver ? largeVehCents : 0;
-      const pickupDeliveryCents = (ride as any).pickup_delivery_no_passenger ? pickupDeliverCents : 0;
-      const stopsCents = stopsCount * PER_STOP_CENTS;
 
-      surchargeCents = largeVehicleCents + pickupDeliveryCents + stopsCents;
-      grossFareCents = baseCents + distanceChargeCents + waitingChargeCents + surchargeCents;
+      // For multi-stop rides we add a $2/stop platform surcharge to the
+      // metered subtotal BEFORE GST so PickYou GST applies on it (matches
+      // the historical behavior). The shared module computes the bylaw
+      // fare; we layer the per-stop surcharge on top here.
+      const bylawForGross = computeFare(mode, rates, {
+        distanceKm: Number(ride.distance_km || 0),
+        waitingMin: Number(ride.waiting_min || 0),
+        largeVehicle,
+        accessibilityRequired: accessibilityWaiver,
+        pickupDeliveryNoPassenger: Boolean((ride as any).pickup_delivery_no_passenger),
+      });
+
+      const stopsCents = stopsCount * PER_STOP_CENTS;
+      grossFareCents = bylawForGross.subtotalCents + stopsCents;
 
       if (isPrivateHire) {
-        taxCents = Math.round(grossFareCents * gstRate);
-        SERVICE_FEE_CENTS = platformFeeCents; // $0.97 PickYou platform fee
+        taxCents = Math.round(grossFareCents * rates.pickyou_gst_rate);
+        SERVICE_FEE_CENTS = rates.pickyou_platform_fee_cents;
       }
     }
 
