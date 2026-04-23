@@ -14,6 +14,7 @@ import {
   MapPin, Clock, Car, User, DollarSign, CreditCard,
   Package, ArrowRight, CalendarDays, Ruler, Timer, Search,
 } from "lucide-react";
+import { maskPhone } from "@/lib/phone";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -204,7 +205,7 @@ export default function AdminRideDetail() {
                   )}
                 </div>
               </div>
-              {rider?.phone && <span className="text-xs text-muted-foreground">{rider.phone}</span>}
+              {rider?.phone && <span className="text-xs text-muted-foreground font-mono">{maskPhone(rider.phone)}</span>}
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -220,7 +221,7 @@ export default function AdminRideDetail() {
                   )}
                 </div>
               </div>
-              {driver?.phone && <span className="text-xs text-muted-foreground">{driver.phone}</span>}
+              {driver?.phone && <span className="text-xs text-muted-foreground font-mono">{maskPhone(driver.phone)}</span>}
             </div>
             {ride?.passenger_count > 1 && (
               <p className="text-sm text-muted-foreground">Passengers: {ride.passenger_count}</p>
