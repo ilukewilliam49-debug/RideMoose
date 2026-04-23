@@ -8,7 +8,6 @@ import {
   Navigation,
   Clock,
   AlertTriangle,
-  Phone,
   ArrowRight,
   X,
   Plane,
@@ -577,15 +576,8 @@ export default function ActiveTripPanel({
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {/* Privacy: contact only via in-app chat — no phone number exposure */}
               <RideChatSheet rideId={activeRide.id} otherPartyName={riderProfile?.full_name || undefined} />
-              {riderProfile?.phone && (
-                <a
-                  href={`tel:${riderProfile.phone}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-transform shrink-0"
-                >
-                  <Phone className="h-4 w-4" />
-                </a>
-              )}
             </div>
           </div>
 
@@ -606,15 +598,7 @@ export default function ActiveTripPanel({
                   <p className="text-[10px] text-muted-foreground">Booked by {riderProfile?.full_name || "someone else"}</p>
                 </div>
               </div>
-              {activeRide.guest_phone && (
-                <a
-                  href={`tel:${activeRide.guest_phone}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 active:scale-95 transition-transform shrink-0"
-                  aria-label={`Call ${activeRide.guest_name}`}
-                >
-                  <Phone className="h-4 w-4" />
-                </a>
-              )}
+              {/* Privacy: guest phone hidden — coordinate via in-app chat with the booker */}
             </div>
           )}
         </div>

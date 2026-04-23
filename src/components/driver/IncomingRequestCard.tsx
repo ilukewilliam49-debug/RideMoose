@@ -7,7 +7,6 @@ import {
   Plane,
   Users,
   Clock,
-  Phone,
 } from "lucide-react";
 import ServiceIcon from "@/components/driver/ServiceIcon";
 import DriverBidForm from "@/components/DriverBidForm";
@@ -293,31 +292,19 @@ export default function IncomingRequestCard({
         )}
       </div>
 
-      {/* Guest passenger details — name & phone for pickup */}
+      {/* Guest passenger details — name only; phone is hidden for privacy. Coordinate via in-app chat after accepting. */}
       {(ride as any).booking_for === "guest" && (ride as any).guest_name && (
         <div className="px-4 pb-1.5 pt-1">
-          <div className="flex items-center justify-between rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 px-3 py-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold shrink-0">
-                {(ride as any).guest_name[0]?.toUpperCase() || "G"}
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold truncate leading-tight">{(ride as any).guest_name}</p>
-                {(ride as any).guest_phone && (
-                  <p className="text-[10px] text-muted-foreground tabular-nums leading-tight">{(ride as any).guest_phone}</p>
-                )}
-              </div>
+          <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 px-3 py-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold shrink-0">
+              {(ride as any).guest_name[0]?.toUpperCase() || "G"}
             </div>
-            {(ride as any).guest_phone && (
-              <a
-                href={`tel:${(ride as any).guest_phone}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 active:scale-95 transition-transform shrink-0"
-                aria-label={`Call ${(ride as any).guest_name}`}
-              >
-                <Phone className="h-3.5 w-3.5" />
-              </a>
-            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold truncate leading-tight">{(ride as any).guest_name}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                {isDeliveryType(ride.service_type) ? "Recipient" : "Passenger"} · contact via in-app chat
+              </p>
+            </div>
           </div>
         </div>
       )}
