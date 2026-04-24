@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import InstallAppPrompt from "@/components/InstallAppPrompt";
@@ -19,7 +19,10 @@ import {
   Car,
   ChevronDown,
   HelpCircle,
+  LocateFixed,
+  MapPin,
   Phone,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -208,8 +211,10 @@ const Index = () => {
                   riderParams.set("scheduledAt", scheduledAt.toISOString());
                   if (pickup) {
                     riderParams.set("pickup", pickup.address);
-                    riderParams.set("plat", String(pickup.lat));
-                    riderParams.set("plng", String(pickup.lng));
+                    if (pickup.lat != null && pickup.lng != null) {
+                      riderParams.set("plat", String(pickup.lat));
+                      riderParams.set("plng", String(pickup.lng));
+                    }
                   }
                   const returnTo = `/rider?${riderParams.toString()}`;
 
@@ -301,7 +306,11 @@ const SheetAction = ({ icon: Icon, label, onSelect }: SheetActionProps) => (
 // combined value is in the future before handing off to the login flow.
 // ───────────────────────────────────────────────────────────────────
 
-type SchedulePickup = { address: string; lat: number; lng: number };
+type SchedulePickup = {
+  address: string;
+  lat?: number | null;
+  lng?: number | null;
+};
 
 type ScheduleSubmitPayload = {
   scheduledAt: Date;
@@ -329,12 +338,15 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
   // doesn't have to re-enter pickup after authenticating. Failure is
   // non-blocking — the rider screen will fall back to its own geolocate.
   const [pickup, setPickup] = useState<SchedulePickup | null>(null);
-  const [pickupStatus, setPickupStatus] = useState<"idle" | "locating" | "ready" | "denied">("idle");
+  const [pickupStatus, setPickupStatus] = useState<"idle" | "locating" | "ready" | "edited" | "cleared" | "denied">("idle");
 
-  useEffect(() => {
+  // Geolocate the user and reverse-geocode into an address. Used both on
+  // mount (auto-prefill) and via the "Use current location" button after
+  // the user clears or edits the field.
+  const requestCurrentLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setPickupStatus("denied");
-      return;
+      return () => {};
     }
     let cancelled = false;
     setPickupStatus("locating");
@@ -365,6 +377,33 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const cancel = requestCurrentLocation();
+    return () => cancel();
+  }, [requestCurrentLocation]);
+
+  // Update the pickup address from typed input. We drop the lat/lng coords
+  // because they no longer match the (potentially edited) address — the
+  // rider page will geocode the typed value after login if needed.
+  const handlePickupChange = useCallback((value: string) => {
+    setPickup({ address: value, lat: null, lng: null });
+    setPickupStatus(value.trim().length > 0 ? "edited" : "cleared");
+  }, []);
+
+  const handlePickupClear = useCallback(() => {
+    setPickup(null);
+    setPickupStatus("cleared");
+  }, []);
+
+  // Only forward a pickup payload to the login flow if the user actually
+  // has an address. An all-whitespace value is treated as cleared.
+  const pickupForSubmit = useMemo<SchedulePickup | null>(() => {
+    if (!pickup) return null;
+    const trimmed = pickup.address.trim();
+    if (!trimmed) return null;
+    return { address: trimmed, lat: pickup.lat ?? null, lng: pickup.lng ?? null };
+  }, [pickup]);
 
   // Combine date + time into a single Date, or null if either is missing
   // or the combined moment is not at least 5 min in the future.
@@ -471,24 +510,70 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
           </p>
         )}
 
-        {/* Pickup prefill hint — non-blocking, just informational. */}
-        <p className="text-xs font-medium text-muted-foreground">
-          {pickupStatus === "locating" &&
-            t("landing.schedulePickupLocating", "Detecting your pickup location…")}
-          {pickupStatus === "ready" && pickup && (
-            <>
-              <span className="font-semibold text-foreground">
-                {t("landing.schedulePickupReady", "Pickup")}:
-              </span>{" "}
-              <span className="line-clamp-1">{pickup.address}</span>
-            </>
-          )}
-          {pickupStatus === "denied" &&
-            t(
-              "landing.schedulePickupDenied",
-              "We'll ask for your pickup after login.",
+        {/* Editable pickup field — auto-prefilled from geolocation, but the
+            user can clear, edit, or re-detect it before continuing. */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="schedule-pickup"
+            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+          >
+            {t("landing.schedulePickupReady", "Pickup")}
+          </label>
+          <div className="relative">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="schedule-pickup"
+              type="text"
+              value={pickup?.address ?? ""}
+              onChange={(e) => handlePickupChange(e.target.value)}
+              placeholder={
+                pickupStatus === "locating"
+                  ? t("landing.schedulePickupLocating", "Detecting your pickup location…")
+                  : t("landing.schedulePickupPlaceholder", "Enter pickup address")
+              }
+              className="h-12 w-full rounded-xl border border-input bg-background pl-9 pr-10 text-sm font-semibold text-foreground placeholder:font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            {pickup?.address && (
+              <button
+                type="button"
+                onClick={handlePickupClear}
+                aria-label={t("landing.schedulePickupClear", "Clear pickup")}
+                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-95"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
-        </p>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              {pickupStatus === "denied" &&
+                t(
+                  "landing.schedulePickupDenied",
+                  "We'll ask for your pickup after login.",
+                )}
+              {pickupStatus === "edited" &&
+                t(
+                  "landing.schedulePickupEdited",
+                  "Custom address — we'll confirm it after login.",
+                )}
+              {pickupStatus === "cleared" &&
+                t(
+                  "landing.schedulePickupCleared",
+                  "Pickup cleared.",
+                )}
+            </p>
+            {pickupStatus !== "ready" && pickupStatus !== "locating" && (
+              <button
+                type="button"
+                onClick={requestCurrentLocation}
+                className="inline-flex items-center gap-1 text-xs font-bold text-primary transition hover:underline"
+              >
+                <LocateFixed className="h-3.5 w-3.5" />
+                {t("landing.schedulePickupUseCurrent", "Use current location")}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2 pt-4">
@@ -497,7 +582,7 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
           size="lg"
           disabled={!valid}
           onClick={() =>
-            valid && combined && onSubmit({ scheduledAt: combined, pickup })
+            valid && combined && onSubmit({ scheduledAt: combined, pickup: pickupForSubmit })
           }
           className="h-12 w-full rounded-xl text-sm font-bold"
         >
