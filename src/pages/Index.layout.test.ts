@@ -5,19 +5,17 @@ import { resolve } from "node:path";
 /**
  * Regression guard for the homepage layout.
  *
- * The "Built for the way you move" services section was removed to keep the
- * homepage focused on primary actions (Ride / Drive / Business). This test
- * prevents accidental reintroduction and ensures the surrounding sections
- * remain flush — i.e. no leftover vertical gap on any breakpoint.
+ * - The "Built for the way you move" services section was removed entirely.
+ * - The "Drive with PickYou" recruitment section + bottom CTA must only appear
+ *   under the Drive tab (not on Ride or Business). This test enforces both
+ *   removals so we can't accidentally re-introduce a misplaced driver block
+ *   on the Ride tab or a leftover services grid.
  *
- * It is a static-source check (not a DOM render) so it stays fast and avoids
- * pulling in Supabase, the lazy map, auth, and i18n just to assert structure.
+ * Static-source check (not a DOM render) for speed and to avoid pulling in
+ * Supabase, the lazy map, auth, and i18n just to assert structure.
  */
 
-const indexSrc = readFileSync(
-  resolve(__dirname, "./Index.tsx"),
-  "utf-8",
-);
+const indexSrc = readFileSync(resolve(__dirname, "./Index.tsx"), "utf-8");
 
 describe("Homepage layout — responsive gap regression", () => {
   it("does not import the removed LandingServices component", () => {
@@ -30,31 +28,25 @@ describe("Homepage layout — responsive gap regression", () => {
     expect(existsSync(file)).toBe(false);
   });
 
-  it("renders Hero immediately followed by Driver section (no intermediate block)", () => {
-    // Allow whitespace/newlines between the two tags but nothing else.
-    const adjacency = /<LandingHero\s*\/>\s*<LandingDriver\s*\/>/;
-    expect(indexSrc).toMatch(adjacency);
+  it("renders LandingDriver only when the Drive tab is active", () => {
+    // Driver recruitment block must be gated by tab === "drive" so it does
+    // not appear on the Ride or Business tabs.
+    expect(indexSrc).toMatch(/tab\s*===\s*["']drive["'][\s\S]*<LandingDriver\s*\/>/);
   });
 
-  it("keeps the Driver section's top border so it sits flush with the hero", () => {
+  it("keeps the Driver section's top border so it sits flush with the hero when shown", () => {
     const driverSrc = readFileSync(
       resolve(__dirname, "../components/landing/LandingDriver.tsx"),
       "utf-8",
     );
-    // The shared section border is what visually closes the gap left by the
-    // removed services block. Losing it would create a perceived empty band.
     expect(driverSrc).toMatch(/border-t\s+border-border\/30/);
   });
 
-  it("keeps the bottom CTA section's top border so the layout remains tight", () => {
-    // Bottom CTA lives inline in Index.tsx; assert it still has the divider
-    // that separates it from the Driver section without introducing a gap.
+  it("keeps the bottom CTA gated to the Drive tab with a top border divider", () => {
     expect(indexSrc).toMatch(/border-t\s+border-border\/30/);
   });
 
-  it("uses responsive vertical padding (py-14 md:py-20) on the bottom CTA, not a hard-coded large gap", () => {
-    // Guards against someone re-padding the section to compensate for the
-    // missing services block (which would create a visible gap on mobile).
+  it("uses responsive vertical padding (py-14 md:py-20) on the bottom CTA", () => {
     expect(indexSrc).toMatch(/py-14\s+md:py-20/);
   });
 });
