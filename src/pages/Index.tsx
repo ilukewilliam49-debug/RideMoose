@@ -574,6 +574,25 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
               </button>
             )}
           </div>
+
+          {/* Tiny non-interactive map preview that confirms the pin
+              location for the resolved pickup coordinates. */}
+          {pickup?.lat != null && pickup?.lng != null && (
+            <div className="overflow-hidden rounded-xl border border-border">
+              <RideMap
+                markers={[
+                  {
+                    lat: pickup.lat,
+                    lng: pickup.lng,
+                    type: "pickup",
+                    label: pickup.address,
+                  },
+                ]}
+                center={[pickup.lat, pickup.lng]}
+                className="!h-[140px]"
+              />
+            </div>
+          )}
         </div>
       </div>
 
