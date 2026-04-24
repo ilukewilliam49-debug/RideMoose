@@ -968,6 +968,39 @@ export type Database = {
           },
         ]
       }
+      recent_locations: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          kind: string
+          last_used_at: string
+          lat: number | null
+          lng: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          kind?: string
+          last_used_at?: string
+          lat?: number | null
+          lng?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          kind?: string
+          last_used_at?: string
+          lat?: number | null
+          lng?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ride_events: {
         Row: {
           actor_profile_id: string | null
