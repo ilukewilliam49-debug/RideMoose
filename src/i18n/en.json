@@ -652,7 +652,8 @@
     "confirm": "Confirm",
     "done": "Done",
     "set": "Set",
-    "useMyLocation": "Use my location"
+    "useMyLocation": "Use my location",
+    "undo": "Undo"
   },
   "dispatch": {
     "dispatchBoard": "Dispatch Board",
