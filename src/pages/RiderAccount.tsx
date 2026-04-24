@@ -378,6 +378,24 @@ const RiderAccount = () => {
             onCheckedChange={handleToggleRecentsSync}
           />
         </div>
+
+        {!recentsSyncEnabled && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2.5 text-xs text-muted-foreground"
+          >
+            <p className="font-medium text-foreground mb-0.5">
+              {t("rider.recentsSyncOffInlineTitle", "Sync is off for this device")}
+            </p>
+            <p>
+              {t(
+                "rider.recentsSyncOffInlineDesc",
+                "New pickups and dropoffs you select here won't appear on your other devices. Turn sync back on anytime to resume."
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
 
