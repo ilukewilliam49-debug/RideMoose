@@ -9,12 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, Car, Eye, EyeOff } from "lucide-react";
+import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, Car, Eye, EyeOff, MapPin } from "lucide-react";
 import { maskPhone } from "@/lib/phone";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
 import SupportChatDialog from "@/components/SupportChatDialog";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import {
+  isRecentLocationsSyncDisabled,
+  setRecentLocationsSyncDisabled,
+} from "@/hooks/useRecentLocations";
 import { toast } from "sonner";
 
 const RiderAccount = () => {
@@ -36,6 +40,19 @@ const RiderAccount = () => {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [testingSend, setTestingSend] = useState(false);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const [recentsSyncEnabled, setRecentsSyncEnabled] = useState<boolean>(
+    () => !isRecentLocationsSyncDisabled()
+  );
+
+  const handleToggleRecentsSync = (checked: boolean) => {
+    setRecentsSyncEnabled(checked);
+    setRecentLocationsSyncDisabled(!checked);
+    toast.success(
+      checked
+        ? t("rider.recentsSyncOn", "Recent places now sync across your devices")
+        : t("rider.recentsSyncOff", "Recent places stay only on this device")
+    );
+  };
 
   const handleTestNotification = async () => {
     setTestingSend(true);
@@ -321,7 +338,33 @@ const RiderAccount = () => {
         </p>
       </div>
 
-      {/* Navigation links */}
+      {/* Privacy — Recent locations sync */}
+      <div className="rounded-xl border border-border/40 p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Label
+              htmlFor="recents-sync-toggle"
+              className="text-sm font-semibold flex items-center gap-2"
+            >
+              <MapPin className="h-4 w-4" />
+              {t("rider.recentsSyncTitle", "Sync recent places")}
+            </Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t(
+                "rider.recentsSyncDesc",
+                "Keep your recent pickups and dropoffs in sync across all your devices. Turn off to keep them only on this device."
+              )}
+            </p>
+          </div>
+          <Switch
+            id="recents-sync-toggle"
+            checked={recentsSyncEnabled}
+            onCheckedChange={handleToggleRecentsSync}
+          />
+        </div>
+      </div>
+
+
       <div className="space-y-1">
         <button
           onClick={() => navigate("/business/apply")}
