@@ -658,7 +658,8 @@
     "done": "Terminé",
     "set": "Définir",
     "useMyLocation": "Utiliser ma position",
-    "undo": "Annuler"
+    "undo": "Annuler",
+    "close": "Fermer"
   },
   "dispatch": {
     "dispatchBoard": "Tableau de répartition",
