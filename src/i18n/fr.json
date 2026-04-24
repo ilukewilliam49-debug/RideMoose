@@ -27,6 +27,9 @@
     "requestRide": "Réserver un trajet",
     "exploreMore": "Découvrir PickYou",
     "exploreLess": "Afficher moins",
+    "moreSheetTitle": "Plus d'options",
+    "moreSheetDesc": "Liens rapides vers les autres services et le support PickYou.",
+    "moreSheetHelp": "Aide et support",
     "requestLongDistance": "Demander un trajet longue distance",
     "driveWithUs": "Conduire avec PickYou",
     "panelEyebrow": "Services PickYou",
@@ -361,6 +364,7 @@
     "planYourRide": "Planifier votre trajet",
     "pickupNow": "Départ maintenant",
     "forMe": "Pour moi",
+    "scheduleRide": "Planifier un trajet",
     "forSomeoneElse": "Pour quelqu'un d'autre",
     "contactName": "Nom du passager",
     "contactPhone": "Numéro de téléphone",
@@ -655,7 +659,8 @@
     "done": "Terminé",
     "set": "Définir",
     "useMyLocation": "Utiliser ma position",
-    "undo": "Annuler"
+    "undo": "Annuler",
+    "close": "Fermer"
   },
   "dispatch": {
     "dispatchBoard": "Tableau de répartition",

@@ -1,15 +1,32 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import InstallAppPrompt from "@/components/InstallAppPrompt";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronDown, ChevronUp, Phone } from "lucide-react";
+import {
+  ArrowRight,
+  Briefcase,
+  CalendarClock,
+  Car,
+  ChevronDown,
+  HelpCircle,
+  Phone,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import LandingNav from "@/components/landing/LandingNav";
 import LandingHero, { type LandingTab } from "@/components/landing/LandingHero";
 import LandingDriver from "@/components/landing/LandingDriver";
 import LandingFooter from "@/components/landing/LandingFooter";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -31,10 +48,9 @@ const Index = () => {
   const isMobile = useIsMobile();
   const showPublicLanding = new URLSearchParams(location.search).get("view") === "landing";
   const [tab, setTab] = useState<LandingTab>(readTabFromHash);
-  // Mobile-only: keep marketing content collapsed by default so the homepage
-  // feels like a ride-booking app (map + sheet first). Tapping "Explore PickYou"
-  // reveals the footer. Driver content is NEVER shown on the Ride tab.
-  const [mobileExpanded, setMobileExpanded] = useState(false);
+  // Controls the mobile bottom-sheet "More" drawer on the Ride tab. The
+  // map + booking card stay fully interactive underneath.
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     const onHash = () => setTab(readTabFromHash());
@@ -42,10 +58,9 @@ const Index = () => {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  // Reset the mobile expand state whenever the user switches tabs so the
-  // Ride tab always returns to its collapsed map-first view.
+  // Always close the mobile bottom sheet when switching tabs.
   useEffect(() => {
-    setMobileExpanded(false);
+    setMoreOpen(false);
   }, [tab]);
 
   useEffect(() => {
@@ -63,9 +78,9 @@ const Index = () => {
   // Driver recruitment + bottom CTA appear ONLY when the Drive tab is active,
   // on every breakpoint. They must never render under Ride or Business.
   const showDriverContent = tab === "drive";
-  // Footer is hidden on the mobile Ride tab until the user explicitly expands.
-  // Drive and Business tabs always show the footer.
-  const showFooter = !isMobile || tab !== "ride" || mobileExpanded;
+  // Footer is hidden on the mobile Ride tab (the bottom sheet provides
+  // navigation instead). Drive and Business tabs always show the footer.
+  const showFooter = !isMobile || tab !== "ride";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -73,30 +88,96 @@ const Index = () => {
       <LandingNav />
       <LandingHero />
 
-      {/* Mobile-only "Explore PickYou" toggle. Sits flush under the hero on the
-          Ride tab and reveals the footer. Driver content is NOT included. */}
+      {/* Mobile-only "More" trigger + bottom-sheet drawer. Visible only on
+          the Ride tab so it never competes with Drive / Business content. */}
       {isMobile && tab === "ride" && (
-        <div className="flex justify-center border-t border-border/30 bg-background px-5 py-4 md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileExpanded((v) => !v)}
-            aria-expanded={mobileExpanded}
-            aria-controls="mobile-explore-panel"
-            className="inline-flex items-center gap-2 rounded-full bg-muted/70 px-5 py-2.5 text-xs font-bold text-foreground ring-1 ring-border/40 transition active:scale-[0.98]"
-          >
-            {mobileExpanded ? (
-              <>
-                {t("landing.exploreLess", "Show less")}
-                <ChevronUp className="h-4 w-4" />
-              </>
-            ) : (
-              <>
+        <Drawer open={moreOpen} onOpenChange={setMoreOpen}>
+          <div className="flex justify-center border-t border-border/30 bg-background px-5 py-4 md:hidden">
+            <DrawerTrigger asChild>
+              <button
+                type="button"
+                aria-label={t("landing.exploreMore", "Explore PickYou")}
+                className="inline-flex items-center gap-2 rounded-full bg-muted/70 px-5 py-2.5 text-xs font-bold text-foreground ring-1 ring-border/40 transition active:scale-[0.98]"
+              >
                 {t("landing.exploreMore", "Explore PickYou")}
                 <ChevronDown className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </div>
+              </button>
+            </DrawerTrigger>
+          </div>
+
+          <DrawerContent className="md:hidden">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>{t("landing.moreSheetTitle", "More options")}</DrawerTitle>
+              <DrawerDescription>
+                {t("landing.moreSheetDesc", "Quick links to other PickYou services and support.")}
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="grid grid-cols-2 gap-3 px-4 pb-2">
+              <SheetAction
+                icon={CalendarClock}
+                label={t("rider.scheduleRide", "Schedule a ride")}
+                onSelect={() => {
+                  setMoreOpen(false);
+                  navigate("/login?intent=schedule");
+                }}
+              />
+              <SheetAction
+                icon={Car}
+                label={t("nav.drive", "Drive")}
+                onSelect={() => {
+                  setMoreOpen(false);
+                  if (typeof window !== "undefined") window.location.hash = "drive";
+                }}
+              />
+              <SheetAction
+                icon={Briefcase}
+                label={t("nav.business", "Business")}
+                onSelect={() => {
+                  setMoreOpen(false);
+                  if (typeof window !== "undefined") window.location.hash = "business";
+                }}
+              />
+              <SheetAction
+                icon={HelpCircle}
+                label={t("landing.moreSheetHelp", "Help & support")}
+                onSelect={() => {
+                  setMoreOpen(false);
+                  window.location.href = "tel:+18679888836";
+                }}
+              />
+            </div>
+
+            <div className="space-y-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+              <Button
+                size="lg"
+                className="h-12 w-full rounded-xl text-sm font-bold"
+                onClick={() => {
+                  setMoreOpen(false);
+                  navigate("/login");
+                }}
+              >
+                {t("nav.signUp", "Sign up")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <a
+                href="tel:+18679888836"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-muted text-sm font-bold text-foreground transition active:scale-[0.99]"
+              >
+                <Phone className="h-4 w-4" />
+                {t("landing.callNow", "Call now")}
+              </a>
+              <DrawerClose asChild>
+                <button
+                  type="button"
+                  className="mt-1 flex h-10 w-full items-center justify-center text-xs font-semibold text-muted-foreground"
+                >
+                  {t("common.close", "Close")}
+                </button>
+              </DrawerClose>
+            </div>
+          </DrawerContent>
+        </Drawer>
       )}
 
       {/* Drive tab: driver recruitment + bottom CTA. Strictly gated — never
@@ -143,25 +224,32 @@ const Index = () => {
         </div>
       )}
 
-      {/* Footer is gated on mobile Ride until the user expands. Animated only
-          when toggled from the mobile expand button. */}
-      <AnimatePresence initial={false}>
-        {showFooter && (
-          <motion.div
-            id="mobile-explore-panel"
-            key="footer-panel"
-            initial={isMobile && tab === "ride" ? { height: 0, opacity: 0 } : false}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={isMobile && tab === "ride" ? { height: 0, opacity: 0 } : undefined}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="overflow-hidden"
-          >
-            <LandingFooter />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showFooter && <LandingFooter />}
     </div>
   );
 };
+
+// ───────────────────────────────────────────────────────────────────
+// Bottom-sheet quick action — square chip with icon + label
+// ───────────────────────────────────────────────────────────────────
+
+type SheetActionProps = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onSelect: () => void;
+};
+
+const SheetAction = ({ icon: Icon, label, onSelect }: SheetActionProps) => (
+  <button
+    type="button"
+    onClick={onSelect}
+    className="flex flex-col items-start gap-3 rounded-2xl bg-muted/60 p-4 text-left ring-1 ring-border/30 transition active:scale-[0.98]"
+  >
+    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+      <Icon className="h-5 w-5 text-primary" />
+    </span>
+    <span className="text-sm font-bold leading-tight">{label}</span>
+  </button>
+);
 
 export default Index;

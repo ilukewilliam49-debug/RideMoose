@@ -27,6 +27,9 @@
     "requestRide": "Book a ride",
     "exploreMore": "Explore PickYou",
     "exploreLess": "Show less",
+    "moreSheetTitle": "More options",
+    "moreSheetDesc": "Quick links to other PickYou services and support.",
+    "moreSheetHelp": "Help & support",
     "requestLongDistance": "Request long-distance booking",
     "driveWithUs": "Drive with PickYou",
     "panelEyebrow": "PickYou services",
@@ -361,6 +364,7 @@
     "planYourRide": "Plan your ride",
     "pickupNow": "Pickup now",
     "forMe": "For me",
+    "scheduleRide": "Schedule a ride",
     "forSomeoneElse": "For someone else",
     "contactName": "Rider name",
     "contactPhone": "Phone number",
@@ -655,7 +659,8 @@
     "done": "Done",
     "set": "Set",
     "useMyLocation": "Use my location",
-    "undo": "Undo"
+    "undo": "Undo",
+    "close": "Close"
   },
   "dispatch": {
     "dispatchBoard": "Dispatch Board",

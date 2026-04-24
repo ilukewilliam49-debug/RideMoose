@@ -49,9 +49,15 @@ describe("Homepage layout — responsive gap regression", () => {
     expect(indexSrc).toMatch(/showFooter\s*&&/);
   });
 
-  it("exposes a mobile 'Explore PickYou' toggle to reveal the footer", () => {
+  it("exposes a mobile bottom-sheet 'More' drawer on the Ride tab", () => {
+    // The drawer is the mobile expand affordance; it must be wired to the
+    // shadcn Drawer component, controlled by `moreOpen`, and trigger label
+    // must use the exploreMore i18n key.
+    expect(indexSrc).toMatch(/from\s+["']@\/components\/ui\/drawer["']/);
     expect(indexSrc).toMatch(/landing\.exploreMore/);
-    expect(indexSrc).toMatch(/setMobileExpanded/);
+    expect(indexSrc).toMatch(/setMoreOpen/);
+    expect(indexSrc).toMatch(/<DrawerTrigger\b/);
+    expect(indexSrc).toMatch(/<DrawerContent\b/);
   });
 
   it("keeps the Driver section's top border so it sits flush with the hero when shown", () => {
