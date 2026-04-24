@@ -465,7 +465,8 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
       </AnimatePresence>
     </div>
   );
-};
+});
+LocationInput.displayName = "LocationInput";
 
 // ────────────────────────── Other tab cards ────────────────────────────────
 
