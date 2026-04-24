@@ -169,7 +169,9 @@ const RideCard = ({ pickupRef, onSubmit, t }: RideCardProps) => {
   );
 };
 
-const DriveCard = ({ onSubmit, t }: { onSubmit: () => void; t: (k: string, f?: string) => string }) => (
+const DriveCard = ({ onSubmit }: { onSubmit: () => void }) => {
+  const { t } = useTranslation();
+  return (
   <motion.div
     {...cardMotion}
     className="rounded-3xl bg-card/95 p-6 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl"
