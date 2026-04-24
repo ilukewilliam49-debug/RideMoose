@@ -58,14 +58,13 @@ const LandingHero = () => {
                   key="ride"
                   pickupRef={pickupRef}
                   onSubmit={() => navigate("/login")}
-                  t={t}
                 />
               )}
               {tab === "drive" && (
-                <DriveCard key="drive" onSubmit={() => navigate("/drive")} t={t} />
+                <DriveCard key="drive" onSubmit={() => navigate("/drive")} />
               )}
               {tab === "business" && (
-                <BusinessCard key="business" onSubmit={() => navigate("/business")} t={t} />
+                <BusinessCard key="business" onSubmit={() => navigate("/business")} />
               )}
             </AnimatePresence>
           </div>
@@ -87,10 +86,10 @@ const cardMotion = {
 type RideCardProps = {
   pickupRef: React.RefObject<HTMLInputElement>;
   onSubmit: () => void;
-  t: (key: string, fallback?: string) => string;
 };
 
-const RideCard = ({ pickupRef, onSubmit, t }: RideCardProps) => {
+const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
+  const { t } = useTranslation();
   return (
     <motion.div
       {...cardMotion}
@@ -172,45 +171,49 @@ const RideCard = ({ pickupRef, onSubmit, t }: RideCardProps) => {
 const DriveCard = ({ onSubmit }: { onSubmit: () => void }) => {
   const { t } = useTranslation();
   return (
-  <motion.div
-    {...cardMotion}
-    className="rounded-3xl bg-card/95 p-6 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl"
-  >
-    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-      <Car className="h-5 w-5 text-primary" />
-    </div>
-    <h2 className="text-xl font-black tracking-tight md:text-2xl">
-      {t("landing.earnTitle", "Earn with PickYou")}
-    </h2>
-    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-      {t("landing.earnDesc", "Drive on your own schedule. Keep more with low commission.")}
-    </p>
-    <Button size="lg" onClick={onSubmit} className="mt-5 h-12 w-full rounded-xl text-sm font-bold">
-      {t("landing.startDriving", "Start driving")}
-      <ArrowRight className="ml-2 h-4 w-4" />
-    </Button>
-  </motion.div>
-);
+    <motion.div
+      {...cardMotion}
+      className="rounded-3xl bg-card/95 p-6 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl"
+    >
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+        <Car className="h-5 w-5 text-primary" />
+      </div>
+      <h2 className="text-xl font-black tracking-tight md:text-2xl">
+        {t("landing.earnTitle", "Earn with PickYou")}
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        {t("landing.earnDesc", "Drive on your own schedule. Keep more with low commission.")}
+      </p>
+      <Button size="lg" onClick={onSubmit} className="mt-5 h-12 w-full rounded-xl text-sm font-bold">
+        {t("landing.startDriving", "Start driving")}
+        <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
+    </motion.div>
+  );
+};
 
-const BusinessCard = ({ onSubmit, t }: { onSubmit: () => void; t: (k: string, f?: string) => string }) => (
-  <motion.div
-    {...cardMotion}
-    className="rounded-3xl bg-card/95 p-6 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl"
-  >
-    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-      <Briefcase className="h-5 w-5 text-primary" />
-    </div>
-    <h2 className="text-xl font-black tracking-tight md:text-2xl">
-      {t("landing.businessCardTitle", "Business rides & accounts")}
-    </h2>
-    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-      {t("landing.businessCardDesc", "One account for your whole team. Monthly billing, full visibility.")}
-    </p>
-    <Button size="lg" onClick={onSubmit} className="mt-5 h-12 w-full rounded-xl text-sm font-bold">
-      {t("landing.businessGetStarted", "Get started")}
-      <ArrowRight className="ml-2 h-4 w-4" />
-    </Button>
-  </motion.div>
-);
+const BusinessCard = ({ onSubmit }: { onSubmit: () => void }) => {
+  const { t } = useTranslation();
+  return (
+    <motion.div
+      {...cardMotion}
+      className="rounded-3xl bg-card/95 p-6 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl"
+    >
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+        <Briefcase className="h-5 w-5 text-primary" />
+      </div>
+      <h2 className="text-xl font-black tracking-tight md:text-2xl">
+        {t("landing.businessCardTitle", "Business rides & accounts")}
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        {t("landing.businessCardDesc", "One account for your whole team. Monthly billing, full visibility.")}
+      </p>
+      <Button size="lg" onClick={onSubmit} className="mt-5 h-12 w-full rounded-xl text-sm font-bold">
+        {t("landing.businessGetStarted", "Get started")}
+        <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
+    </motion.div>
+  );
+};
 
 export default LandingHero;
