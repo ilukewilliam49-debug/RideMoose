@@ -198,13 +198,25 @@ const Index = () => {
             ) : (
               <ScheduleRideForm
                 onBack={() => setSheetView("menu")}
-                onSubmit={(scheduledAt) => {
+                onSubmit={({ scheduledAt, pickup }) => {
                   setMoreOpen(false);
-                  const params = new URLSearchParams({
-                    redirect: "/rider",
-                    scheduledAt: scheduledAt.toISOString(),
-                  });
-                  navigate(`/login?${params.toString()}`);
+                  // Build the post-auth target: /rider with prefilled pickup
+                  // (when geolocation succeeded) and the scheduled timestamp.
+                  // useRideBookingState reads `pickup`, `plat`, `plng`, and
+                  // RiderDashboard reads `scheduledAt` from the URL.
+                  const riderParams = new URLSearchParams();
+                  riderParams.set("scheduledAt", scheduledAt.toISOString());
+                  if (pickup) {
+                    riderParams.set("pickup", pickup.address);
+                    riderParams.set("plat", String(pickup.lat));
+                    riderParams.set("plng", String(pickup.lng));
+                  }
+                  const returnTo = `/rider?${riderParams.toString()}`;
+
+                  const loginParams = new URLSearchParams();
+                  loginParams.set("intent", "rider");
+                  loginParams.set("returnTo", returnTo);
+                  navigate(`/login?${loginParams.toString()}`);
                 }}
               />
             )}
@@ -289,9 +301,16 @@ const SheetAction = ({ icon: Icon, label, onSelect }: SheetActionProps) => (
 // combined value is in the future before handing off to the login flow.
 // ───────────────────────────────────────────────────────────────────
 
+type SchedulePickup = { address: string; lat: number; lng: number };
+
+type ScheduleSubmitPayload = {
+  scheduledAt: Date;
+  pickup: SchedulePickup | null;
+};
+
 type ScheduleRideFormProps = {
   onBack: () => void;
-  onSubmit: (scheduledAt: Date) => void;
+  onSubmit: (payload: ScheduleSubmitPayload) => void;
 };
 
 const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
@@ -305,6 +324,47 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   });
   const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Pickup prefill state. We try geolocation in the background so the user
+  // doesn't have to re-enter pickup after authenticating. Failure is
+  // non-blocking — the rider screen will fall back to its own geolocate.
+  const [pickup, setPickup] = useState<SchedulePickup | null>(null);
+  const [pickupStatus, setPickupStatus] = useState<"idle" | "locating" | "ready" | "denied">("idle");
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setPickupStatus("denied");
+      return;
+    }
+    let cancelled = false;
+    setPickupStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        if (cancelled) return;
+        const { latitude, longitude } = pos.coords;
+        let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+          );
+          const geo = await res.json();
+          if (geo?.display_name) address = geo.display_name;
+        } catch {
+          /* keep coord-string fallback */
+        }
+        if (cancelled) return;
+        setPickup({ address, lat: latitude, lng: longitude });
+        setPickupStatus("ready");
+      },
+      () => {
+        if (!cancelled) setPickupStatus("denied");
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Combine date + time into a single Date, or null if either is missing
   // or the combined moment is not at least 5 min in the future.
@@ -410,6 +470,25 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
             {t("landing.scheduleInvalid", "Please pick a time at least 5 minutes from now.")}
           </p>
         )}
+
+        {/* Pickup prefill hint — non-blocking, just informational. */}
+        <p className="text-xs font-medium text-muted-foreground">
+          {pickupStatus === "locating" &&
+            t("landing.schedulePickupLocating", "Detecting your pickup location…")}
+          {pickupStatus === "ready" && pickup && (
+            <>
+              <span className="font-semibold text-foreground">
+                {t("landing.schedulePickupReady", "Pickup")}:
+              </span>{" "}
+              <span className="line-clamp-1">{pickup.address}</span>
+            </>
+          )}
+          {pickupStatus === "denied" &&
+            t(
+              "landing.schedulePickupDenied",
+              "We'll ask for your pickup after login.",
+            )}
+        </p>
       </div>
 
       <div className="space-y-2 pt-4">
@@ -417,7 +496,9 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
           type="button"
           size="lg"
           disabled={!valid}
-          onClick={() => valid && combined && onSubmit(combined)}
+          onClick={() =>
+            valid && combined && onSubmit({ scheduledAt: combined, pickup })
+          }
           className="h-12 w-full rounded-xl text-sm font-bold"
         >
           {t("landing.scheduleContinue", "Continue to login")}
