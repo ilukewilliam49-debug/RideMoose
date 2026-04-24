@@ -8,7 +8,6 @@ import { useTranslation } from "react-i18next";
 
 import LandingNav from "@/components/landing/LandingNav";
 import LandingHero from "@/components/landing/LandingHero";
-import LandingServices from "@/components/landing/LandingServices";
 import LandingDriver from "@/components/landing/LandingDriver";
 import LandingFooter from "@/components/landing/LandingFooter";
 import { useAuth } from "@/hooks/useAuth";
