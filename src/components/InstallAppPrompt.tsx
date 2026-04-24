@@ -101,7 +101,7 @@ export default function InstallAppPrompt() {
       <div className="fixed bottom-20 left-3 right-3 z-[1100] animate-in slide-in-from-bottom-4 duration-300 sm:left-auto sm:right-4 sm:max-w-sm">
         <div className="rounded-2xl border border-border/50 bg-card/95 p-4 shadow-xl backdrop-blur-lg">
           <button
-            onClick={() => setDismissed(true)}
+            onClick={handleDismiss}
             className="absolute right-3 top-3 p-1 text-muted-foreground"
             aria-label="Dismiss"
           >
