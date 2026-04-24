@@ -61,6 +61,9 @@ const Index = () => {
   // Controls the mobile bottom-sheet "More" drawer on the Ride tab. The
   // map + booking card stay fully interactive underneath.
   const [moreOpen, setMoreOpen] = useState(false);
+  // The sheet has two views: the menu of quick actions, and a schedule-ride
+  // form. Tapping "Schedule a ride" swaps to the form without closing the sheet.
+  const [sheetView, setSheetView] = useState<"menu" | "schedule">("menu");
 
   useEffect(() => {
     const onHash = () => setTab(readTabFromHash());
@@ -72,6 +75,12 @@ const Index = () => {
   useEffect(() => {
     setMoreOpen(false);
   }, [tab]);
+
+  // When the sheet closes, reset back to the menu view so the next open
+  // shows the menu, not a half-filled schedule form.
+  useEffect(() => {
+    if (!moreOpen) setSheetView("menu");
+  }, [moreOpen]);
 
   useEffect(() => {
     if (loading || !user || showPublicLanding) return;
