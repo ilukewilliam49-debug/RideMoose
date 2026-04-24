@@ -338,12 +338,15 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
   // doesn't have to re-enter pickup after authenticating. Failure is
   // non-blocking — the rider screen will fall back to its own geolocate.
   const [pickup, setPickup] = useState<SchedulePickup | null>(null);
-  const [pickupStatus, setPickupStatus] = useState<"idle" | "locating" | "ready" | "denied">("idle");
+  const [pickupStatus, setPickupStatus] = useState<"idle" | "locating" | "ready" | "edited" | "cleared" | "denied">("idle");
 
-  useEffect(() => {
+  // Geolocate the user and reverse-geocode into an address. Used both on
+  // mount (auto-prefill) and via the "Use current location" button after
+  // the user clears or edits the field.
+  const requestCurrentLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setPickupStatus("denied");
-      return;
+      return () => {};
     }
     let cancelled = false;
     setPickupStatus("locating");
@@ -374,6 +377,33 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const cancel = requestCurrentLocation();
+    return () => cancel();
+  }, [requestCurrentLocation]);
+
+  // Update the pickup address from typed input. We drop the lat/lng coords
+  // because they no longer match the (potentially edited) address — the
+  // rider page will geocode the typed value after login if needed.
+  const handlePickupChange = useCallback((value: string) => {
+    setPickup({ address: value, lat: null, lng: null });
+    setPickupStatus(value.trim().length > 0 ? "edited" : "cleared");
+  }, []);
+
+  const handlePickupClear = useCallback(() => {
+    setPickup(null);
+    setPickupStatus("cleared");
+  }, []);
+
+  // Only forward a pickup payload to the login flow if the user actually
+  // has an address. An all-whitespace value is treated as cleared.
+  const pickupForSubmit = useMemo<SchedulePickup | null>(() => {
+    if (!pickup) return null;
+    const trimmed = pickup.address.trim();
+    if (!trimmed) return null;
+    return { address: trimmed, lat: pickup.lat ?? null, lng: pickup.lng ?? null };
+  }, [pickup]);
 
   // Combine date + time into a single Date, or null if either is missing
   // or the combined moment is not at least 5 min in the future.
