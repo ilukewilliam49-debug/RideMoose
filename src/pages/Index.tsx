@@ -30,6 +30,7 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingHero, { type LandingTab } from "@/components/landing/LandingHero";
 import LandingDriver from "@/components/landing/LandingDriver";
 import LandingFooter from "@/components/landing/LandingFooter";
+import RideMap from "@/components/map/MapContainer";
 import {
   Drawer,
   DrawerClose,
@@ -573,6 +574,24 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
               </button>
             )}
           </div>
+
+          {/* Tiny non-interactive map preview that confirms the pin
+              location for the resolved pickup coordinates. */}
+          {pickup?.lat != null && pickup?.lng != null && (
+            <div className="overflow-hidden rounded-xl border border-border [&>div]:!h-[140px] [&>div]:!rounded-none [&>div]:!border-0">
+              <RideMap
+                markers={[
+                  {
+                    lat: pickup.lat,
+                    lng: pickup.lng,
+                    type: "pickup",
+                    label: pickup.address,
+                  },
+                ]}
+                center={[pickup.lat, pickup.lng]}
+              />
+            </div>
+          )}
         </div>
       </div>
 
