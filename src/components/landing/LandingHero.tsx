@@ -167,6 +167,7 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
           ref={pickupRef}
           value={pickup}
           onChange={setPickup}
+          kind="pickup"
           placeholder={t("rider.searchPickup", "Pickup location")}
           dotKind="circle"
           trailing={
@@ -184,6 +185,7 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
         <LocationInput
           value={dropoff}
           onChange={setDropoff}
+          kind="dropoff"
           placeholder={t("rider.searchDropoff", "Dropoff location")}
           dotKind="square"
           trailing={
