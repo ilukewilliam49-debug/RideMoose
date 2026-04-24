@@ -21,6 +21,7 @@ import {
   HelpCircle,
   LocateFixed,
   MapPin,
+  Pencil,
   Phone,
   X,
 } from "lucide-react";
@@ -578,18 +579,37 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
           {/* Tiny non-interactive map preview that confirms the pin
               location for the resolved pickup coordinates. */}
           {pickup?.lat != null && pickup?.lng != null && (
-            <div className="overflow-hidden rounded-xl border border-border [&>div]:!h-[140px] [&>div]:!rounded-none [&>div]:!border-0">
-              <RideMap
-                markers={[
-                  {
-                    lat: pickup.lat,
-                    lng: pickup.lng,
-                    type: "pickup",
-                    label: pickup.address,
-                  },
-                ]}
-                center={[pickup.lat, pickup.lng]}
-              />
+            <div className="space-y-2">
+              <div className="overflow-hidden rounded-xl border border-border [&>div]:!h-[140px] [&>div]:!rounded-none [&>div]:!border-0">
+                <RideMap
+                  markers={[
+                    {
+                      lat: pickup.lat,
+                      lng: pickup.lng,
+                      type: "pickup",
+                      label: pickup.address,
+                    },
+                  ]}
+                  center={[pickup.lat, pickup.lng]}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("schedule-pickup") as HTMLInputElement | null;
+                  if (!el) return;
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  // Defer focus until after smooth scroll begins so iOS keyboards behave
+                  window.setTimeout(() => {
+                    el.focus();
+                    el.select();
+                  }, 250);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary transition hover:underline"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {t("landing.scheduleEditPickup", "Edit pickup")}
+              </button>
             </div>
           )}
         </div>

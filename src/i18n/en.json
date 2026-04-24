@@ -44,6 +44,7 @@
     "schedulePickupEdited": "Custom address — we'll confirm it after login.",
     "schedulePickupUseCurrent": "Use current location",
     "schedulePickupDenied": "We'll ask for your pickup after login.",
+    "scheduleEditPickup": "Edit pickup",
     "requestLongDistance": "Request long-distance booking",
     "driveWithUs": "Drive with PickYou",
     "panelEyebrow": "PickYou services",
