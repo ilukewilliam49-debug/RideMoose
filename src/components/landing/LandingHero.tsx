@@ -187,8 +187,11 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
   return (
     <motion.div
       {...cardMotion}
-      className="rounded-3xl bg-card/95 p-5 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl md:p-6"
+      className="rounded-3xl bg-card/95 p-4 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl md:p-6"
     >
+      <h2 className="mb-3 text-xl font-black tracking-tight md:mb-4 md:text-2xl">
+        {t("landing.getRideTitle", "Get a ride")}
+      </h2>
       <h2 className="mb-4 text-xl font-black tracking-tight md:text-2xl">
         {t("landing.getRideTitle", "Get a ride")}
       </h2>
