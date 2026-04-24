@@ -16,6 +16,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import {
+  useRecentLocations,
+  type RecentLocation,
+  type RecentKind,
+} from "@/hooks/useRecentLocations";
 
 const YellowknifeMap = lazy(() => import("./YellowknifeMap"));
 
@@ -28,53 +33,14 @@ const readTabFromHash = (): LandingTab => {
   return "ride";
 };
 
-// ─────────────── Recent locations (localStorage, per-browser) ───────────────
-
-type RecentLocation = {
-  description: string;
-  lat?: number;
-  lng?: number;
-  ts: number;
-};
-
-const RECENTS_KEY = "pickyou:recent_locations";
-const MAX_RECENTS = 6;
-
-const readRecents = (): RecentLocation[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(RECENTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (r) => r && typeof r.description === "string" && typeof r.ts === "number"
-    );
-  } catch {
-    return [];
-  }
-};
-
-const writeRecents = (entry: RecentLocation) => {
-  if (typeof window === "undefined") return;
-  try {
-    const current = readRecents();
-    const deduped = current.filter(
-      (r) => r.description.toLowerCase() !== entry.description.toLowerCase()
-    );
-    const next = [entry, ...deduped].slice(0, MAX_RECENTS);
-    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
-  } catch {
-    /* ignore quota errors */
-  }
-};
-
 // ─────────────────────────────── Component ──────────────────────────────────
 
 const LandingHero = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<LandingTab>(readTabFromHash);
   const pickupRef = useRef<HTMLInputElement>(null);
+  // Submit-side writer — kind is overridden per call below.
+  const { addRecent } = useRecentLocations("either");
 
   useEffect(() => {
     const onHash = () => setTab(readTabFromHash());
@@ -93,22 +59,19 @@ const LandingHero = () => {
 
   const handleBookingSubmit = useCallback(
     (pickup?: LocationValue, dropoff?: LocationValue) => {
-      // Persist any concrete selections as recent so they appear next visit
+      // Persist any concrete selections as recent so they appear next visit.
+      // Authenticated users sync via Supabase; guests fall back to localStorage.
       if (pickup?.description) {
-        writeRecents({
-          description: pickup.description,
-          lat: pickup.lat,
-          lng: pickup.lng,
-          ts: Date.now(),
-        });
+        void addRecent(
+          { description: pickup.description, lat: pickup.lat, lng: pickup.lng },
+          "pickup"
+        );
       }
       if (dropoff?.description) {
-        writeRecents({
-          description: dropoff.description,
-          lat: dropoff.lat,
-          lng: dropoff.lng,
-          ts: Date.now(),
-        });
+        void addRecent(
+          { description: dropoff.description, lat: dropoff.lat, lng: dropoff.lng },
+          "dropoff"
+        );
       }
 
       // Pass selections through to the auth flow via query params; the
@@ -127,7 +90,7 @@ const LandingHero = () => {
       }
       navigate(`/login?${params.toString()}`);
     },
-    [navigate]
+    [navigate, addRecent]
   );
 
   return (
@@ -204,6 +167,7 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
           ref={pickupRef}
           value={pickup}
           onChange={setPickup}
+          kind="pickup"
           placeholder={t("rider.searchPickup", "Pickup location")}
           dotKind="circle"
           trailing={
@@ -221,6 +185,7 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
         <LocationInput
           value={dropoff}
           onChange={setDropoff}
+          kind="dropoff"
           placeholder={t("rider.searchDropoff", "Dropoff location")}
           dotKind="square"
           trailing={
@@ -270,6 +235,7 @@ type Prediction = { description: string; place_id: string };
 type LocationInputProps = {
   value: LocationValue;
   onChange: (next: LocationValue) => void;
+  kind: RecentKind;
   placeholder?: string;
   dotKind: "circle" | "square";
   trailing?: React.ReactNode;
@@ -278,6 +244,7 @@ type LocationInputProps = {
 const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   value,
   onChange,
+  kind,
   placeholder,
   dotKind,
   trailing,
@@ -286,7 +253,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [recents, setRecents] = useState<RecentLocation[]>(() => readRecents());
+  const { recents, addRecent } = useRecentLocations(kind);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
   const reqIdRef = useRef(0);
@@ -348,8 +315,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
           lng: data.lng,
         };
         onChange(next);
-        writeRecents({ ...next, ts: Date.now() });
-        setRecents(readRecents());
+        void addRecent(next);
       }
     } catch {
       /* ignore — keep typed description */
@@ -359,8 +325,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   const handleSelectRecent = (r: RecentLocation) => {
     setOpen(false);
     onChange({ description: r.description, lat: r.lat, lng: r.lng });
-    writeRecents({ ...r, ts: Date.now() });
-    setRecents(readRecents());
+    void addRecent({ description: r.description, lat: r.lat, lng: r.lng });
   };
 
   // Close dropdown on outside click
@@ -374,9 +339,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Refresh recents when the input gains focus (in case another instance updated them)
   const handleFocus = () => {
-    setRecents(readRecents());
     setOpen(true);
   };
 
