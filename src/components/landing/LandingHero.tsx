@@ -95,7 +95,9 @@ const LandingHero = () => {
 
   return (
     <section className="relative">
-      <div className="relative h-[calc(100vh-9rem)] min-h-[520px] w-full overflow-hidden md:h-[calc(100vh-5rem)] md:min-h-[600px]">
+      {/* Mobile: fill the viewport below the nav so the map+sheet feel like a real ride app.
+          Use dynamic viewport units (dvh) where supported to avoid Safari URL-bar gaps. */}
+      <div className="relative h-[calc(100dvh-4rem)] min-h-[520px] w-full overflow-hidden md:h-[calc(100vh-5rem)] md:min-h-[600px]">
         <Suspense fallback={<div className="h-full w-full animate-pulse bg-muted" />}>
           <YellowknifeMap className="h-full w-full" />
         </Suspense>
