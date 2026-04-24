@@ -28,10 +28,24 @@ describe("Homepage layout — responsive gap regression", () => {
     expect(existsSync(file)).toBe(false);
   });
 
-  it("renders LandingDriver only when the Drive tab is active", () => {
-    // Driver recruitment block must be gated by tab === "drive" so it does
-    // not appear on the Ride or Business tabs.
-    expect(indexSrc).toMatch(/tab\s*===\s*["']drive["'][\s\S]*<LandingDriver\s*\/>/);
+  it("renders LandingDriver behind a visibility gate (not unconditionally)", () => {
+    // Driver recruitment must be conditional — either via tab === "drive" or
+    // the mobile-only `showDriverContent` flag — never rendered raw.
+    expect(indexSrc).toMatch(/showDriverContent\s*&&[\s\S]*<LandingDriver\s*\/>/);
+    // And the gate itself must reference the Drive tab.
+    expect(indexSrc).toMatch(/showDriverContent[\s\S]*tab\s*===\s*["']drive["']/);
+  });
+
+  it("hides the footer on the mobile Ride tab until the user expands", () => {
+    // Footer visibility is controlled by `showFooter`, which depends on the
+    // mobile expand state and the active tab.
+    expect(indexSrc).toMatch(/showFooter\s*&&\s*<LandingFooter\s*\/>/);
+    expect(indexSrc).toMatch(/const\s+showFooter\s*=/);
+  });
+
+  it("exposes a mobile 'Explore PickYou' toggle to reveal collapsed content", () => {
+    expect(indexSrc).toMatch(/landing\.exploreMore/);
+    expect(indexSrc).toMatch(/setMobileExpanded/);
   });
 
   it("keeps the Driver section's top border so it sits flush with the hero when shown", () => {
@@ -42,7 +56,7 @@ describe("Homepage layout — responsive gap regression", () => {
     expect(driverSrc).toMatch(/border-t\s+border-border\/30/);
   });
 
-  it("keeps the bottom CTA gated to the Drive tab with a top border divider", () => {
+  it("keeps the bottom CTA with a top border divider", () => {
     expect(indexSrc).toMatch(/border-t\s+border-border\/30/);
   });
 
