@@ -23,7 +23,37 @@ export type RecentLocation = {
 export type RecentKind = "pickup" | "dropoff" | "either";
 
 const RECENTS_KEY = "pickyou:recent_locations";
+const SYNC_PREF_KEY = "pickyou:recents_sync_disabled";
 const MAX_RECENTS = 6;
+
+/**
+ * Whether the user has opted out of cross-device syncing of recent
+ * pickup/dropoff locations. When `true`, the hook only reads/writes
+ * localStorage and never touches Supabase.
+ */
+export const isRecentLocationsSyncDisabled = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(SYNC_PREF_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+export const setRecentLocationsSyncDisabled = (disabled: boolean) => {
+  if (typeof window === "undefined") return;
+  try {
+    if (disabled) {
+      window.localStorage.setItem(SYNC_PREF_KEY, "1");
+    } else {
+      window.localStorage.removeItem(SYNC_PREF_KEY);
+    }
+    // Notify the same-tab hook instance so it can refresh state.
+    window.dispatchEvent(new Event("pickyou:recents-sync-pref-changed"));
+  } catch {
+    /* ignore quota / storage errors */
+  }
+};
 
 // ─────────────────── localStorage helpers (guest fallback) ──────────────────
 
