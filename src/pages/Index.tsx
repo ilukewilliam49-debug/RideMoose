@@ -303,7 +303,11 @@ const SheetAction = ({ icon: Icon, label, onSelect }: SheetActionProps) => (
 // combined value is in the future before handing off to the login flow.
 // ───────────────────────────────────────────────────────────────────
 
-type SchedulePickup = { address: string; lat: number; lng: number };
+type SchedulePickup = {
+  address: string;
+  lat?: number | null;
+  lng?: number | null;
+};
 
 type ScheduleSubmitPayload = {
   scheduledAt: Date;
