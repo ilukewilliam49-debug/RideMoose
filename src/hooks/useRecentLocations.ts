@@ -90,6 +90,9 @@ const writeLocalRecents = (entry: RecentLocation) => {
 
 export const useRecentLocations = (kind: RecentKind = "either") => {
   const [userId, setUserId] = useState<string | null>(null);
+  const [syncDisabled, setSyncDisabled] = useState<boolean>(() =>
+    isRecentLocationsSyncDisabled()
+  );
   const [recents, setRecents] = useState<RecentLocation[]>(() =>
     readLocalRecents()
   );
@@ -116,10 +119,25 @@ export const useRecentLocations = (kind: RecentKind = "either") => {
     };
   }, []);
 
-  // Load recents from Supabase whenever auth changes.
+  // React to sync-pref changes (other tabs via `storage`, same tab via custom event).
   useEffect(() => {
-    if (!userId) {
-      // Guest — keep localStorage list in state.
+    if (typeof window === "undefined") return;
+    const refresh = () => setSyncDisabled(isRecentLocationsSyncDisabled());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === SYNC_PREF_KEY) refresh();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pickyou:recents-sync-pref-changed", refresh);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pickyou:recents-sync-pref-changed", refresh);
+    };
+  }, []);
+
+  // Load recents from Supabase whenever auth/sync-pref changes.
+  useEffect(() => {
+    if (!userId || syncDisabled) {
+      // Guest, or sync turned off — keep localStorage list in state.
       setRecents(readLocalRecents());
       return;
     }
@@ -151,11 +169,12 @@ export const useRecentLocations = (kind: RecentKind = "either") => {
         }))
       );
     })();
-  }, [userId, kind]);
+  }, [userId, kind, syncDisabled]);
 
   /**
-   * Record a new recent location. Writes to Supabase if authenticated, and
-   * always updates localStorage so guests keep history in the same browser.
+   * Record a new recent location. Writes to Supabase if authenticated AND
+   * sync is enabled, and always updates localStorage so guests / opted-out
+   * users keep history in the same browser.
    */
   const addRecent = useCallback(
     async (
@@ -179,7 +198,7 @@ export const useRecentLocations = (kind: RecentKind = "either") => {
         return [next, ...deduped].slice(0, MAX_RECENTS);
       });
 
-      if (!userId) return;
+      if (!userId || syncDisabled) return;
 
       // The unique index uses lower(description), which Postgrest can't
       // reference via onConflict. Do a manual upsert: delete any prior
@@ -205,8 +224,8 @@ export const useRecentLocations = (kind: RecentKind = "either") => {
         /* network/race — local copy still reflects the change */
       }
     },
-    [userId, kind]
+    [userId, kind, syncDisabled]
   );
 
-  return { recents, addRecent };
+  return { recents, addRecent, syncDisabled };
 };
