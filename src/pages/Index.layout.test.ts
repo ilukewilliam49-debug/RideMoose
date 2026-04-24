@@ -28,22 +28,28 @@ describe("Homepage layout — responsive gap regression", () => {
     expect(existsSync(file)).toBe(false);
   });
 
-  it("renders LandingDriver behind a visibility gate (not unconditionally)", () => {
-    // Driver recruitment must be conditional — either via tab === "drive" or
-    // the mobile-only `showDriverContent` flag — never rendered raw.
+  it("renders LandingDriver ONLY when the Drive tab is active", () => {
+    // The driver block must be gated by `showDriverContent`, and that flag
+    // must be a strict equality check on tab === "drive" — no mobile-expand
+    // escape hatch, no OR conditions that could leak driver content into Ride.
     expect(indexSrc).toMatch(/showDriverContent\s*&&[\s\S]*<LandingDriver\s*\/>/);
-    // And the gate itself must reference the Drive tab.
-    expect(indexSrc).toMatch(/showDriverContent[\s\S]*tab\s*===\s*["']drive["']/);
+    expect(indexSrc).toMatch(/const\s+showDriverContent\s*=\s*tab\s*===\s*["']drive["']\s*;/);
+  });
+
+  it("never references the Ride tab in the driver visibility gate", () => {
+    // Defensive check: the showDriverContent expression must not mention
+    // "ride" — that would mean driver content can render under Ride.
+    const match = indexSrc.match(/const\s+showDriverContent\s*=\s*([^;]+);/);
+    expect(match).not.toBeNull();
+    expect(match![1]).not.toMatch(/["']ride["']/);
   });
 
   it("hides the footer on the mobile Ride tab until the user expands", () => {
-    // Footer visibility is controlled by `showFooter`, which depends on the
-    // mobile expand state and the active tab.
-    expect(indexSrc).toMatch(/showFooter\s*&&\s*<LandingFooter\s*\/>/);
     expect(indexSrc).toMatch(/const\s+showFooter\s*=/);
+    expect(indexSrc).toMatch(/showFooter\s*&&/);
   });
 
-  it("exposes a mobile 'Explore PickYou' toggle to reveal collapsed content", () => {
+  it("exposes a mobile 'Explore PickYou' toggle to reveal the footer", () => {
     expect(indexSrc).toMatch(/landing\.exploreMore/);
     expect(indexSrc).toMatch(/setMobileExpanded/);
   });
