@@ -652,7 +652,8 @@
     "confirm": "Confirmer",
     "done": "Terminé",
     "set": "Définir",
-    "useMyLocation": "Utiliser ma position"
+    "useMyLocation": "Utiliser ma position",
+    "undo": "Annuler"
   },
   "dispatch": {
     "dispatchBoard": "Tableau de répartition",
