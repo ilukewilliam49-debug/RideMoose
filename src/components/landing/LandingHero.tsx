@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronDown, MapPin, Navigation, Crosshair, Briefcase, Car } from "lucide-react";
+import { ArrowRight, ChevronDown, Navigation, Crosshair, Briefcase, Car } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const YellowknifeMap = lazy(() => import("./YellowknifeMap"));
