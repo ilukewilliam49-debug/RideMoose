@@ -192,9 +192,6 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
       <h2 className="mb-3 text-xl font-black tracking-tight md:mb-4 md:text-2xl">
         {t("landing.getRideTitle", "Get a ride")}
       </h2>
-      <h2 className="mb-4 text-xl font-black tracking-tight md:text-2xl">
-        {t("landing.getRideTitle", "Get a ride")}
-      </h2>
 
       <div className="space-y-2">
         <LocationInput
