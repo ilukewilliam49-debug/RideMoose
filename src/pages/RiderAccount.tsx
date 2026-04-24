@@ -47,11 +47,27 @@ const RiderAccount = () => {
   const handleToggleRecentsSync = (checked: boolean) => {
     setRecentsSyncEnabled(checked);
     setRecentLocationsSyncDisabled(!checked);
-    toast.success(
-      checked
-        ? t("rider.recentsSyncOn", "Recent places now sync across your devices")
-        : t("rider.recentsSyncOff", "Recent places stay only on this device")
-    );
+    if (checked) {
+      toast.success(
+        t("rider.recentsSyncOn", "Cross-device sync enabled"),
+        {
+          description: t(
+            "rider.recentsSyncOnDesc",
+            "Your recent pickups and dropoffs will now sync across all devices you sign in on."
+          ),
+        }
+      );
+    } else {
+      toast.success(
+        t("rider.recentsSyncOff", "Cross-device sync turned off"),
+        {
+          description: t(
+            "rider.recentsSyncOffDesc",
+            "New recent places will stay only on this device. Existing synced history is kept on your other devices."
+          ),
+        }
+      );
+    }
   };
 
   const handleTestNotification = async () => {
