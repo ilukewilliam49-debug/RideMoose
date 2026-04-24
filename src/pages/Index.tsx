@@ -208,8 +208,10 @@ const Index = () => {
                   riderParams.set("scheduledAt", scheduledAt.toISOString());
                   if (pickup) {
                     riderParams.set("pickup", pickup.address);
-                    riderParams.set("plat", String(pickup.lat));
-                    riderParams.set("plng", String(pickup.lng));
+                    if (pickup.lat != null && pickup.lng != null) {
+                      riderParams.set("plat", String(pickup.lat));
+                      riderParams.set("plng", String(pickup.lng));
+                    }
                   }
                   const returnTo = `/rider?${riderParams.toString()}`;
 
