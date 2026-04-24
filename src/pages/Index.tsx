@@ -21,6 +21,7 @@ import {
   HelpCircle,
   LocateFixed,
   MapPin,
+  Pencil,
   Phone,
   X,
 } from "lucide-react";
