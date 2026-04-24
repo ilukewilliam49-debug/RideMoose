@@ -7,11 +7,10 @@ import {
   ArrowRight,
   Briefcase,
   CalendarClock,
+  Car,
   ChevronDown,
   HelpCircle,
   Phone,
-  Steering,
-  Wheel,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -124,7 +123,7 @@ const Index = () => {
                 }}
               />
               <SheetAction
-                icon={Wheel}
+                icon={Car}
                 label={t("nav.drive", "Drive")}
                 onSelect={() => {
                   setMoreOpen(false);
