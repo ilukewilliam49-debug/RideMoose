@@ -301,9 +301,16 @@ const SheetAction = ({ icon: Icon, label, onSelect }: SheetActionProps) => (
 // combined value is in the future before handing off to the login flow.
 // ───────────────────────────────────────────────────────────────────
 
+type SchedulePickup = { address: string; lat: number; lng: number };
+
+type ScheduleSubmitPayload = {
+  scheduledAt: Date;
+  pickup: SchedulePickup | null;
+};
+
 type ScheduleRideFormProps = {
   onBack: () => void;
-  onSubmit: (scheduledAt: Date) => void;
+  onSubmit: (payload: ScheduleSubmitPayload) => void;
 };
 
 const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
@@ -317,6 +324,47 @@ const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   });
   const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Pickup prefill state. We try geolocation in the background so the user
+  // doesn't have to re-enter pickup after authenticating. Failure is
+  // non-blocking — the rider screen will fall back to its own geolocate.
+  const [pickup, setPickup] = useState<SchedulePickup | null>(null);
+  const [pickupStatus, setPickupStatus] = useState<"idle" | "locating" | "ready" | "denied">("idle");
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setPickupStatus("denied");
+      return;
+    }
+    let cancelled = false;
+    setPickupStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        if (cancelled) return;
+        const { latitude, longitude } = pos.coords;
+        let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+          );
+          const geo = await res.json();
+          if (geo?.display_name) address = geo.display_name;
+        } catch {
+          /* keep coord-string fallback */
+        }
+        if (cancelled) return;
+        setPickup({ address, lat: latitude, lng: longitude });
+        setPickupStatus("ready");
+      },
+      () => {
+        if (!cancelled) setPickupStatus("denied");
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Combine date + time into a single Date, or null if either is missing
   // or the combined moment is not at least 5 min in the future.
