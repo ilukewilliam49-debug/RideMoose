@@ -95,30 +95,59 @@ const LandingHero = () => {
 
   return (
     <section className="relative">
-      {/* Mobile: fill the viewport below the nav so the map+sheet feel like a real ride app.
-          Use dynamic viewport units (dvh) where supported to avoid Safari URL-bar gaps. */}
-      <div className="relative h-[calc(100dvh-4rem)] min-h-[520px] w-full overflow-hidden md:h-[calc(100vh-5rem)] md:min-h-[600px]">
+      {/* ── Mobile layout: stacked (map on top, booking card below) ──
+          The map gets a bounded height so it stays fully visible, and the
+          card flows in normal document flow underneath it instead of being
+          absolutely positioned over the map. */}
+      <div className="md:hidden">
+        <div className="relative h-[42vh] min-h-[300px] max-h-[420px] w-full overflow-hidden">
+          <Suspense fallback={<div className="h-full w-full animate-pulse bg-muted" />}>
+            <YellowknifeMap className="h-full w-full" />
+          </Suspense>
+          {/* Soft fade so the card edge feels connected to the map */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/80 to-transparent" />
+        </div>
+
+        <div className="-mt-4 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+          <AnimatePresence mode="wait">
+            {tab === "ride" && (
+              <RideCard
+                key="ride-mobile"
+                pickupRef={pickupRef}
+                onSubmit={handleBookingSubmit}
+              />
+            )}
+            {tab === "drive" && (
+              <DriveCard key="drive-mobile" onSubmit={() => navigate("/drive")} />
+            )}
+            {tab === "business" && (
+              <BusinessCard key="business-mobile" onSubmit={() => navigate("/business")} />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* ── Desktop / tablet layout: full-bleed map with overlay card ── */}
+      <div className="relative hidden h-[calc(100vh-5rem)] min-h-[600px] w-full overflow-hidden md:block">
         <Suspense fallback={<div className="h-full w-full animate-pulse bg-muted" />}>
           <YellowknifeMap className="h-full w-full" />
         </Suspense>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background/70 to-transparent md:hidden" />
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[500] flex justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] md:inset-y-0 md:right-auto md:left-8 md:items-center md:justify-start md:px-0 md:pb-0 lg:left-12">
+        <div className="pointer-events-none absolute inset-y-0 left-8 z-[500] flex items-center lg:left-12">
           <div className="pointer-events-auto w-full max-w-md">
             <AnimatePresence mode="wait">
               {tab === "ride" && (
                 <RideCard
-                  key="ride"
+                  key="ride-desktop"
                   pickupRef={pickupRef}
                   onSubmit={handleBookingSubmit}
                 />
               )}
               {tab === "drive" && (
-                <DriveCard key="drive" onSubmit={() => navigate("/drive")} />
+                <DriveCard key="drive-desktop" onSubmit={() => navigate("/drive")} />
               )}
               {tab === "business" && (
-                <BusinessCard key="business" onSubmit={() => navigate("/business")} />
+                <BusinessCard key="business-desktop" onSubmit={() => navigate("/business")} />
               )}
             </AnimatePresence>
           </div>
@@ -158,9 +187,9 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
   return (
     <motion.div
       {...cardMotion}
-      className="rounded-3xl bg-card/95 p-5 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl md:p-6"
+      className="rounded-3xl bg-card/95 p-4 shadow-2xl ring-1 ring-border/40 backdrop-blur-xl md:p-6"
     >
-      <h2 className="mb-4 text-xl font-black tracking-tight md:text-2xl">
+      <h2 className="mb-3 text-xl font-black tracking-tight md:mb-4 md:text-2xl">
         {t("landing.getRideTitle", "Get a ride")}
       </h2>
 
