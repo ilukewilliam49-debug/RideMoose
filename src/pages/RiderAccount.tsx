@@ -44,30 +44,45 @@ const RiderAccount = () => {
     () => !isRecentLocationsSyncDisabled()
   );
 
-  const handleToggleRecentsSync = (checked: boolean) => {
+  const applyRecentsSync = (checked: boolean, isUndo = false) => {
     setRecentsSyncEnabled(checked);
     setRecentLocationsSyncDisabled(!checked);
-    if (checked) {
-      toast.success(
-        t("rider.recentsSyncOn", "Cross-device sync enabled"),
-        {
-          description: t(
-            "rider.recentsSyncOnDesc",
-            "Your recent pickups and dropoffs will now sync across all devices you sign in on."
-          ),
-        }
-      );
-    } else {
-      toast.success(
-        t("rider.recentsSyncOff", "Cross-device sync turned off"),
-        {
-          description: t(
-            "rider.recentsSyncOffDesc",
-            "New recent places will stay only on this device. Existing synced history is kept on your other devices."
-          ),
-        }
-      );
+
+    const undoLabel = t("common.undo", "Undo");
+    const undoneLabel = t("rider.recentsSyncReverted", "Change reverted");
+
+    if (isUndo) {
+      toast.success(undoneLabel);
+      return;
     }
+
+    if (checked) {
+      toast.success(t("rider.recentsSyncOn", "Cross-device sync enabled"), {
+        description: t(
+          "rider.recentsSyncOnDesc",
+          "Your recent pickups and dropoffs will now sync across all devices you sign in on."
+        ),
+        action: {
+          label: undoLabel,
+          onClick: () => applyRecentsSync(false, true),
+        },
+      });
+    } else {
+      toast.success(t("rider.recentsSyncOff", "Cross-device sync turned off"), {
+        description: t(
+          "rider.recentsSyncOffDesc",
+          "New recent places will stay only on this device. Existing synced history is kept on your other devices."
+        ),
+        action: {
+          label: undoLabel,
+          onClick: () => applyRecentsSync(true, true),
+        },
+      });
+    }
+  };
+
+  const handleToggleRecentsSync = (checked: boolean) => {
+    applyRecentsSync(checked);
   };
 
   const handleTestNotification = async () => {
