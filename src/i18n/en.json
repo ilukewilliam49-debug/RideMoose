@@ -333,6 +333,7 @@
     "recentsSyncOffDesc": "New recent places will stay only on this device. Existing synced history is kept on your other devices.",
     "recentsSyncOffInlineTitle": "Sync is off for this device",
     "recentsSyncOffInlineDesc": "New pickups and dropoffs you select here won't appear on your other devices. Turn sync back on anytime to resume.",
+    "recentsSyncReverted": "Sync preference reverted",
     "tripSummary": "Trip summary",
     "editStops": "Edit stops",
     "fareNotReady": "Fare estimate isn't ready yet — please wait a moment.",
@@ -651,7 +652,8 @@
     "confirm": "Confirm",
     "done": "Done",
     "set": "Set",
-    "useMyLocation": "Use my location"
+    "useMyLocation": "Use my location",
+    "undo": "Undo"
   },
   "dispatch": {
     "dispatchBoard": "Dispatch Board",
