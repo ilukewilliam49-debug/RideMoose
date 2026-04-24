@@ -198,13 +198,25 @@ const Index = () => {
             ) : (
               <ScheduleRideForm
                 onBack={() => setSheetView("menu")}
-                onSubmit={(scheduledAt) => {
+                onSubmit={({ scheduledAt, pickup }) => {
                   setMoreOpen(false);
-                  const params = new URLSearchParams({
-                    redirect: "/rider",
-                    scheduledAt: scheduledAt.toISOString(),
-                  });
-                  navigate(`/login?${params.toString()}`);
+                  // Build the post-auth target: /rider with prefilled pickup
+                  // (when geolocation succeeded) and the scheduled timestamp.
+                  // useRideBookingState reads `pickup`, `plat`, `plng`, and
+                  // RiderDashboard reads `scheduledAt` from the URL.
+                  const riderParams = new URLSearchParams();
+                  riderParams.set("scheduledAt", scheduledAt.toISOString());
+                  if (pickup) {
+                    riderParams.set("pickup", pickup.address);
+                    riderParams.set("plat", String(pickup.lat));
+                    riderParams.set("plng", String(pickup.lng));
+                  }
+                  const returnTo = `/rider?${riderParams.toString()}`;
+
+                  const loginParams = new URLSearchParams();
+                  loginParams.set("intent", "rider");
+                  loginParams.set("returnTo", returnTo);
+                  navigate(`/login?${loginParams.toString()}`);
                 }}
               />
             )}
