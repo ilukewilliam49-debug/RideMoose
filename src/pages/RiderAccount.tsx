@@ -338,7 +338,33 @@ const RiderAccount = () => {
         </p>
       </div>
 
-      {/* Navigation links */}
+      {/* Privacy — Recent locations sync */}
+      <div className="rounded-xl border border-border/40 p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Label
+              htmlFor="recents-sync-toggle"
+              className="text-sm font-semibold flex items-center gap-2"
+            >
+              <MapPin className="h-4 w-4" />
+              {t("rider.recentsSyncTitle", "Sync recent places")}
+            </Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t(
+                "rider.recentsSyncDesc",
+                "Keep your recent pickups and dropoffs in sync across all your devices. Turn off to keep them only on this device."
+              )}
+            </p>
+          </div>
+          <Switch
+            id="recents-sync-toggle"
+            checked={recentsSyncEnabled}
+            onCheckedChange={handleToggleRecentsSync}
+          />
+        </div>
+      </div>
+
+
       <div className="space-y-1">
         <button
           onClick={() => navigate("/business/apply")}
