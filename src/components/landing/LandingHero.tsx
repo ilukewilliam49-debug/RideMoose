@@ -39,6 +39,8 @@ const LandingHero = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<LandingTab>(readTabFromHash);
   const pickupRef = useRef<HTMLInputElement>(null);
+  // Submit-side writer — kind is overridden per call below.
+  const { addRecent } = useRecentLocations("either");
 
   useEffect(() => {
     const onHash = () => setTab(readTabFromHash());
@@ -57,22 +59,19 @@ const LandingHero = () => {
 
   const handleBookingSubmit = useCallback(
     (pickup?: LocationValue, dropoff?: LocationValue) => {
-      // Persist any concrete selections as recent so they appear next visit
+      // Persist any concrete selections as recent so they appear next visit.
+      // Authenticated users sync via Supabase; guests fall back to localStorage.
       if (pickup?.description) {
-        writeRecents({
-          description: pickup.description,
-          lat: pickup.lat,
-          lng: pickup.lng,
-          ts: Date.now(),
-        });
+        void addRecent(
+          { description: pickup.description, lat: pickup.lat, lng: pickup.lng },
+          "pickup"
+        );
       }
       if (dropoff?.description) {
-        writeRecents({
-          description: dropoff.description,
-          lat: dropoff.lat,
-          lng: dropoff.lng,
-          ts: Date.now(),
-        });
+        void addRecent(
+          { description: dropoff.description, lat: dropoff.lat, lng: dropoff.lng },
+          "dropoff"
+        );
       }
 
       // Pass selections through to the auth flow via query params; the
@@ -91,7 +90,7 @@ const LandingHero = () => {
       }
       navigate(`/login?${params.toString()}`);
     },
-    [navigate]
+    [navigate, addRecent]
   );
 
   return (
