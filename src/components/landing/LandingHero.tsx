@@ -16,6 +16,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import {
+  useRecentLocations,
+  type RecentLocation,
+  type RecentKind,
+} from "@/hooks/useRecentLocations";
 
 const YellowknifeMap = lazy(() => import("./YellowknifeMap"));
 
@@ -26,47 +31,6 @@ const readTabFromHash = (): LandingTab => {
   const h = window.location.hash.replace("#", "");
   if (h === "drive" || h === "business") return h;
   return "ride";
-};
-
-// ─────────────── Recent locations (localStorage, per-browser) ───────────────
-
-type RecentLocation = {
-  description: string;
-  lat?: number;
-  lng?: number;
-  ts: number;
-};
-
-const RECENTS_KEY = "pickyou:recent_locations";
-const MAX_RECENTS = 6;
-
-const readRecents = (): RecentLocation[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(RECENTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (r) => r && typeof r.description === "string" && typeof r.ts === "number"
-    );
-  } catch {
-    return [];
-  }
-};
-
-const writeRecents = (entry: RecentLocation) => {
-  if (typeof window === "undefined") return;
-  try {
-    const current = readRecents();
-    const deduped = current.filter(
-      (r) => r.description.toLowerCase() !== entry.description.toLowerCase()
-    );
-    const next = [entry, ...deduped].slice(0, MAX_RECENTS);
-    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
-  } catch {
-    /* ignore quota errors */
-  }
 };
 
 // ─────────────────────────────── Component ──────────────────────────────────
