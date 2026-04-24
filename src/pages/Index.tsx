@@ -1,12 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
 import InstallAppPrompt from "@/components/InstallAppPrompt";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowRight,
   Briefcase,
   CalendarClock,
+  CalendarIcon,
   Car,
   ChevronDown,
   HelpCircle,
@@ -27,6 +36,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -51,6 +61,9 @@ const Index = () => {
   // Controls the mobile bottom-sheet "More" drawer on the Ride tab. The
   // map + booking card stay fully interactive underneath.
   const [moreOpen, setMoreOpen] = useState(false);
+  // The sheet has two views: the menu of quick actions, and a schedule-ride
+  // form. Tapping "Schedule a ride" swaps to the form without closing the sheet.
+  const [sheetView, setSheetView] = useState<"menu" | "schedule">("menu");
 
   useEffect(() => {
     const onHash = () => setTab(readTabFromHash());
@@ -62,6 +75,12 @@ const Index = () => {
   useEffect(() => {
     setMoreOpen(false);
   }, [tab]);
+
+  // When the sheet closes, reset back to the menu view so the next open
+  // shows the menu, not a half-filled schedule form.
+  useEffect(() => {
+    if (!moreOpen) setSheetView("menu");
+  }, [moreOpen]);
 
   useEffect(() => {
     if (loading || !user || showPublicLanding) return;
@@ -106,76 +125,89 @@ const Index = () => {
           </div>
 
           <DrawerContent className="md:hidden">
-            <DrawerHeader className="text-left">
-              <DrawerTitle>{t("landing.moreSheetTitle", "More options")}</DrawerTitle>
-              <DrawerDescription>
-                {t("landing.moreSheetDesc", "Quick links to other PickYou services and support.")}
-              </DrawerDescription>
-            </DrawerHeader>
+            {sheetView === "menu" ? (
+              <>
+                <DrawerHeader className="text-left">
+                  <DrawerTitle>{t("landing.moreSheetTitle", "More options")}</DrawerTitle>
+                  <DrawerDescription>
+                    {t("landing.moreSheetDesc", "Quick links to other PickYou services and support.")}
+                  </DrawerDescription>
+                </DrawerHeader>
 
-            <div className="grid grid-cols-2 gap-3 px-4 pb-2">
-              <SheetAction
-                icon={CalendarClock}
-                label={t("rider.scheduleRide", "Schedule a ride")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  navigate("/login?intent=schedule");
-                }}
-              />
-              <SheetAction
-                icon={Car}
-                label={t("nav.drive", "Drive")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  if (typeof window !== "undefined") window.location.hash = "drive";
-                }}
-              />
-              <SheetAction
-                icon={Briefcase}
-                label={t("nav.business", "Business")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  if (typeof window !== "undefined") window.location.hash = "business";
-                }}
-              />
-              <SheetAction
-                icon={HelpCircle}
-                label={t("landing.moreSheetHelp", "Help & support")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  window.location.href = "tel:+18679888836";
-                }}
-              />
-            </div>
+                <div className="grid grid-cols-2 gap-3 px-4 pb-2">
+                  <SheetAction
+                    icon={CalendarClock}
+                    label={t("rider.scheduleRide", "Schedule a ride")}
+                    onSelect={() => setSheetView("schedule")}
+                  />
+                  <SheetAction
+                    icon={Car}
+                    label={t("nav.drive", "Drive")}
+                    onSelect={() => {
+                      setMoreOpen(false);
+                      if (typeof window !== "undefined") window.location.hash = "drive";
+                    }}
+                  />
+                  <SheetAction
+                    icon={Briefcase}
+                    label={t("nav.business", "Business")}
+                    onSelect={() => {
+                      setMoreOpen(false);
+                      if (typeof window !== "undefined") window.location.hash = "business";
+                    }}
+                  />
+                  <SheetAction
+                    icon={HelpCircle}
+                    label={t("landing.moreSheetHelp", "Help & support")}
+                    onSelect={() => {
+                      setMoreOpen(false);
+                      window.location.href = "tel:+18679888836";
+                    }}
+                  />
+                </div>
 
-            <div className="space-y-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-              <Button
-                size="lg"
-                className="h-12 w-full rounded-xl text-sm font-bold"
-                onClick={() => {
+                <div className="space-y-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+                  <Button
+                    size="lg"
+                    className="h-12 w-full rounded-xl text-sm font-bold"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      navigate("/login");
+                    }}
+                  >
+                    {t("nav.signUp", "Sign up")}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <a
+                    href="tel:+18679888836"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-muted text-sm font-bold text-foreground transition active:scale-[0.99]"
+                  >
+                    <Phone className="h-4 w-4" />
+                    {t("landing.callNow", "Call now")}
+                  </a>
+                  <DrawerClose asChild>
+                    <button
+                      type="button"
+                      className="mt-1 flex h-10 w-full items-center justify-center text-xs font-semibold text-muted-foreground"
+                    >
+                      {t("common.close", "Close")}
+                    </button>
+                  </DrawerClose>
+                </div>
+              </>
+            ) : (
+              <ScheduleRideForm
+                onBack={() => setSheetView("menu")}
+                onSubmit={(scheduledAt) => {
                   setMoreOpen(false);
-                  navigate("/login");
+                  const params = new URLSearchParams({
+                    redirect: "/rider",
+                    scheduledAt: scheduledAt.toISOString(),
+                  });
+                  navigate(`/login?${params.toString()}`);
                 }}
-              >
-                {t("nav.signUp", "Sign up")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <a
-                href="tel:+18679888836"
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-muted text-sm font-bold text-foreground transition active:scale-[0.99]"
-              >
-                <Phone className="h-4 w-4" />
-                {t("landing.callNow", "Call now")}
-              </a>
-              <DrawerClose asChild>
-                <button
-                  type="button"
-                  className="mt-1 flex h-10 w-full items-center justify-center text-xs font-semibold text-muted-foreground"
-                >
-                  {t("common.close", "Close")}
-                </button>
-              </DrawerClose>
-            </div>
+              />
+            )}
           </DrawerContent>
         </Drawer>
       )}
@@ -251,5 +283,157 @@ const SheetAction = ({ icon: Icon, label, onSelect }: SheetActionProps) => (
     <span className="text-sm font-bold leading-tight">{label}</span>
   </button>
 );
+
+// ───────────────────────────────────────────────────────────────────
+// Schedule-a-ride form — date picker + time field, validates the
+// combined value is in the future before handing off to the login flow.
+// ───────────────────────────────────────────────────────────────────
+
+type ScheduleRideFormProps = {
+  onBack: () => void;
+  onSubmit: (scheduledAt: Date) => void;
+};
+
+const ScheduleRideForm = ({ onBack, onSubmit }: ScheduleRideFormProps) => {
+  const { t } = useTranslation();
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [time, setTime] = useState<string>(() => {
+    // Default to ~30 min from now, rounded to the next 15 minutes.
+    const d = new Date(Date.now() + 30 * 60 * 1000);
+    const m = d.getMinutes();
+    d.setMinutes(m + ((15 - (m % 15)) % 15), 0, 0);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  });
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Combine date + time into a single Date, or null if either is missing
+  // or the combined moment is not at least 5 min in the future.
+  const combined = useMemo(() => {
+    if (!date) return null;
+    const [hh, mm] = time.split(":").map(Number);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    const d = new Date(date);
+    d.setHours(hh, mm, 0, 0);
+    return d;
+  }, [date, time]);
+
+  const minScheduleTime = Date.now() + 5 * 60 * 1000; // 5 min in the future
+  const valid = combined != null && combined.getTime() >= minScheduleTime;
+
+  return (
+    <div className="px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+      <DrawerHeader className="px-0 text-left">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={t("common.back", "Back")}
+            className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-95"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <DrawerTitle>{t("rider.scheduleRide", "Schedule a ride")}</DrawerTitle>
+        </div>
+        <DrawerDescription>
+          {t(
+            "landing.scheduleSheetDesc",
+            "Pick a date and time. We'll match you with a driver shortly before pickup.",
+          )}
+        </DrawerDescription>
+      </DrawerHeader>
+
+      <div className="space-y-3 pt-2">
+        <div className="space-y-1.5">
+          <label
+            htmlFor="schedule-date"
+            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+          >
+            {t("landing.scheduleDateLabel", "Date")}
+          </label>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                id="schedule-date"
+                type="button"
+                variant="outline"
+                className={cn(
+                  "h-12 w-full justify-start rounded-xl text-left text-sm font-semibold",
+                  !date && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : t("landing.schedulePickDate", "Pick a date")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(d) => {
+                  setDate(d);
+                  setCalendarOpen(false);
+                }}
+                disabled={(d) => {
+                  // Only allow today and the next 30 days
+                  const start = new Date();
+                  start.setHours(0, 0, 0, 0);
+                  const end = new Date(start);
+                  end.setDate(end.getDate() + 30);
+                  return d < start || d > end;
+                }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="schedule-time"
+            className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+          >
+            {t("landing.scheduleTimeLabel", "Time")}
+          </label>
+          <input
+            id="schedule-time"
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            step={300}
+            className="h-12 w-full rounded-xl border border-input bg-background px-4 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        {combined != null && !valid && (
+          <p className="text-xs font-semibold text-destructive">
+            {t("landing.scheduleInvalid", "Please pick a time at least 5 minutes from now.")}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2 pt-4">
+        <Button
+          type="button"
+          size="lg"
+          disabled={!valid}
+          onClick={() => valid && combined && onSubmit(combined)}
+          className="h-12 w-full rounded-xl text-sm font-bold"
+        >
+          {t("landing.scheduleContinue", "Continue to login")}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+        <DrawerClose asChild>
+          <button
+            type="button"
+            className="mt-1 flex h-10 w-full items-center justify-center text-xs font-semibold text-muted-foreground"
+          >
+            {t("common.close", "Close")}
+          </button>
+        </DrawerClose>
+      </div>
+    </div>
+  );
+};
 
 export default Index;
