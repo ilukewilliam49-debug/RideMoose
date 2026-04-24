@@ -50,9 +50,10 @@ const RiderAccount = () => {
 
     const undoLabel = t("common.undo", "Undo");
     const undoneLabel = t("rider.recentsSyncReverted", "Change reverted");
+    const UNDO_DURATION_MS = 6000;
 
     if (isUndo) {
-      toast.success(undoneLabel);
+      toast.success(undoneLabel, { duration: 3000 });
       return;
     }
 
@@ -62,6 +63,7 @@ const RiderAccount = () => {
           "rider.recentsSyncOnDesc",
           "Your recent pickups and dropoffs will now sync across all devices you sign in on."
         ),
+        duration: UNDO_DURATION_MS,
         action: {
           label: undoLabel,
           onClick: () => applyRecentsSync(false, true),
@@ -73,6 +75,7 @@ const RiderAccount = () => {
           "rider.recentsSyncOffDesc",
           "New recent places will stay only on this device. Existing synced history is kept on your other devices."
         ),
+        duration: UNDO_DURATION_MS,
         action: {
           label: undoLabel,
           onClick: () => applyRecentsSync(true, true),
