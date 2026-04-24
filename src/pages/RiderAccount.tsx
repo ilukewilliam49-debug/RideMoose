@@ -40,6 +40,19 @@ const RiderAccount = () => {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [testingSend, setTestingSend] = useState(false);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const [recentsSyncEnabled, setRecentsSyncEnabled] = useState<boolean>(
+    () => !isRecentLocationsSyncDisabled()
+  );
+
+  const handleToggleRecentsSync = (checked: boolean) => {
+    setRecentsSyncEnabled(checked);
+    setRecentLocationsSyncDisabled(!checked);
+    toast.success(
+      checked
+        ? t("rider.recentsSyncOn", "Recent places now sync across your devices")
+        : t("rider.recentsSyncOff", "Recent places stay only on this device")
+    );
+  };
 
   const handleTestNotification = async () => {
     setTestingSend(true);
