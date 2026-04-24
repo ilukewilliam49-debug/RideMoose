@@ -3,9 +3,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 /**
- * Lightweight, non-interactive map preview of Yellowknife for the landing hero.
- * Replaces the static city image. Uses the same Carto Voyager tiles as the
- * rest of the app for visual consistency, with a subtle marker on downtown YK.
+ * Full-bleed interactive map of Yellowknife for the landing hero.
+ * Uses Carto Voyager tiles (matching the rest of the app) with a
+ * branded pulsing pin on downtown YK.
  */
 const YellowknifeMap = ({ className = "" }: { className?: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -16,12 +16,12 @@ const YellowknifeMap = ({ className = "" }: { className?: string }) => {
 
     const map = L.map(containerRef.current, {
       center: [62.454, -114.372], // Downtown Yellowknife
-      zoom: 12,
+      zoom: 13,
       zoomControl: false,
       scrollWheelZoom: false,
-      doubleClickZoom: false,
-      dragging: false,
-      touchZoom: false,
+      doubleClickZoom: true,
+      dragging: true,
+      touchZoom: true,
       keyboard: false,
       attributionControl: false,
     });
@@ -31,27 +31,10 @@ const YellowknifeMap = ({ className = "" }: { className?: string }) => {
       { attribution: "" },
     ).addTo(map);
 
-    // PickYou-branded pin on downtown YK
     const pinHtml = `
-      <div style="
-        position:relative;
-        width:36px;height:36px;
-        display:flex;align-items:center;justify-content:center;
-      ">
-        <div style="
-          position:absolute;
-          width:36px;height:36px;
-          border-radius:9999px;
-          background:hsl(var(--primary)/0.25);
-          animation:pickyou-pin-pulse 2s ease-out infinite;
-        "></div>
-        <div style="
-          position:relative;
-          width:14px;height:14px;
-          border-radius:9999px;
-          background:hsl(var(--primary));
-          box-shadow:0 0 0 3px hsl(var(--background)),0 4px 12px hsl(0 0% 0%/0.25);
-        "></div>
+      <div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;width:36px;height:36px;border-radius:9999px;background:hsl(var(--primary)/0.25);animation:pickyou-pin-pulse 2s ease-out infinite;"></div>
+        <div style="position:relative;width:14px;height:14px;border-radius:9999px;background:hsl(var(--primary));box-shadow:0 0 0 3px hsl(var(--background)),0 4px 12px hsl(0 0% 0%/0.25);"></div>
       </div>
       <style>
         @keyframes pickyou-pin-pulse {
@@ -73,7 +56,11 @@ const YellowknifeMap = ({ className = "" }: { className?: string }) => {
 
     mapRef.current = map;
 
+    const handleResize = () => map.invalidateSize();
+    window.addEventListener("resize", handleResize);
+
     return () => {
+      window.removeEventListener("resize", handleResize);
       mapRef.current?.remove();
       mapRef.current = null;
     };
