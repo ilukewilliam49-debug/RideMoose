@@ -325,6 +325,14 @@
     "petRatesUpdated": "Tarifs de transport d'animaux mis à jour !"
   },
   "rider": {
+    "recentsSyncTitle": "Synchroniser les lieux récents",
+    "recentsSyncDesc": "Gardez vos points de départ et d'arrivée récents synchronisés sur tous vos appareils. Désactivez pour les conserver uniquement sur cet appareil.",
+    "recentsSyncOn": "Synchronisation entre appareils activée",
+    "recentsSyncOnDesc": "Vos points de départ et d'arrivée récents seront désormais synchronisés sur tous les appareils où vous vous connectez.",
+    "recentsSyncOff": "Synchronisation entre appareils désactivée",
+    "recentsSyncOffDesc": "Les nouveaux lieux récents resteront uniquement sur cet appareil. L'historique déjà synchronisé est conservé sur vos autres appareils.",
+    "recentsSyncOffInlineTitle": "La synchronisation est désactivée sur cet appareil",
+    "recentsSyncOffInlineDesc": "Les nouveaux points de départ et d'arrivée sélectionnés ici n'apparaîtront pas sur vos autres appareils. Réactivez la synchronisation à tout moment pour reprendre.",
     "tripSummary": "Résumé du trajet",
     "editStops": "Modifier les arrêts",
     "fareNotReady": "L'estimation du tarif n'est pas encore prête — veuillez patienter.",
