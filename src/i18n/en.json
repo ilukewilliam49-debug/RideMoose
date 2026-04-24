@@ -325,6 +325,14 @@
     "petRatesUpdated": "Pet transport rates updated!"
   },
   "rider": {
+    "recentsSyncTitle": "Sync recent places",
+    "recentsSyncDesc": "Keep your recent pickups and dropoffs in sync across all your devices. Turn off to keep them only on this device.",
+    "recentsSyncOn": "Cross-device sync enabled",
+    "recentsSyncOnDesc": "Your recent pickups and dropoffs will now sync across all devices you sign in on.",
+    "recentsSyncOff": "Cross-device sync turned off",
+    "recentsSyncOffDesc": "New recent places will stay only on this device. Existing synced history is kept on your other devices.",
+    "recentsSyncOffInlineTitle": "Sync is off for this device",
+    "recentsSyncOffInlineDesc": "New pickups and dropoffs you select here won't appear on your other devices. Turn sync back on anytime to resume.",
     "tripSummary": "Trip summary",
     "editStops": "Edit stops",
     "fareNotReady": "Fare estimate isn't ready yet — please wait a moment.",
