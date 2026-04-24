@@ -19,7 +19,10 @@ import {
   Car,
   ChevronDown,
   HelpCircle,
+  LocateFixed,
+  MapPin,
   Phone,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
