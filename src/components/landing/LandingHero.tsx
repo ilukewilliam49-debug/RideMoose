@@ -275,14 +275,13 @@ type LocationInputProps = {
   trailing?: React.ReactNode;
 };
 
-const LocationInput = ({
+const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   value,
   onChange,
   placeholder,
   dotKind,
   trailing,
-  ref: forwardedRef,
-}: LocationInputProps & { ref?: React.RefObject<HTMLInputElement> }) => {
+}, forwardedRef) => {
   const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [open, setOpen] = useState(false);
