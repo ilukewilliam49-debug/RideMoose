@@ -125,76 +125,89 @@ const Index = () => {
           </div>
 
           <DrawerContent className="md:hidden">
-            <DrawerHeader className="text-left">
-              <DrawerTitle>{t("landing.moreSheetTitle", "More options")}</DrawerTitle>
-              <DrawerDescription>
-                {t("landing.moreSheetDesc", "Quick links to other PickYou services and support.")}
-              </DrawerDescription>
-            </DrawerHeader>
+            {sheetView === "menu" ? (
+              <>
+                <DrawerHeader className="text-left">
+                  <DrawerTitle>{t("landing.moreSheetTitle", "More options")}</DrawerTitle>
+                  <DrawerDescription>
+                    {t("landing.moreSheetDesc", "Quick links to other PickYou services and support.")}
+                  </DrawerDescription>
+                </DrawerHeader>
 
-            <div className="grid grid-cols-2 gap-3 px-4 pb-2">
-              <SheetAction
-                icon={CalendarClock}
-                label={t("rider.scheduleRide", "Schedule a ride")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  navigate("/login?intent=schedule");
-                }}
-              />
-              <SheetAction
-                icon={Car}
-                label={t("nav.drive", "Drive")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  if (typeof window !== "undefined") window.location.hash = "drive";
-                }}
-              />
-              <SheetAction
-                icon={Briefcase}
-                label={t("nav.business", "Business")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  if (typeof window !== "undefined") window.location.hash = "business";
-                }}
-              />
-              <SheetAction
-                icon={HelpCircle}
-                label={t("landing.moreSheetHelp", "Help & support")}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  window.location.href = "tel:+18679888836";
-                }}
-              />
-            </div>
+                <div className="grid grid-cols-2 gap-3 px-4 pb-2">
+                  <SheetAction
+                    icon={CalendarClock}
+                    label={t("rider.scheduleRide", "Schedule a ride")}
+                    onSelect={() => setSheetView("schedule")}
+                  />
+                  <SheetAction
+                    icon={Car}
+                    label={t("nav.drive", "Drive")}
+                    onSelect={() => {
+                      setMoreOpen(false);
+                      if (typeof window !== "undefined") window.location.hash = "drive";
+                    }}
+                  />
+                  <SheetAction
+                    icon={Briefcase}
+                    label={t("nav.business", "Business")}
+                    onSelect={() => {
+                      setMoreOpen(false);
+                      if (typeof window !== "undefined") window.location.hash = "business";
+                    }}
+                  />
+                  <SheetAction
+                    icon={HelpCircle}
+                    label={t("landing.moreSheetHelp", "Help & support")}
+                    onSelect={() => {
+                      setMoreOpen(false);
+                      window.location.href = "tel:+18679888836";
+                    }}
+                  />
+                </div>
 
-            <div className="space-y-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-              <Button
-                size="lg"
-                className="h-12 w-full rounded-xl text-sm font-bold"
-                onClick={() => {
+                <div className="space-y-2 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+                  <Button
+                    size="lg"
+                    className="h-12 w-full rounded-xl text-sm font-bold"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      navigate("/login");
+                    }}
+                  >
+                    {t("nav.signUp", "Sign up")}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <a
+                    href="tel:+18679888836"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-muted text-sm font-bold text-foreground transition active:scale-[0.99]"
+                  >
+                    <Phone className="h-4 w-4" />
+                    {t("landing.callNow", "Call now")}
+                  </a>
+                  <DrawerClose asChild>
+                    <button
+                      type="button"
+                      className="mt-1 flex h-10 w-full items-center justify-center text-xs font-semibold text-muted-foreground"
+                    >
+                      {t("common.close", "Close")}
+                    </button>
+                  </DrawerClose>
+                </div>
+              </>
+            ) : (
+              <ScheduleRideForm
+                onBack={() => setSheetView("menu")}
+                onSubmit={(scheduledAt) => {
                   setMoreOpen(false);
-                  navigate("/login");
+                  const params = new URLSearchParams({
+                    redirect: "/rider",
+                    scheduledAt: scheduledAt.toISOString(),
+                  });
+                  navigate(`/login?${params.toString()}`);
                 }}
-              >
-                {t("nav.signUp", "Sign up")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <a
-                href="tel:+18679888836"
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-muted text-sm font-bold text-foreground transition active:scale-[0.99]"
-              >
-                <Phone className="h-4 w-4" />
-                {t("landing.callNow", "Call now")}
-              </a>
-              <DrawerClose asChild>
-                <button
-                  type="button"
-                  className="mt-1 flex h-10 w-full items-center justify-center text-xs font-semibold text-muted-foreground"
-                >
-                  {t("common.close", "Close")}
-                </button>
-              </DrawerClose>
-            </div>
+              />
+            )}
           </DrawerContent>
         </Drawer>
       )}
