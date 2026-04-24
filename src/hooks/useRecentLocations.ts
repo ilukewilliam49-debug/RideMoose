@@ -151,20 +151,26 @@ export const useRecentLocations = (kind: RecentKind = "either") => {
 
       if (!userId) return;
 
-      // Upsert by (user_id, lower(description), kind) — handled by unique index.
-      // We update last_used_at on conflict so the row floats to the top.
+      // The unique index uses lower(description), which Postgrest can't
+      // reference via onConflict. Do a manual upsert: delete any prior
+      // case-insensitive match for this user+kind, then insert fresh so
+      // last_used_at floats it to the top.
       try {
-        await supabase.from("recent_locations").upsert(
-          {
-            user_id: userId,
-            description: trimmed,
-            lat: entry.lat ?? null,
-            lng: entry.lng ?? null,
-            kind: entryKind,
-            last_used_at: new Date(ts).toISOString(),
-          },
-          { onConflict: "user_id,description,kind", ignoreDuplicates: false }
-        );
+        await supabase
+          .from("recent_locations")
+          .delete()
+          .eq("user_id", userId)
+          .eq("kind", entryKind)
+          .ilike("description", trimmed);
+
+        await supabase.from("recent_locations").insert({
+          user_id: userId,
+          description: trimmed,
+          lat: entry.lat ?? null,
+          lng: entry.lng ?? null,
+          kind: entryKind,
+          last_used_at: new Date(ts).toISOString(),
+        });
       } catch {
         /* network/race — local copy still reflects the change */
       }
