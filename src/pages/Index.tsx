@@ -39,7 +39,6 @@ const Index = () => {
       <InstallAppPrompt />
       <LandingNav />
       <LandingHero />
-      <LandingServices />
       <LandingDriver />
 
       {/* ── Bottom CTA ── */}
