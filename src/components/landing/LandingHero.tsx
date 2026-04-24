@@ -235,6 +235,7 @@ type Prediction = { description: string; place_id: string };
 type LocationInputProps = {
   value: LocationValue;
   onChange: (next: LocationValue) => void;
+  kind: RecentKind;
   placeholder?: string;
   dotKind: "circle" | "square";
   trailing?: React.ReactNode;
@@ -243,6 +244,7 @@ type LocationInputProps = {
 const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   value,
   onChange,
+  kind,
   placeholder,
   dotKind,
   trailing,
@@ -251,7 +253,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [recents, setRecents] = useState<RecentLocation[]>(() => readRecents());
+  const { recents, addRecent } = useRecentLocations(kind);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const containerRef = useRef<HTMLDivElement>(null);
   const reqIdRef = useRef(0);
@@ -313,8 +315,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
           lng: data.lng,
         };
         onChange(next);
-        writeRecents({ ...next, ts: Date.now() });
-        setRecents(readRecents());
+        void addRecent(next);
       }
     } catch {
       /* ignore — keep typed description */
@@ -324,8 +325,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   const handleSelectRecent = (r: RecentLocation) => {
     setOpen(false);
     onChange({ description: r.description, lat: r.lat, lng: r.lng });
-    writeRecents({ ...r, ts: Date.now() });
-    setRecents(readRecents());
+    void addRecent({ description: r.description, lat: r.lat, lng: r.lng });
   };
 
   // Close dropdown on outside click
@@ -339,9 +339,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Refresh recents when the input gains focus (in case another instance updated them)
   const handleFocus = () => {
-    setRecents(readRecents());
     setOpen(true);
   };
 
