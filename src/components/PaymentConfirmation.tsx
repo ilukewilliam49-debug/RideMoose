@@ -276,7 +276,8 @@ export default function PaymentConfirmation({
         serviceType: serviceType || "taxi",
       });
       if (!subtotalCheck.ok) {
-        toast.error(subtotalCheck.message);
+        const errMsg = "message" in subtotalCheck ? subtotalCheck.message : "Invalid fare amount";
+        toast.error(errMsg);
         setPayingWithSaved(false);
         onFailure?.();
         return;
