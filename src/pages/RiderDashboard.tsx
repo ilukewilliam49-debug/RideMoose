@@ -39,6 +39,7 @@ import { useNearestDriverETAs } from "@/hooks/useNearestDriverETAs";
 import PriceEstimate from "@/components/rider/PriceEstimate";
 import { Accessibility } from "lucide-react";
 import { validateFareSubtotalCents } from "@/lib/validate-fare-subtotal";
+import { logFareEstimateEvent } from "@/lib/fare-estimate-audit";
 
 const STATUS_COLORS: Record<string, string> = {
   requested: "text-yellow-400",
