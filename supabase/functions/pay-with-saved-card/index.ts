@@ -1,14 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { validateAndComputeAuthorization } from "../_shared/authorize-amount.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const PICKYOU_PLATFORM_FEE_CENTS = 97; // $0.97 bylaw-aligned platform fee
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,23 +29,26 @@ serve(async (req) => {
     const user = userData.user;
 
     const { ride_id, payment_method_id, estimated_fare_cents, service_type } = await req.json();
-    if (!ride_id || !payment_method_id || !estimated_fare_cents) {
-      throw new Error("ride_id, payment_method_id, and estimated_fare_cents required");
+    if (!ride_id || !payment_method_id) {
+      throw new Error("ride_id and payment_method_id required");
     }
 
-    // Taxi: no GST, no platform fee (city-regulated meter only).
-    // Private Hire: 5% GST on the metered subtotal, then add the $0.97
-    // platform fee AFTER GST (the platform fee is itself NOT subject to GST).
-    // Mirrors src/lib/pricing.ts (single source of truth) and
-    // src/components/rider/RideReceipt.tsx exactly.
-    const isPrivateHire = service_type === "private_hire";
-    let fareWithExtras = estimated_fare_cents;
-    if (isPrivateHire) {
-      const taxCents = Math.round(estimated_fare_cents * 0.05);
-      fareWithExtras = estimated_fare_cents + taxCents + PICKYOU_PLATFORM_FEE_CENTS;
+    // Server-side authorization-amount validation. `estimated_fare_cents` MUST
+    // be the bylaw subtotal (pre-tax, pre-fee). The shared validator is the
+    // ONLY place that adds GST + the $0.97 fee, so neither field can be
+    // double-counted no matter what the client sends.
+    const validation = validateAndComputeAuthorization(
+      estimated_fare_cents,
+      service_type,
+    );
+    if (!validation.ok) {
+      console.warn("pay-with-saved-card rejected input:", validation);
+      return new Response(
+        JSON.stringify({ error: validation.message, code: validation.code }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      );
     }
-
-    const authorized_amount_cents = Math.min(Math.max(Math.round(fareWithExtras * 1.25), 2000), 50000);
+    const authorized_amount_cents = validation.authorizedAmountCents;
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
