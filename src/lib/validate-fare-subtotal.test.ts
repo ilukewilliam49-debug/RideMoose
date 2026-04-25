@@ -10,7 +10,7 @@ describe("validateFareSubtotalCents", () => {
   it("accepts a normal taxi subtotal", () => {
     const r = validateFareSubtotalCents(1500, { serviceType: "taxi" });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.subtotalCents).toBe(1500);
+    if ("subtotalCents" in r) expect(r.subtotalCents).toBe(1500);
   });
 
   it("accepts the minimum flag rate", () => {
@@ -28,26 +28,26 @@ describe("validateFareSubtotalCents", () => {
     const b = validateFareSubtotalCents(1500.5);
     expect(a.ok).toBe(false);
     expect(b.ok).toBe(false);
-    if (!a.ok) expect(a.code).toBe("not_integer");
-    if (!b.ok) expect(b.code).toBe("not_integer");
+    if ("code" in a) expect(a.code).toBe("not_integer");
+    if ("code" in b) expect(b.code).toBe("not_integer");
   });
 
   it("rejects zero and negative values", () => {
     const r = validateFareSubtotalCents(0);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(["not_positive", "below_min"]).toContain(r.code);
+    if ("code" in r) expect(["not_positive", "below_min"]).toContain(r.code);
   });
 
   it("rejects values below the bylaw flag rate", () => {
     const r = validateFareSubtotalCents(100);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.code).toBe("below_min");
+    if ("code" in r) expect(r.code).toBe("below_min");
   });
 
   it("rejects values above the maximum sanity ceiling", () => {
     const r = validateFareSubtotalCents(SUBTOTAL_MAX_CENTS + 1);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.code).toBe("above_max");
+    if ("code" in r) expect(r.code).toBe("above_max");
   });
 
   it("flags GST-inclusive resubmissions for private_hire", () => {
@@ -61,7 +61,7 @@ describe("validateFareSubtotalCents", () => {
       previousSubtotalCents: prev,
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.code).toBe("looks_gst_inclusive");
+    if ("code" in r) expect(r.code).toBe("looks_gst_inclusive");
   });
 
   it("does not flag GST-inclusive heuristic for taxi", () => {
@@ -80,7 +80,7 @@ describe("validateFareSubtotalCents", () => {
   it("includes a human-readable message on failure", () => {
     const r = validateFareSubtotalCents(100);
     expect(r.ok).toBe(false);
-    if (!r.ok) {
+    if ("message" in r) {
       expect(r.message).toMatch(/minimum|flag rate/i);
       expect(r.message.length).toBeGreaterThan(10);
     }
