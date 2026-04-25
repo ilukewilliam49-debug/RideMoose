@@ -292,7 +292,8 @@ const RiderDashboard = () => {
         });
         if (!subtotalCheck.ok) {
           await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
-          toast.error(subtotalCheck.message);
+          const errMsg = "message" in subtotalCheck ? subtotalCheck.message : "Invalid fare amount";
+          toast.error(errMsg);
           state.setLoading(false);
           return;
         }
