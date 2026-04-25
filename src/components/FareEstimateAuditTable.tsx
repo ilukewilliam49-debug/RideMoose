@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
+import { Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -10,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { fareEstimateRowsToCsv, downloadCsv } from "@/lib/fare-estimate-csv";
 
 export interface FareEstimateAuditRow {
   id: string;
@@ -172,6 +175,12 @@ function FareEstimateAuditDetailDialog({ row, onOpenChange, showRider }: DetailP
     )
   );
 
+  const handleExportRow = () => {
+    const csv = fareEstimateRowsToCsv([row]);
+    const stamp = format(new Date(row.created_at), "yyyyMMdd-HHmmss");
+    downloadCsv(`fare-estimate-audit-${stamp}-${row.id.slice(0, 8)}.csv`, csv);
+  };
+
   return (
     <Dialog open={!!row} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -182,8 +191,17 @@ function FareEstimateAuditDetailDialog({ row, onOpenChange, showRider }: DetailP
             </Badge>
             <span className="text-base">Audit detail</span>
           </DialogTitle>
-          <DialogDescription>
-            {format(new Date(row.created_at), "PPpp")}
+          <DialogDescription className="flex items-center justify-between gap-3">
+            <span>{format(new Date(row.created_at), "PPpp")}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportRow}
+              className="gap-1.5 h-8"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </Button>
           </DialogDescription>
         </DialogHeader>
 
