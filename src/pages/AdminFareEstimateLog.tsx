@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Search } from "lucide-react";
+import { Receipt, Search, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +9,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { FareEstimateAuditTable, type FareEstimateAuditRow } from "@/components/FareEstimateAuditTable";
+import { fareEstimateRowsToCsv, downloadCsv } from "@/lib/fare-estimate-csv";
+import { toast } from "sonner";
+import { format } from "date-fns";
 
 const PAGE_SIZE = 25;
+const EXPORT_LIMIT = 5000;
 
 const EVENT_OPTIONS = [
   { value: "all", label: "All events" },
@@ -22,25 +26,40 @@ export default function AdminFareEstimateLog() {
   const [page, setPage] = useState(0);
   const [eventFilter, setEventFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const buildBaseQuery = () => {
+    let query = supabase
+      .from("fare_estimate_audit_log" as any)
+      .select("*, profiles!fare_estimate_audit_log_rider_profile_id_fkey(full_name)", { count: "exact" })
+      .order("created_at", { ascending: false });
+
+    if (eventFilter !== "all") {
+      query = query.eq("event_type", eventFilter);
+    }
+    if (searchTerm) {
+      query = query.or(
+        `pickup_address.ilike.%${searchTerm}%,dropoff_address.ilike.%${searchTerm}%,service_type.ilike.%${searchTerm}%`
+      );
+    }
+    if (dateFrom) {
+      query = query.gte("created_at", new Date(dateFrom).toISOString());
+    }
+    if (dateTo) {
+      // include the entire end day
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      query = query.lte("created_at", end.toISOString());
+    }
+    return query;
+  };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-fare-estimate-log", page, eventFilter, searchTerm],
+    queryKey: ["admin-fare-estimate-log", page, eventFilter, searchTerm, dateFrom, dateTo],
     queryFn: async () => {
-      let query = supabase
-        .from("fare_estimate_audit_log" as any)
-        .select("*, profiles!fare_estimate_audit_log_rider_profile_id_fkey(full_name)", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-      if (eventFilter !== "all") {
-        query = query.eq("event_type", eventFilter);
-      }
-      if (searchTerm) {
-        query = query.or(
-          `pickup_address.ilike.%${searchTerm}%,dropoff_address.ilike.%${searchTerm}%,service_type.ilike.%${searchTerm}%`
-        );
-      }
-
+      const query = buildBaseQuery().range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       const { data, count, error } = await query;
       if (error) throw error;
       return { rows: (data ?? []) as unknown as FareEstimateAuditRow[], total: count ?? 0 };
@@ -49,6 +68,42 @@ export default function AdminFareEstimateLog() {
 
   const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
   const blockedCount = data?.rows.filter((r) => r.event_type === "submit_blocked_stale").length ?? 0;
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { data: rows, error } = await buildBaseQuery().range(0, EXPORT_LIMIT - 1);
+      if (error) throw error;
+      const typed = (rows ?? []) as unknown as FareEstimateAuditRow[];
+      if (typed.length === 0) {
+        toast.error("No entries match the current filters");
+        return;
+      }
+      const csv = fareEstimateRowsToCsv(typed);
+      const stamp = format(new Date(), "yyyyMMdd-HHmmss");
+      const range =
+        dateFrom || dateTo
+          ? `_${dateFrom || "start"}_to_${dateTo || "now"}`
+          : "";
+      downloadCsv(`fare-estimate-audit${range}_${stamp}.csv`, csv);
+      toast.success(
+        typed.length >= EXPORT_LIMIT
+          ? `Exported ${typed.length} rows (limit reached — narrow date range for more)`
+          : `Exported ${typed.length} row${typed.length === 1 ? "" : "s"}`
+      );
+    } catch (err) {
+      console.error("Failed to export fare estimate audit log:", err);
+      toast.error("Export failed. Try a narrower date range.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const resetDates = () => {
+    setDateFrom("");
+    setDateTo("");
+    setPage(0);
+  };
 
   return (
     <div className="space-y-6">
@@ -90,6 +145,53 @@ export default function AdminFareEstimateLog() {
               className="pl-8"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">From</label>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+            className="w-44"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">To</label>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+            className="w-44"
+          />
+        </div>
+
+        {(dateFrom || dateTo) && (
+          <Button variant="ghost" size="sm" onClick={resetDates}>
+            Clear dates
+          </Button>
+        )}
+
+        <div className="ml-auto">
+          <Button
+            onClick={handleExport}
+            disabled={exporting || isLoading}
+            variant="default"
+            size="sm"
+          >
+            {exporting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
