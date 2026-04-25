@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, CreditCard, CheckCircle, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
+import { validateFareSubtotalCents } from "@/lib/validate-fare-subtotal";
 
 let stripePromise: Promise<Stripe | null> | null = null;
 
@@ -270,11 +271,22 @@ export default function PaymentConfirmation({
     if (!selectedCardId || !rideId) return;
     setPayingWithSaved(true);
     try {
+      const subtotal = estimatedFareCents || amountCents;
+      const subtotalCheck = validateFareSubtotalCents(subtotal, {
+        serviceType: serviceType || "taxi",
+      });
+      if (!subtotalCheck.ok) {
+        const errMsg = "message" in subtotalCheck ? subtotalCheck.message : "Invalid fare amount";
+        toast.error(errMsg);
+        setPayingWithSaved(false);
+        onFailure?.();
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("pay-with-saved-card", {
         body: {
           ride_id: rideId,
           payment_method_id: selectedCardId,
-          estimated_fare_cents: estimatedFareCents || amountCents,
+          estimated_fare_cents: subtotalCheck.subtotalCents,
           service_type: serviceType || "taxi",
         },
       });

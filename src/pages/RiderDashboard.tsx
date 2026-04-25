@@ -38,6 +38,7 @@ import { useRideQueries } from "@/hooks/useRideQueries";
 import { useNearestDriverETAs } from "@/hooks/useNearestDriverETAs";
 import PriceEstimate from "@/components/rider/PriceEstimate";
 import { Accessibility } from "lucide-react";
+import { validateFareSubtotalCents } from "@/lib/validate-fare-subtotal";
 
 const STATUS_COLORS: Record<string, string> = {
   requested: "text-yellow-400",
@@ -285,10 +286,21 @@ const RiderDashboard = () => {
           const shopperCents = state.estimatedItemCostCents ? Math.round(Number(state.estimatedItemCostCents) * 0.10) : 0;
           authCents = Math.round((Number(state.estimatedItemCostCents || 0) + deliveryCents + shopperCents) * 1.15);
         }
+        // Validate before sending: must be the bylaw subtotal (pre-GST, pre-fee).
+        const subtotalCheck = validateFareSubtotalCents(authCents, {
+          serviceType: state.serviceType,
+        });
+        if (!subtotalCheck.ok) {
+          await supabase.from("rides").update({ payment_status: "failed", status: "cancelled" }).eq("id", rideData.id);
+          const errMsg = "message" in subtotalCheck ? subtotalCheck.message : "Invalid fare amount";
+          toast.error(errMsg);
+          state.setLoading(false);
+          return;
+        }
         const { data: piData, error: piError } = await supabase.functions.invoke("create-payment-intent", {
           body: {
             ride_id: rideData.id,
-            estimated_fare_cents: authCents,
+            estimated_fare_cents: subtotalCheck.subtotalCents,
             service_type: state.serviceType, // server adds surcharge+GST for private_hire
           },
         });
