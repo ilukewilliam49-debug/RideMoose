@@ -60,6 +60,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
     { icon: Bell, title: "Notification Logs", url: "/admin/notifications" },
     { icon: Mail, title: "Email Logs", url: "/admin/email-logs" },
     { icon: FileText, title: "Audit Log", url: "/admin/audit-log" },
+    { icon: FileText, title: "Fare Estimate Log", url: "/admin/fare-estimate-log" },
     { icon: Timer, title: "Shift Events", url: "/admin/shift-events" },
   ],
 });

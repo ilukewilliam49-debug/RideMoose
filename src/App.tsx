@@ -37,8 +37,10 @@ const AdminSimulator = lazy(() => import("./pages/AdminSimulator"));
 const AdminNotificationLogs = lazy(() => import("./pages/AdminNotificationLogs"));
 const AdminLiveMap = lazy(() => import("./pages/AdminLiveMap"));
 const AdminAuditLog = lazy(() => import("./pages/AdminAuditLog"));
+const AdminFareEstimateLog = lazy(() => import("./pages/AdminFareEstimateLog"));
 const AdminShiftEvents = lazy(() => import("./pages/AdminShiftEvents"));
 const AdminEmailLogs = lazy(() => import("./pages/AdminEmailLogs"));
+const RiderFareEstimateLog = lazy(() => import("./pages/RiderFareEstimateLog"));
 
 const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 const DriverDispatch = lazy(() => import("./pages/DriverDispatch"));
@@ -156,6 +158,7 @@ const AppContent = () => {
             <Route path="notifications" element={<AdminNotificationLogs />} />
             <Route path="live-map" element={<AdminLiveMap />} />
             <Route path="audit-log" element={<AdminAuditLog />} />
+            <Route path="fare-estimate-log" element={<AdminFareEstimateLog />} />
             <Route path="shift-events" element={<AdminShiftEvents />} />
             <Route path="email-logs" element={<AdminEmailLogs />} />
           </Route>
@@ -181,6 +184,7 @@ const AppContent = () => {
             <Route path="rides" element={<RiderDashboard />} />
             <Route path="courier" element={<CourierBooking />} />
             <Route path="activity" element={<RiderActivity />} />
+            <Route path="fare-history" element={<RiderFareEstimateLog />} />
             <Route path="account" element={<RiderAccount />} />
           </Route>
 

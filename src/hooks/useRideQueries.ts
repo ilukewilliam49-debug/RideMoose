@@ -1,9 +1,10 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ServiceType } from "./useRideBookingState";
 import { PER_STOP_FEE_CENTS, type RideStop } from "@/types/stops";
 import { computeFare, FALLBACK_BYLAW_RATES, type BylawRates } from "@/lib/pricing";
+import { logFareEstimateEvent } from "@/lib/fare-estimate-audit";
 
 interface UseRideQueriesParams {
   profileId?: string;
@@ -239,6 +240,55 @@ export const useRideQueries = ({
   // false the moment the rider edits an address and back to true once the new
   // estimate has been computed against the new coordinates.
   const estimateInSync = !!estimatedFareCents && !directionsFetching;
+
+  // Audit: record every meaningful change to the fare inputs fingerprint.
+  // Debounced (800 ms) so a rider typing into the address autocomplete does
+  // not flood the log. Only logs when we have a rider profile, both pickup &
+  // dropoff coords, and a finite estimate — i.e., a state that could lead
+  // to a payment authorization.
+  const lastLoggedFareKeyRef = useRef<string | null>(null);
+  const fareLogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!profileId) return;
+    if (!pickupCoords || !dropoffCoords) return;
+    if (!estimatedFareCents || estimatedFareCents <= 0) return;
+    if (directionsFetching) return; // wait for fresh route before logging
+    if (lastLoggedFareKeyRef.current === fareInputsKey) return;
+
+    if (fareLogTimerRef.current) clearTimeout(fareLogTimerRef.current);
+    fareLogTimerRef.current = setTimeout(() => {
+      const previousKey = lastLoggedFareKeyRef.current;
+      lastLoggedFareKeyRef.current = fareInputsKey;
+      void logFareEstimateEvent({
+        riderProfileId: profileId,
+        eventType: "estimate_changed",
+        serviceType,
+        pickupAddress: pickup || null,
+        dropoffAddress: dropoff || null,
+        pickupLat: pickupCoords.lat,
+        pickupLng: pickupCoords.lng,
+        dropoffLat: dropoffCoords.lat,
+        dropoffLng: dropoffCoords.lng,
+        stopCount,
+        distanceKm: directionsData?.distance_km ?? distanceKm ?? null,
+        estimatedFareCents,
+        fareInputsKey,
+        metadata: {
+          previous_fare_inputs_key: previousKey,
+          passenger_count: passengerCount,
+          accessibility_required: accessibilityRequired,
+        },
+      });
+    }, 800);
+
+    return () => {
+      if (fareLogTimerRef.current) clearTimeout(fareLogTimerRef.current);
+    };
+  }, [
+    profileId, fareInputsKey, estimatedFareCents, directionsFetching,
+    pickupCoords, dropoffCoords, pickup, dropoff, serviceType, stopCount,
+    directionsData, distanceKm, passengerCount, accessibilityRequired,
+  ]);
 
   // All main service prices for the selection cards (now bylaw-correct on both sides)
   const allServicePrices = useMemo(() => ({

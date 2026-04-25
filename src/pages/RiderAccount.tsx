@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, Car, Eye, EyeOff, MapPin } from "lucide-react";
+import { LogOut, ChevronRight, Phone, Check, Camera, Pencil, HelpCircle, Bell, Car, Eye, EyeOff, MapPin, Receipt } from "lucide-react";
 import { maskPhone } from "@/lib/phone";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import NotificationBell from "@/components/NotificationBell";
@@ -439,6 +439,17 @@ const RiderAccount = () => {
             </button>
           }
         />
+
+        <button
+          onClick={() => navigate("/rider/fare-history")}
+          className="flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left hover:bg-accent/30 transition-colors"
+        >
+          <span className="text-[15px] font-semibold flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-muted-foreground" />
+            {t("rider.fareHistory", "Fare estimate history")}
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+        </button>
       </div>
 
       {/* Settings */}

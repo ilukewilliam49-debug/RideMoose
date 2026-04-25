@@ -239,6 +239,71 @@ export type Database = {
         }
         Relationships: []
       }
+      fare_estimate_audit_log: {
+        Row: {
+          created_at: string
+          distance_km: number | null
+          dropoff_address: string | null
+          dropoff_lat: number | null
+          dropoff_lng: number | null
+          estimated_fare_cents: number | null
+          event_type: string
+          fare_inputs_key: string
+          id: string
+          metadata: Json
+          pickup_address: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          rider_profile_id: string
+          service_type: string | null
+          stop_count: number
+        }
+        Insert: {
+          created_at?: string
+          distance_km?: number | null
+          dropoff_address?: string | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          estimated_fare_cents?: number | null
+          event_type: string
+          fare_inputs_key: string
+          id?: string
+          metadata?: Json
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          rider_profile_id: string
+          service_type?: string | null
+          stop_count?: number
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number | null
+          dropoff_address?: string | null
+          dropoff_lat?: number | null
+          dropoff_lng?: number | null
+          estimated_fare_cents?: number | null
+          event_type?: string
+          fare_inputs_key?: string
+          id?: string
+          metadata?: Json
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          rider_profile_id?: string
+          service_type?: string | null
+          stop_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fare_estimate_audit_log_rider_profile_id_fkey"
+            columns: ["rider_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_zones: {
         Row: {
           color: string
