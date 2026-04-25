@@ -184,6 +184,7 @@ const AppContent = () => {
             <Route path="rides" element={<RiderDashboard />} />
             <Route path="courier" element={<CourierBooking />} />
             <Route path="activity" element={<RiderActivity />} />
+            <Route path="fare-history" element={<RiderFareEstimateLog />} />
             <Route path="account" element={<RiderAccount />} />
           </Route>
 
