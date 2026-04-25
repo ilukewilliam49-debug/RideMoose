@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
+import { Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -10,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { fareEstimateRowsToCsv, downloadCsv } from "@/lib/fare-estimate-csv";
 
 export interface FareEstimateAuditRow {
   id: string;
