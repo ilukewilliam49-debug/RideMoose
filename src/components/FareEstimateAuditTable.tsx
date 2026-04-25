@@ -175,6 +175,12 @@ function FareEstimateAuditDetailDialog({ row, onOpenChange, showRider }: DetailP
     )
   );
 
+  const handleExportRow = () => {
+    const csv = fareEstimateRowsToCsv([row]);
+    const stamp = format(new Date(row.created_at), "yyyyMMdd-HHmmss");
+    downloadCsv(`fare-estimate-audit-${stamp}-${row.id.slice(0, 8)}.csv`, csv);
+  };
+
   return (
     <Dialog open={!!row} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -185,8 +191,17 @@ function FareEstimateAuditDetailDialog({ row, onOpenChange, showRider }: DetailP
             </Badge>
             <span className="text-base">Audit detail</span>
           </DialogTitle>
-          <DialogDescription>
-            {format(new Date(row.created_at), "PPpp")}
+          <DialogDescription className="flex items-center justify-between gap-3">
+            <span>{format(new Date(row.created_at), "PPpp")}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportRow}
+              className="gap-1.5 h-8"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </Button>
           </DialogDescription>
         </DialogHeader>
 
