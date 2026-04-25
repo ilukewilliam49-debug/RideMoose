@@ -164,6 +164,28 @@ const RiderDashboard = () => {
     // longer matches the route the rider just edited.
     if (!queries.estimateInSync) {
       toast.error(t("rider.fareRecalculating", "Recalculating fare for the updated route — please wait a moment"));
+      if (profile?.id) {
+        void logFareEstimateEvent({
+          riderProfileId: profile.id,
+          eventType: "submit_blocked_stale",
+          serviceType: state.serviceType,
+          pickupAddress: state.pickup || null,
+          dropoffAddress: state.dropoff || null,
+          pickupLat: state.pickupCoords?.lat ?? null,
+          pickupLng: state.pickupCoords?.lng ?? null,
+          dropoffLat: state.dropoffCoords?.lat ?? null,
+          dropoffLng: state.dropoffCoords?.lng ?? null,
+          stopCount: state.stops?.length ?? 0,
+          distanceKm: queries.directionsData?.distance_km ?? state.distanceKm ?? null,
+          estimatedFareCents: queries.estimatedFareCents ?? null,
+          fareInputsKey: queries.fareInputsKey,
+          metadata: {
+            reason: "estimate_out_of_sync",
+            directions_fetching: true,
+            passenger_count: state.passengerCount,
+          },
+        });
+      }
       return;
     }
     // Personal-shopper requires an item cost
