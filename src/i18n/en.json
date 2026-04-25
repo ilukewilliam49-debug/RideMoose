@@ -357,6 +357,8 @@
     "tripSummary": "Trip summary",
     "editStops": "Edit stops",
     "fareNotReady": "Fare estimate isn't ready yet — please wait a moment.",
+    "fareRecalculating": "Recalculating fare for the updated route — please wait a moment.",
+    "recalculatingFare": "Recalculating…",
     "guestInfoMissing": "Please provide both name and phone for the guest passenger.",
     "guestNameRequired": "Guest name is required.",
     "guestPhoneInvalid": "Please enter a valid phone number for the guest.",
