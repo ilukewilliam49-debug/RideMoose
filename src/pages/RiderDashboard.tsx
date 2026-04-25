@@ -154,8 +154,15 @@ const RiderDashboard = () => {
       return;
     }
     // Block submission until fare estimate is ready (prevents $0 payment auth)
-    if (!queries.estimatedPrice || parseFloat(queries.estimatedPrice) <= 0) {
+    if (!queries.estimatedFareCents || queries.estimatedFareCents <= 0) {
       toast.error(t("rider.fareNotReady", "Fare estimate is still calculating — please wait a moment"));
+      return;
+    }
+    // Block while a fresh estimate is being recomputed for the current
+    // pickup/dropoff/stops — prevents submitting a stale subtotal that no
+    // longer matches the route the rider just edited.
+    if (!queries.estimateInSync) {
+      toast.error(t("rider.fareRecalculating", "Recalculating fare for the updated route — please wait a moment"));
       return;
     }
     // Personal-shopper requires an item cost
@@ -204,7 +211,7 @@ const RiderDashboard = () => {
     submittingRef.current = true;
     state.setLoading(true);
     try {
-      const estCents = Math.round(parseFloat(queries.estimatedPrice || "0") * 100);
+      const estCents = queries.estimatedFareCents ?? Math.round(parseFloat(queries.estimatedPrice || "0") * 100);
       const isOrgBilling = (state.billToOrg && queries.riderOrgMembership) || (state.serviceType === "retail_delivery" && queries.riderOrgMembership);
 
       if (isOrgBilling && queries.riderOrgMembership) {

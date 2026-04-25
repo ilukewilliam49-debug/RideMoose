@@ -357,6 +357,8 @@
     "tripSummary": "Résumé du trajet",
     "editStops": "Modifier les arrêts",
     "fareNotReady": "L'estimation du tarif n'est pas encore prête — veuillez patienter.",
+    "fareRecalculating": "Recalcul du tarif pour le nouvel itinéraire — veuillez patienter.",
+    "recalculatingFare": "Recalcul…",
     "guestInfoMissing": "Veuillez fournir le nom et le téléphone du passager invité.",
     "guestNameRequired": "Le nom de l'invité est requis.",
     "guestPhoneInvalid": "Veuillez entrer un numéro de téléphone valide pour l'invité.",

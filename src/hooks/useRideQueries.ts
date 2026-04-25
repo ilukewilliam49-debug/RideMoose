@@ -198,9 +198,47 @@ export const useRideQueries = ({
     return (Math.max(Number(currentPricing.minimum_fare), price) + stopsSurcharge).toFixed(2);
   };
 
-  // Dynamic price estimate for current service
+  // Fingerprint of every input that influences the fare estimate.
+  // Used to confirm that the displayed/submitted estimate corresponds to the
+  // CURRENT pickup/dropoff/stops/service — never a stale value from before
+  // the rider edited an address.
+  const fareInputsKey = useMemo(() => {
+    const route = directionsData?.distance_km != null
+      ? `r:${directionsData.distance_km.toFixed(3)}`
+      : `h:${distanceKm != null ? distanceKm.toFixed(3) : "-"}`;
+    return [
+      serviceType,
+      pickupCoords ? `${pickupCoords.lat.toFixed(5)},${pickupCoords.lng.toFixed(5)}` : "-",
+      dropoffCoords ? `${dropoffCoords.lat.toFixed(5)},${dropoffCoords.lng.toFixed(5)}` : "-",
+      stopsKey || "-",
+      route,
+      `pax:${passengerCount}`,
+      `acc:${accessibilityRequired ? 1 : 0}`,
+      `item:${estimatedItemCostCents || 0}`,
+    ].join("|");
+  }, [serviceType, pickupCoords, dropoffCoords, stopsKey, directionsData, distanceKm, passengerCount, accessibilityRequired, estimatedItemCostCents]);
+
+  // Dynamic price estimate for current service. Recomputes on every input
+  // change so estimated_fare_cents stays bound to the bylaw subtotal contract.
   const estimatedPrice = useMemo(() => computePrice(serviceType),
-    [distanceKm, currentPricing, bylawRates, serviceType, passengerCount, accessibilityRequired, pickup, dropoff, directionsData, estimatedItemCostCents, servicePricing, stopCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fareInputsKey, currentPricing, bylawRates, servicePricing]);
+
+  const estimatedFareCents = useMemo(() => {
+    if (!estimatedPrice) return null;
+    const n = parseFloat(estimatedPrice);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.round(n * 100);
+  }, [estimatedPrice]);
+
+  // The estimate is "in sync" when:
+  //  - we have a value
+  //  - the directions query is not currently fetching a fresher route
+  // Pickup/dropoff coord changes invalidate the directions query, which sets
+  // directionsFetching=true until the new route resolves — so this flag flips
+  // false the moment the rider edits an address and back to true once the new
+  // estimate has been computed against the new coordinates.
+  const estimateInSync = !!estimatedFareCents && !directionsFetching;
 
   // All main service prices for the selection cards (now bylaw-correct on both sides)
   const allServicePrices = useMemo(() => ({
@@ -337,7 +375,7 @@ export const useRideQueries = ({
     bylawRates,
     directionsData, directionsFetching, trafficDelayMin,
     currentPricing,
-    estimatedPrice, allServicePrices,
+    estimatedPrice, estimatedFareCents, fareInputsKey, estimateInSync, allServicePrices,
     activeRide, driverProfile, activeRideDirections, activeRoutePolyline,
     liveEta, activeTrafficDelayMin,
     rides, refetch, outstandingRide,

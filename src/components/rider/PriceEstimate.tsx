@@ -69,7 +69,20 @@ const PriceEstimate = ({
           <span className="text-sm font-semibold">{headerLabel}</span>
         </div>
         <div className="text-right">
-          <span className="text-2xl font-mono font-bold">{formatCents(totalCents)}</span>
+          <span
+            className={`text-2xl font-mono font-bold transition-opacity ${
+              directionsFetching ? "opacity-50 animate-pulse" : ""
+            }`}
+            aria-live="polite"
+            aria-busy={directionsFetching}
+          >
+            {formatCents(totalCents)}
+          </span>
+          {directionsFetching && (
+            <p className="text-[10px] text-muted-foreground">
+              {t("rider.recalculatingFare", "Recalculating…")}
+            </p>
+          )}
         </div>
       </div>
 
