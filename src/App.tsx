@@ -37,8 +37,10 @@ const AdminSimulator = lazy(() => import("./pages/AdminSimulator"));
 const AdminNotificationLogs = lazy(() => import("./pages/AdminNotificationLogs"));
 const AdminLiveMap = lazy(() => import("./pages/AdminLiveMap"));
 const AdminAuditLog = lazy(() => import("./pages/AdminAuditLog"));
+const AdminFareEstimateLog = lazy(() => import("./pages/AdminFareEstimateLog"));
 const AdminShiftEvents = lazy(() => import("./pages/AdminShiftEvents"));
 const AdminEmailLogs = lazy(() => import("./pages/AdminEmailLogs"));
+const RiderFareEstimateLog = lazy(() => import("./pages/RiderFareEstimateLog"));
 
 const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
 const DriverDispatch = lazy(() => import("./pages/DriverDispatch"));
