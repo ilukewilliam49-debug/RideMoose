@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, CreditCard, CheckCircle, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
+import { validateFareSubtotalCents } from "@/lib/validate-fare-subtotal";
 
 let stripePromise: Promise<Stripe | null> | null = null;
 
