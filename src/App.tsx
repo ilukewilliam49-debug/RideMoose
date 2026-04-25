@@ -158,6 +158,7 @@ const AppContent = () => {
             <Route path="notifications" element={<AdminNotificationLogs />} />
             <Route path="live-map" element={<AdminLiveMap />} />
             <Route path="audit-log" element={<AdminAuditLog />} />
+            <Route path="fare-estimate-log" element={<AdminFareEstimateLog />} />
             <Route path="shift-events" element={<AdminShiftEvents />} />
             <Route path="email-logs" element={<AdminEmailLogs />} />
           </Route>
