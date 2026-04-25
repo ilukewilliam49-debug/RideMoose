@@ -375,7 +375,7 @@ export const useRideQueries = ({
     bylawRates,
     directionsData, directionsFetching, trafficDelayMin,
     currentPricing,
-    estimatedPrice, allServicePrices,
+    estimatedPrice, estimatedFareCents, fareInputsKey, estimateInSync, allServicePrices,
     activeRide, driverProfile, activeRideDirections, activeRoutePolyline,
     liveEta, activeTrafficDelayMin,
     rides, refetch, outstandingRide,
