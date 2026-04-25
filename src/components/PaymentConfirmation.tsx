@@ -270,11 +270,21 @@ export default function PaymentConfirmation({
     if (!selectedCardId || !rideId) return;
     setPayingWithSaved(true);
     try {
+      const subtotal = estimatedFareCents || amountCents;
+      const subtotalCheck = validateFareSubtotalCents(subtotal, {
+        serviceType: serviceType || "taxi",
+      });
+      if (!subtotalCheck.ok) {
+        toast.error(subtotalCheck.message);
+        setPayingWithSaved(false);
+        onFailure?.();
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("pay-with-saved-card", {
         body: {
           ride_id: rideId,
           payment_method_id: selectedCardId,
-          estimated_fare_cents: estimatedFareCents || amountCents,
+          estimated_fare_cents: subtotalCheck.subtotalCents,
           service_type: serviceType || "taxi",
         },
       });
