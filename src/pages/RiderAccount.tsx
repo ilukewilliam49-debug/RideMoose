@@ -439,6 +439,17 @@ const RiderAccount = () => {
             </button>
           }
         />
+
+        <button
+          onClick={() => navigate("/rider/fare-history")}
+          className="flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left hover:bg-accent/30 transition-colors"
+        >
+          <span className="text-[15px] font-semibold flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-muted-foreground" />
+            {t("rider.fareHistory", "Fare estimate history")}
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+        </button>
       </div>
 
       {/* Settings */}
