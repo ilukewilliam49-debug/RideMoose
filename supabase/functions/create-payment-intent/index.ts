@@ -1,14 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { validateAndComputeAuthorization } from "../_shared/authorize-amount.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const PICKYOU_PLATFORM_FEE_CENTS = 97; // $0.97 bylaw-aligned platform fee
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,23 +27,7 @@ serve(async (req) => {
     const user = userData.user;
 
     const { ride_id, estimated_fare_cents, service_type } = await req.json();
-    if (!ride_id || !estimated_fare_cents) throw new Error("ride_id and estimated_fare_cents required");
-
-    const isPrivateHire = service_type === "private_hire";
-
-    // Taxi: no GST, no platform fee (city-regulated meter only).
-    // Private Hire: 5% GST on the metered subtotal, then add the $0.97
-    // platform fee AFTER GST (the platform fee is itself NOT subject to GST).
-    // Mirrors src/lib/pricing.ts (single source of truth) and
-    // src/components/rider/RideReceipt.tsx exactly.
-    let fareWithExtras = estimated_fare_cents;
-    if (isPrivateHire) {
-      const taxCents = Math.round(estimated_fare_cents * 0.05);
-      fareWithExtras = estimated_fare_cents + taxCents + PICKYOU_PLATFORM_FEE_CENTS;
-    }
-
-    // Calculate authorized amount: 125% of estimate (including tax if applicable), minimum $20
-    const authorized_amount_cents = Math.min(Math.max(Math.round(fareWithExtras * 1.25), 2000), 50000);
+    if (!ride_id) throw new Error("ride_id required");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -61,6 +44,40 @@ serve(async (req) => {
       .select("stripe_payment_intent_id, authorized_amount_cents, payment_status, rider_id")
       .eq("id", ride_id)
       .maybeSingle();
+
+    // Server-side authorization-amount validation. `estimated_fare_cents` MUST be
+    // the bylaw subtotal (pre-tax, pre-fee). The validator rejects bad input,
+    // and — when reusing/replacing a prior PI — refuses values that look like
+    // the previously authorized subtotal grossed up by GST + the $0.97 fee.
+    const priorSubtotal: number | undefined = (() => {
+      const auth = existingRide?.authorized_amount_cents;
+      if (!auth || typeof auth !== "number") return undefined;
+      // Recover the prior subtotal from the prior authorized amount (which was
+      // 125% of fare-with-extras). For private_hire: subtotal ≈ auth / 1.25 / 1.05
+      // minus the 97¢ fee folded back in. For taxi: subtotal ≈ auth / 1.25.
+      // We pass this in only for drift detection, not for charge logic, so an
+      // approximate value is fine.
+      if (service_type === "private_hire") {
+        const fareWithExtras = auth / 1.25;
+        const subtotalApprox = (fareWithExtras - 97) / 1.05;
+        return Math.round(subtotalApprox);
+      }
+      return Math.round(auth / 1.25);
+    })();
+
+    const validation = validateAndComputeAuthorization(
+      estimated_fare_cents,
+      service_type,
+      priorSubtotal,
+    );
+    if (!validation.ok) {
+      console.warn("create-payment-intent rejected input:", validation);
+      return new Response(
+        JSON.stringify({ error: validation.message, code: validation.code }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      );
+    }
+    const authorized_amount_cents = validation.authorizedAmountCents;
 
     if (existingRide?.stripe_payment_intent_id) {
       try {
