@@ -211,7 +211,7 @@ const RiderDashboard = () => {
     submittingRef.current = true;
     state.setLoading(true);
     try {
-      const estCents = Math.round(parseFloat(queries.estimatedPrice || "0") * 100);
+      const estCents = queries.estimatedFareCents ?? Math.round(parseFloat(queries.estimatedPrice || "0") * 100);
       const isOrgBilling = (state.billToOrg && queries.riderOrgMembership) || (state.serviceType === "retail_delivery" && queries.riderOrgMembership);
 
       if (isOrgBilling && queries.riderOrgMembership) {
