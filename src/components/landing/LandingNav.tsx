@@ -27,13 +27,20 @@ const LandingNav = () => {
   }, []);
 
   const selectTab = (next: LandingTab) => {
+    // Drive and Business are full landing pages — navigate there directly
+    // instead of just toggling the hero card on the homepage.
+    if (next === "drive") {
+      navigate("/drive");
+      return;
+    }
+    if (next === "business") {
+      navigate("/business");
+      return;
+    }
     setTab(next);
     if (typeof window !== "undefined") {
-      window.location.hash = next === "ride" ? "" : next;
-      // Ensure a hashchange event fires when clearing the hash
-      if (next === "ride") {
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
-      }
+      window.location.hash = "";
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
     }
   };
 

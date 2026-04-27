@@ -64,7 +64,7 @@ describe("resolvePostAuthRoute — admin", () => {
       resolvePostAuthRoute(baseProfile, {
         isAdmin: true,
         intent: "driver",
-        returnTo: "/business",
+        returnTo: "/business/dashboard",
         activeRole: "rider",
       }),
     ).toBe("/admin");
@@ -89,7 +89,7 @@ describe("resolvePostAuthRoute — intent", () => {
   it("business intent → /business when already a business", () => {
     expect(
       resolvePostAuthRoute({ ...baseProfile, is_business: true }, { intent: "business" }),
-    ).toBe("/business");
+    ).toBe("/business/dashboard");
   });
   it("rider intent → /rider", () => {
     expect(resolvePostAuthRoute(baseProfile, { intent: "rider" })).toBe("/rider");
@@ -107,7 +107,7 @@ describe("resolvePostAuthRoute — returnTo", () => {
   });
   it("admin ignores returnTo", () => {
     expect(
-      resolvePostAuthRoute(baseProfile, { isAdmin: true, returnTo: "/business" }),
+      resolvePostAuthRoute(baseProfile, { isAdmin: true, returnTo: "/business/dashboard" }),
     ).toBe("/admin");
   });
 });
@@ -172,7 +172,7 @@ describe("resolvePostAuthRoute — activeRole", () => {
         { ...baseProfile, is_business: true },
         { activeRole: "business" },
       ),
-    ).toBe("/business");
+    ).toBe("/business/dashboard");
   });
   it("activeRole ignored when capability missing", () => {
     expect(resolvePostAuthRoute(baseProfile, { activeRole: "driver" })).toBe("/rider");
@@ -264,9 +264,9 @@ describe("Routing matrix — business intent always lands on a business surface"
   it.each<[ProfileShape, string]>([
     ["rider-only", "/business/apply"],
     ["driver-only", "/business/apply"],
-    ["business-only", "/business"],
+    ["business-only", "/business/dashboard"],
     ["dual-rider-driver", "/business/apply"],
-    ["triple", "/business"],
+    ["triple", "/business/dashboard"],
   ])("business intent: %s → %s", (shape, expected) => {
     expect(resolvePostAuthRoute(profiles[shape], { intent: "business" })).toBe(expected);
   });

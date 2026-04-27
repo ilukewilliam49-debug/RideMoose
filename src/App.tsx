@@ -138,7 +138,6 @@ const AppContent = () => {
           <Route path="/ride" element={<RideInfo />} />
           <Route path="/courier" element={<CourierInfo />} />
           <Route path="/about" element={<About />} />
-          <Route path="/business" element={<BusinessLanding />} />
           <Route path="/business/apply" element={<BusinessApply />} />
 
           {/* Signup intent shims — make role-aware signup links work from
@@ -178,8 +177,11 @@ const AppContent = () => {
           <Route path="/driver/onboarding" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboarding /></ProtectedRoute>} />
           <Route path="/driver/onboarding/pending" element={<ProtectedRoute allowedRoles={["driver"]}><DriverOnboardingPending /></ProtectedRoute>} />
 
+          {/* Public business landing — anyone (auth or not) sees the marketing page at /business.
+              Authenticated business users access their dashboard via /business/dashboard. */}
+          <Route path="/business" element={<BusinessLanding />} />
           <Route path="/business" element={<ProtectedRoute allowedRoles={["business"]}><RoleLayout /></ProtectedRoute>}>
-            <Route index element={<BusinessDashboard />} />
+            <Route path="dashboard" element={<BusinessDashboard />} />
             <Route path="members" element={<BusinessMembers />} />
             <Route path="invoices" element={<BusinessInvoices />} />
             <Route path="rides" element={<BusinessRides />} />

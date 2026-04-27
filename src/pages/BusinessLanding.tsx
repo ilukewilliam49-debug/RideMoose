@@ -80,7 +80,7 @@ const BusinessLanding = () => {
     t("business.benefit6", "Cancel anytime — no contracts"),
   ];
 
-  const handleApply = () => navigate("/business/apply");
+  const handleApply = () => navigate("/corporate-apply");
 
   return (
     <>
@@ -115,7 +115,7 @@ const BusinessLanding = () => {
                   className="h-12 rounded-xl px-7 text-sm font-bold"
                   onClick={handleApply}
                 >
-                  {t("business.applyCta", "Apply for a business account")}
+                  {t("business.applyCta", "Apply for Corporate Account")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
@@ -209,7 +209,7 @@ const BusinessLanding = () => {
                   className="h-12 rounded-xl px-7 text-sm font-bold"
                   onClick={handleApply}
                 >
-                  {t("business.applyCta", "Apply for a business account")}
+                  {t("business.applyCta", "Apply for Corporate Account")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
