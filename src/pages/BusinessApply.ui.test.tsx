@@ -92,7 +92,9 @@ describe("/corporate-apply — inline validation UI", () => {
     setValue("phone", "abc"); // bad phone
     setValue("payment_terms_requested", "1"); // below min 7
 
-    fireEvent.click(submit);
+    await act(async () => {
+      fireEvent.click(submit);
+    });
 
     // Each error should appear inline, with id "<field>-error".
     await waitFor(
