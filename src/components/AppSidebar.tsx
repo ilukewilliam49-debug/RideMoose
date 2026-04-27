@@ -40,7 +40,7 @@ const navByRole = (t: (key: string) => string): Record<string, { icon: any; titl
     { icon: Users, title: "Account", url: "/driver/account" },
   ],
   business: [
-    { icon: Home, title: "Overview", url: "/business" },
+    { icon: Home, title: "Overview", url: "/business/dashboard" },
     { icon: Users, title: "Members", url: "/business/members" },
     { icon: FileText, title: "Invoices", url: "/business/invoices" },
     { icon: Car, title: "Ride history", url: "/business/rides" },
@@ -288,7 +288,7 @@ export function AppSidebar() {
               onClick={() => {
                 setActiveRole(next as any);
                 if (next === "driver") navigate("/driver");
-                else if (next === "business") navigate("/business");
+                else if (next === "business") navigate("/business/dashboard");
                 else navigate("/rider");
                 setOpenMobile(false);
               }}

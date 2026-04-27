@@ -75,7 +75,7 @@ const RoleSwitcher = () => {
     if (role === activeRole) return;
     setActiveRole(role as ActiveRole);
     if (role === "driver") navigate("/driver");
-    else if (role === "business") navigate("/business");
+    else if (role === "business") navigate("/business/dashboard");
     else navigate("/rider");
     toast.success(`Switched to ${roleMeta(role).label} mode`);
   };
