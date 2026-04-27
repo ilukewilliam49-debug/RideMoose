@@ -368,6 +368,29 @@ const DriverApply = () => {
           Takes about 4 minutes. We'll review and respond within 24 hours.
         </p>
 
+        {draftSavedAt && (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card/40 px-4 py-2.5 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Save className="h-3.5 w-3.5 text-primary" />
+              <span>
+                Draft auto-saved · {new Date(draftSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              {missingFiles.length > 0 && (
+                <span className="ml-2 text-amber-500">
+                  · Re-attach {missingFiles.length} file{missingFiles.length > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Clear draft
+            </button>
+          </div>
+        )}
+
         {/* Step indicator */}
         <div className="mt-8 flex items-center gap-2">
           {STEPS.map((label, i) => (
