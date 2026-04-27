@@ -471,4 +471,28 @@ const BusinessApply = () => {
   );
 };
 
+type FormFieldProps = {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  children: React.ReactNode;
+};
+
+const FormField = ({ label, htmlFor, error, children }: FormFieldProps) => (
+  <div className="space-y-1">
+    <Label htmlFor={htmlFor}>{label}</Label>
+    {children}
+    {error && (
+      <p
+        id={`${htmlFor}-error`}
+        role="alert"
+        className="text-xs text-destructive flex items-center gap-1 pt-0.5"
+      >
+        <AlertTriangle className="h-3 w-3 shrink-0" />
+        {error}
+      </p>
+    )}
+  </div>
+);
+
 export default BusinessApply;
