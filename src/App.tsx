@@ -64,6 +64,7 @@ const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const GuestTrack = lazy(() => import("./pages/GuestTrack"));
 const GuestRate = lazy(() => import("./pages/GuestRate"));
 const DriveLanding = lazy(() => import("./pages/DriveLanding"));
+const DriverApply = lazy(() => import("./pages/DriverApply"));
 const BusinessLanding = lazy(() => import("./pages/BusinessLanding"));
 const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
 const BusinessMembers = lazy(() => import("./pages/BusinessMembers"));
@@ -135,6 +136,7 @@ const AppContent = () => {
           <Route path="/t/:token" element={<GuestTrack />} />
           <Route path="/t/:token/rate" element={<GuestRate />} />
           <Route path="/drive" element={<DriveLanding />} />
+          <Route path="/driver-apply" element={<DriverApply />} />
           <Route path="/ride" element={<RideInfo />} />
           <Route path="/courier" element={<CourierInfo />} />
           <Route path="/about" element={<About />} />
