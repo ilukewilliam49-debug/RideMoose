@@ -95,15 +95,16 @@ describe("/corporate-apply — inline validation UI", () => {
     setValue("phone", "abc"); // bad phone
     setValue("payment_terms_requested", "1"); // below min 7
 
-    console.log("BUTTON TEXT:", submit.textContent);
-    console.log("ALL BUTTONS:", screen.getAllByRole("button").map(b => b.textContent));
+    const submit2 = screen.getByRole("button", { name: /submit application/i });
+    console.log("SAME BUTTON?", submit === submit2);
+    console.log("BUTTON DISABLED?", (submit2 as HTMLButtonElement).disabled);
     await act(async () => {
-      fireEvent.click(submit);
+      (submit2 as HTMLButtonElement).click();
       await new Promise((r) => setTimeout(r, 50));
     });
     const errEls = document.querySelectorAll('[id$="-error"]');
     console.log("ERROR ELEMENTS:", errEls.length, Array.from(errEls).map(e => e.id));
-    console.log("TOAST CALLS:", toastError.mock.calls);
+    console.log("TOAST CALLS:", toastError.mock.calls.length);
 
     // Each error should appear inline, with id "<field>-error".
     await waitFor(
