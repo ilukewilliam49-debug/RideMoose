@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   computeFare,
-  DEFAULT_BYLAW_RATES,
+  FALLBACK_BYLAW_RATES as RATES,
   type FareInput,
 } from "./pricing";
 
