@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Upload, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,60 @@ const INITIAL: FormState = {
 
 const STEPS = ["Contact", "Vehicle & Tier", "Documents", "Review"] as const;
 
+const DRAFT_KEY = "pickyou.driver_apply_draft.v1";
+const DRAFT_VERSION = 1;
+
+type DraftPayload = {
+  v: number;
+  step: number;
+  form: Omit<FormState, "drivers_license" | "vehicle_registration" | "proof_of_insurance" | "chauffeurs_permit">;
+  fileNames: {
+    drivers_license: string | null;
+    vehicle_registration: string | null;
+    proof_of_insurance: string | null;
+    chauffeurs_permit: string | null;
+  };
+  saved_at: string;
+};
+
+const serializeDraft = (form: FormState, step: number): DraftPayload => ({
+  v: DRAFT_VERSION,
+  step,
+  form: {
+    full_name: form.full_name,
+    email: form.email,
+    phone: form.phone,
+    tier: form.tier,
+    vehicle_make: form.vehicle_make,
+    vehicle_model: form.vehicle_model,
+    vehicle_year: form.vehicle_year,
+  },
+  fileNames: {
+    drivers_license: form.drivers_license?.name ?? null,
+    vehicle_registration: form.vehicle_registration?.name ?? null,
+    proof_of_insurance: form.proof_of_insurance?.name ?? null,
+    chauffeurs_permit: form.chauffeurs_permit?.name ?? null,
+  },
+  saved_at: new Date().toISOString(),
+});
+
+const loadDraft = (): DraftPayload | null => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as DraftPayload;
+    if (parsed?.v !== DRAFT_VERSION) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const isFormEmpty = (f: FormState) =>
+  !f.full_name && !f.email && !f.phone && !f.tier &&
+  !f.vehicle_make && !f.vehicle_model && !f.vehicle_year &&
+  !f.drivers_license && !f.vehicle_registration && !f.proof_of_insurance && !f.chauffeurs_permit;
+
 const FieldError = ({ id, message }: { id: string; message?: string }) =>
   message ? (
     <p id={`${id}-error`} role="alert" className="mt-1 flex items-center gap-1 text-xs text-destructive">
@@ -116,6 +170,9 @@ const DriverApply = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [missingFiles, setMissingFiles] = useState<string[]>([]);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     const prev = document.title;
@@ -124,6 +181,58 @@ const DriverApply = () => {
       document.title = prev;
     };
   }, []);
+
+  // Restore draft on mount
+  useEffect(() => {
+    const draft = loadDraft();
+    if (!draft) {
+      restoredRef.current = true;
+      return;
+    }
+    setForm((f) => ({ ...f, ...draft.form }));
+    setStep(Math.min(Math.max(draft.step, 0), STEPS.length - 1));
+    setDraftSavedAt(draft.saved_at);
+    const missing = Object.entries(draft.fileNames)
+      .filter(([, name]) => !!name)
+      .map(([k]) => k);
+    setMissingFiles(missing);
+    restoredRef.current = true;
+    const when = new Date(draft.saved_at).toLocaleString();
+    toast.success(`Draft restored from ${when}`, {
+      description: missing.length
+        ? "Please re-attach your uploaded files — they aren't saved across sessions."
+        : "Pick up where you left off.",
+    });
+  }, []);
+
+  // Auto-save draft on changes (debounced)
+  useEffect(() => {
+    if (!restoredRef.current || submitted) return;
+    if (isFormEmpty(form) && step === 0) return;
+    const handle = setTimeout(() => {
+      try {
+        const payload = serializeDraft(form, step);
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        setDraftSavedAt(payload.saved_at);
+      } catch {
+        // localStorage may be unavailable (private mode / quota); silently ignore.
+      }
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [form, step, submitted]);
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* noop */
+    }
+    setForm(INITIAL);
+    setErrors({});
+    setStep(0);
+    setDraftSavedAt(null);
+    setMissingFiles([]);
+  };
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -199,6 +308,11 @@ const DriverApply = () => {
         submitted_at: new Date().toISOString(),
       };
       sessionStorage.setItem("pickyou.driver_apply_draft", JSON.stringify(summary));
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* noop */
+      }
       setSubmitted(true);
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -253,6 +367,29 @@ const DriverApply = () => {
         <p className="mt-2 text-sm text-muted-foreground">
           Takes about 4 minutes. We'll review and respond within 24 hours.
         </p>
+
+        {draftSavedAt && (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card/40 px-4 py-2.5 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Save className="h-3.5 w-3.5 text-primary" />
+              <span>
+                Draft auto-saved · {new Date(draftSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              {missingFiles.length > 0 && (
+                <span className="ml-2 text-amber-500">
+                  · Re-attach {missingFiles.length} file{missingFiles.length > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Clear draft
+            </button>
+          </div>
+        )}
 
         {/* Step indicator */}
         <div className="mt-8 flex items-center gap-2">
