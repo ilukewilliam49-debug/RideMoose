@@ -30,8 +30,8 @@ describe("Van Price surcharge — booking widget (computeFare)", () => {
   it.each([1, 2, 3, 4])(
     "does NOT apply +$6.00 for %i passengers (taxi + pickyou)",
     (pax) => {
-      const taxi = computeFare("taxi", DEFAULT_BYLAW_RATES, baseInput(pax));
-      const pickyou = computeFare("pickyou", DEFAULT_BYLAW_RATES, baseInput(pax));
+      const taxi = computeFare("taxi", RATES, baseInput(pax));
+      const pickyou = computeFare("pickyou", RATES, baseInput(pax));
       expect(taxi.largeVehicleSurchargeCents).toBe(0);
       expect(pickyou.largeVehicleSurchargeCents).toBe(0);
     },
@@ -40,10 +40,10 @@ describe("Van Price surcharge — booking widget (computeFare)", () => {
   it.each([5, 6])(
     "applies +$6.00 for %i passengers to BOTH taxi and pickyou",
     (pax) => {
-      const taxiSmall = computeFare("taxi", DEFAULT_BYLAW_RATES, baseInput(4));
-      const pickyouSmall = computeFare("pickyou", DEFAULT_BYLAW_RATES, baseInput(4));
-      const taxiLarge = computeFare("taxi", DEFAULT_BYLAW_RATES, baseInput(pax));
-      const pickyouLarge = computeFare("pickyou", DEFAULT_BYLAW_RATES, baseInput(pax));
+      const taxiSmall = computeFare("taxi", RATES, baseInput(4));
+      const pickyouSmall = computeFare("pickyou", RATES, baseInput(4));
+      const taxiLarge = computeFare("taxi", RATES, baseInput(pax));
+      const pickyouLarge = computeFare("pickyou", RATES, baseInput(pax));
 
       // Surcharge line item is exactly +$6.00 for both modes
       expect(taxiLarge.largeVehicleSurchargeCents).toBe(VAN_SURCHARGE_CENTS);
@@ -58,13 +58,13 @@ describe("Van Price surcharge — booking widget (computeFare)", () => {
 
       // PickYou total jumps by +$6.00 plus 5% GST on the surcharge
       const expectedPickyouDelta =
-        VAN_SURCHARGE_CENTS + Math.round(VAN_SURCHARGE_CENTS * DEFAULT_BYLAW_RATES.pickyou_gst_rate);
+        VAN_SURCHARGE_CENTS + Math.round(VAN_SURCHARGE_CENTS * RATES.pickyou_gst_rate);
       expect(pickyouLarge.totalCents - pickyouSmall.totalCents).toBe(expectedPickyouDelta);
     },
   );
 
   it("waives the surcharge when accessibility_required is set (5 pax)", () => {
-    const taxi = computeFare("taxi", DEFAULT_BYLAW_RATES, {
+    const taxi = computeFare("taxi", RATES, {
       distanceKm: 5,
       largeVehicle: true,
       accessibilityRequired: true,
