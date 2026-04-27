@@ -466,6 +466,23 @@ const DriverApply = () => {
               <span>
                 Draft auto-saved · {new Date(draftSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
+              {user ? (
+                <span className="inline-flex items-center gap-1">
+                  {cloudSync === "error" ? (
+                    <>
+                      <CloudOff className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="text-amber-500">Cloud sync failed</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="h-3.5 w-3.5 text-primary" />
+                      <span>{cloudSync === "saving" ? "Syncing…" : "Synced to your account"}</span>
+                    </>
+                  )}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/80">· Sign in to sync across devices</span>
+              )}
               {missingFiles.length > 0 && (
                 <span className="ml-2 text-amber-500">
                   · Re-attach {missingFiles.length} file{missingFiles.length > 1 ? "s" : ""}
