@@ -85,7 +85,12 @@ describe("DriverApply — draft persistence + cloud sync", () => {
     // ---- First mount: enter data ----
     const { unmount } = renderPage();
 
-    fireEvent.change(screen.getByLabelText(/full name/i), {
+    // Wait for the async restore effect to flip restoredRef before typing,
+    // otherwise the auto-save effect bails out on the initial form changes.
+    const fullNameInput = await screen.findByLabelText(/full name/i);
+    await new Promise((r) => setTimeout(r, 50));
+
+    fireEvent.change(fullNameInput, {
       target: { value: "Alex Driver" },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
