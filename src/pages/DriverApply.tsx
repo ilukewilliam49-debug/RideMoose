@@ -394,6 +394,16 @@ const DriverApply = () => {
       } catch {
         /* noop */
       }
+      if (user) {
+        try {
+          await supabase
+            .from("driver_application_drafts")
+            .delete()
+            .eq("applicant_user_id", user.id);
+        } catch {
+          /* noop */
+        }
+      }
       setSubmitted(true);
     } catch {
       toast.error("Something went wrong. Please try again.");
