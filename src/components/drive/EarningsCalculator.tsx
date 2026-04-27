@@ -124,7 +124,7 @@ const EarningsCalculator = () => {
 
               <Button
                 className="w-full h-12 rounded-xl font-bold mt-2"
-                onClick={() => navigate("/login?role=driver")}
+                onClick={() => navigate("/driver-apply")}
               >
                 Start earning
                 <ArrowRight className="ml-2 h-4 w-4" />
