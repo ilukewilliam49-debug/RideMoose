@@ -306,66 +306,161 @@ const BusinessApply = () => {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-surface rounded-lg p-6 space-y-4">
-        <div className="space-y-1">
-          <Label>Company Name *</Label>
-          <Input value={form.company_name} onChange={(e) => set("company_name", e.target.value)} placeholder="Acme Corp" />
-        </div>
-        <div className="space-y-1">
-          <Label>Business Registration #</Label>
-          <Input value={form.registration_number} onChange={(e) => set("registration_number", e.target.value)} placeholder="Optional" />
-        </div>
+        <FormField label="Company Name *" htmlFor="company_name" error={errors.company_name}>
+          <Input
+            id="company_name"
+            value={form.company_name}
+            onChange={(e) => set("company_name", e.target.value)}
+            placeholder="Acme Corp"
+            maxLength={120}
+            aria-invalid={!!errors.company_name}
+            className={cn(errors.company_name && "border-destructive focus-visible:ring-destructive")}
+          />
+        </FormField>
+
+        <FormField label="Business Registration #" htmlFor="registration_number" error={errors.registration_number}>
+          <Input
+            id="registration_number"
+            value={form.registration_number}
+            onChange={(e) => set("registration_number", e.target.value)}
+            placeholder="Optional"
+            maxLength={60}
+            aria-invalid={!!errors.registration_number}
+            className={cn(errors.registration_number && "border-destructive focus-visible:ring-destructive")}
+          />
+        </FormField>
+
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label>Billing Email *</Label>
-            <Input type="email" value={form.billing_email} onChange={(e) => set("billing_email", e.target.value)} placeholder="billing@company.com" />
-          </div>
-          <div className="space-y-1">
-            <Label>Accounts Payable Email</Label>
-            <Input type="email" value={form.accounts_payable_email} onChange={(e) => set("accounts_payable_email", e.target.value)} placeholder="ap@company.com" />
-          </div>
+          <FormField label="Billing Email *" htmlFor="billing_email" error={errors.billing_email}>
+            <Input
+              id="billing_email"
+              type="email"
+              value={form.billing_email}
+              onChange={(e) => set("billing_email", e.target.value)}
+              placeholder="billing@company.com"
+              maxLength={255}
+              aria-invalid={!!errors.billing_email}
+              className={cn(errors.billing_email && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
+          <FormField label="Accounts Payable Email" htmlFor="accounts_payable_email" error={errors.accounts_payable_email}>
+            <Input
+              id="accounts_payable_email"
+              type="email"
+              value={form.accounts_payable_email}
+              onChange={(e) => set("accounts_payable_email", e.target.value)}
+              placeholder="ap@company.com"
+              maxLength={255}
+              aria-invalid={!!errors.accounts_payable_email}
+              className={cn(errors.accounts_payable_email && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
         </div>
+
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label>Phone</Label>
-            <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+1 (867) 555-0100" />
-          </div>
-          <div className="space-y-1">
-            <Label>Address</Label>
-            <Input value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="123 Main St, Yellowknife" />
-          </div>
+          <FormField label="Phone" htmlFor="phone" error={errors.phone}>
+            <Input
+              id="phone"
+              value={form.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="+1 (867) 555-0100"
+              maxLength={40}
+              aria-invalid={!!errors.phone}
+              className={cn(errors.phone && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
+          <FormField label="Address" htmlFor="address" error={errors.address}>
+            <Input
+              id="address"
+              value={form.address}
+              onChange={(e) => set("address", e.target.value)}
+              placeholder="123 Main St, Yellowknife"
+              maxLength={255}
+              aria-invalid={!!errors.address}
+              className={cn(errors.address && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
         </div>
 
         <div className="border-t border-border pt-4 space-y-1">
           <Label className="text-xs text-muted-foreground">Primary Contact</Label>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label>Contact Name *</Label>
-            <Input value={form.contact_person_name} onChange={(e) => set("contact_person_name", e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Contact Email *</Label>
-            <Input type="email" value={form.contact_person_email} onChange={(e) => set("contact_person_email", e.target.value)} />
-          </div>
+          <FormField label="Contact Name *" htmlFor="contact_person_name" error={errors.contact_person_name}>
+            <Input
+              id="contact_person_name"
+              value={form.contact_person_name}
+              onChange={(e) => set("contact_person_name", e.target.value)}
+              maxLength={120}
+              aria-invalid={!!errors.contact_person_name}
+              className={cn(errors.contact_person_name && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
+          <FormField label="Contact Email *" htmlFor="contact_person_email" error={errors.contact_person_email}>
+            <Input
+              id="contact_person_email"
+              type="email"
+              value={form.contact_person_email}
+              onChange={(e) => set("contact_person_email", e.target.value)}
+              maxLength={255}
+              aria-invalid={!!errors.contact_person_email}
+              className={cn(errors.contact_person_email && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
         </div>
 
         <div className="border-t border-border pt-4 space-y-1">
           <Label className="text-xs text-muted-foreground">Financial Details</Label>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label>Est. Monthly Spend ($)</Label>
-            <Input type="number" value={form.estimated_monthly_spend_cents / 100} onChange={(e) => set("estimated_monthly_spend_cents", Math.round(parseFloat(e.target.value || "0") * 100))} />
-          </div>
-          <div className="space-y-1">
-            <Label>Credit Limit ($)</Label>
-            <Input type="number" value={form.requested_credit_limit_cents / 100} onChange={(e) => set("requested_credit_limit_cents", Math.round(parseFloat(e.target.value || "0") * 100))} />
-          </div>
-          <div className="space-y-1">
-            <Label>Terms (days)</Label>
-            <Input type="number" value={form.payment_terms_requested} onChange={(e) => set("payment_terms_requested", parseInt(e.target.value) || 30)} />
-          </div>
+          <FormField label="Est. Monthly Spend ($)" htmlFor="estimated_monthly_spend_cents" error={errors.estimated_monthly_spend_cents}>
+            <Input
+              id="estimated_monthly_spend_cents"
+              type="number"
+              min={0}
+              step={1}
+              value={form.estimated_monthly_spend_cents / 100}
+              onChange={(e) => set("estimated_monthly_spend_cents", Math.round(parseFloat(e.target.value || "0") * 100))}
+              aria-invalid={!!errors.estimated_monthly_spend_cents}
+              className={cn(errors.estimated_monthly_spend_cents && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
+          <FormField label="Credit Limit ($)" htmlFor="requested_credit_limit_cents" error={errors.requested_credit_limit_cents}>
+            <Input
+              id="requested_credit_limit_cents"
+              type="number"
+              min={0}
+              step={1}
+              value={form.requested_credit_limit_cents / 100}
+              onChange={(e) => set("requested_credit_limit_cents", Math.round(parseFloat(e.target.value || "0") * 100))}
+              aria-invalid={!!errors.requested_credit_limit_cents}
+              className={cn(errors.requested_credit_limit_cents && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
+          <FormField label="Terms (days)" htmlFor="payment_terms_requested" error={errors.payment_terms_requested}>
+            <Input
+              id="payment_terms_requested"
+              type="number"
+              min={7}
+              max={90}
+              step={1}
+              value={form.payment_terms_requested}
+              onChange={(e) => set("payment_terms_requested", parseInt(e.target.value) || 0)}
+              aria-invalid={!!errors.payment_terms_requested}
+              className={cn(errors.payment_terms_requested && "border-destructive focus-visible:ring-destructive")}
+            />
+          </FormField>
         </div>
+
+        {Object.keys(errors).length > 0 && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>Please correct the highlighted fields and try again.</span>
+          </div>
+        )}
 
         <Button onClick={handleSubmit} disabled={submitting} className="w-full mt-2">
           <Building2 className="h-4 w-4 mr-2" />
