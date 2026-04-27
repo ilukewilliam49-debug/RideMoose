@@ -60,6 +60,7 @@ const BusinessApply = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState({
     company_name: "",
     registration_number: "",
@@ -92,21 +93,40 @@ const BusinessApply = () => {
     enabled: !!profile?.user_id,
   });
 
-  const set = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
+  const set = (key: string, value: any) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    // Clear the inline error for this field as soon as the user edits it.
+    setErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key as keyof FieldErrors];
+      return next;
+    });
+  };
 
   const handleSubmit = async () => {
     if (!profile?.user_id) return;
-    if (!form.company_name || !form.billing_email || !form.contact_person_name || !form.contact_person_email) {
-      toast.error("Please fill in all required fields.");
+
+    const result = applicationSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const key = issue.path[0] as keyof FieldErrors | undefined;
+        if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+      }
+      setErrors(fieldErrors);
+      toast.error("Please fix the highlighted fields before submitting.");
       return;
     }
+    setErrors({});
+
     setSubmitting(true);
     try {
       const id = crypto.randomUUID();
       const { error } = await supabase.from("organization_applications").insert({
         id,
         applicant_user_id: profile.user_id,
-        ...form,
+        ...result.data,
       });
       if (error) throw error;
 
@@ -117,13 +137,13 @@ const BusinessApply = () => {
           recipientEmail: "contact@pickyou.ca",
           idempotencyKey: `corp-app-${id}`,
           templateData: {
-            companyName: form.company_name,
-            contactName: form.contact_person_name,
-            contactEmail: form.contact_person_email,
-            billingEmail: form.billing_email,
-            creditLimit: `$${(form.requested_credit_limit_cents / 100).toFixed(2)}`,
-            paymentTerms: form.payment_terms_requested,
-            estimatedSpend: `$${(form.estimated_monthly_spend_cents / 100).toFixed(2)}`,
+            companyName: result.data.company_name,
+            contactName: result.data.contact_person_name,
+            contactEmail: result.data.contact_person_email,
+            billingEmail: result.data.billing_email,
+            creditLimit: `$${(result.data.requested_credit_limit_cents / 100).toFixed(2)}`,
+            paymentTerms: result.data.payment_terms_requested,
+            estimatedSpend: `$${(result.data.estimated_monthly_spend_cents / 100).toFixed(2)}`,
             submittedAt: new Date().toLocaleString(),
           },
         },
@@ -132,7 +152,7 @@ const BusinessApply = () => {
       toast.success("Application submitted! We'll review it shortly.");
       navigate("/rider");
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message ?? "Could not submit your application. Please try again.");
     } finally {
       setSubmitting(false);
     }
