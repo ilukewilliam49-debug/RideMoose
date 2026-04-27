@@ -40,13 +40,16 @@ vi.mock("sonner", () => ({
   toast: { error: (...args: any[]) => toastError(...args), success: vi.fn() },
 }));
 
-// framer-motion: render <motion.div> as a plain div in jsdom.
-vi.mock("framer-motion", () => ({
-  motion: new Proxy(
-    {},
-    { get: () => (props: any) => <div {...props} /> },
-  ),
-}));
+// framer-motion: render <motion.*> as a plain element in jsdom.
+vi.mock("framer-motion", () => {
+  const React = require("react");
+  const make = (tag: string) =>
+    React.forwardRef((props: any, ref: any) => React.createElement(tag, { ...props, ref }));
+  return {
+    motion: new Proxy({} as any, { get: (_t, key: string) => make(key) }),
+    AnimatePresence: ({ children }: any) => children,
+  };
+});
 
 // --- Test setup -----------------------------------------------------------
 
