@@ -170,6 +170,9 @@ const DriverApply = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [missingFiles, setMissingFiles] = useState<string[]>([]);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     const prev = document.title;
@@ -179,7 +182,58 @@ const DriverApply = () => {
     };
   }, []);
 
-  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+  // Restore draft on mount
+  useEffect(() => {
+    const draft = loadDraft();
+    if (!draft) {
+      restoredRef.current = true;
+      return;
+    }
+    setForm((f) => ({ ...f, ...draft.form }));
+    setStep(Math.min(Math.max(draft.step, 0), STEPS.length - 1));
+    setDraftSavedAt(draft.saved_at);
+    const missing = Object.entries(draft.fileNames)
+      .filter(([, name]) => !!name)
+      .map(([k]) => k);
+    setMissingFiles(missing);
+    restoredRef.current = true;
+    const when = new Date(draft.saved_at).toLocaleString();
+    toast.success(`Draft restored from ${when}`, {
+      description: missing.length
+        ? "Please re-attach your uploaded files — they aren't saved across sessions."
+        : "Pick up where you left off.",
+    });
+  }, []);
+
+  // Auto-save draft on changes (debounced)
+  useEffect(() => {
+    if (!restoredRef.current || submitted) return;
+    if (isFormEmpty(form) && step === 0) return;
+    const handle = setTimeout(() => {
+      try {
+        const payload = serializeDraft(form, step);
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+        setDraftSavedAt(payload.saved_at);
+      } catch {
+        // localStorage may be unavailable (private mode / quota); silently ignore.
+      }
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [form, step, submitted]);
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* noop */
+    }
+    setForm(INITIAL);
+    setErrors({});
+    setStep(0);
+    setDraftSavedAt(null);
+    setMissingFiles([]);
+    toast.success("Draft cleared");
+  };
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => {
       if (!e[key as string]) return e;
