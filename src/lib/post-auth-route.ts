@@ -85,7 +85,7 @@ export function resolvePostAuthRoute(
 
   // Explicit intent wins over default routing
   if (intent === "business") {
-    return profile.is_business ? "/business" : "/business/apply";
+    return profile.is_business ? "/business/dashboard" : "/business/apply";
   }
   if (intent === "driver") {
     return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
@@ -99,7 +99,7 @@ export function resolvePostAuthRoute(
     return profile.driver_onboarding_complete ? "/driver" : "/driver/onboarding";
   }
   if (options.activeRole === "business" && profile.is_business) {
-    return "/business";
+    return "/business/dashboard";
   }
   if (options.activeRole === "rider") {
     return "/rider";
@@ -115,7 +115,7 @@ export function resolvePostAuthRoute(
     return "/driver/onboarding";
   }
   if (last === "business" && profile.is_business) {
-    return "/business";
+    return "/business/dashboard";
   }
   if (last === "rider") {
     return "/rider";
