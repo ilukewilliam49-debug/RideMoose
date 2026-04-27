@@ -123,11 +123,24 @@ const BusinessApply = () => {
     setSubmitting(true);
     try {
       const id = crypto.randomUUID();
-      const { error } = await supabase.from("organization_applications").insert({
+      const payload = {
         id,
         applicant_user_id: profile.user_id,
-        ...result.data,
-      });
+        company_name: result.data.company_name,
+        registration_number: result.data.registration_number || null,
+        billing_email: result.data.billing_email,
+        accounts_payable_email: result.data.accounts_payable_email || null,
+        phone: result.data.phone || null,
+        address: result.data.address || null,
+        contact_person_name: result.data.contact_person_name,
+        contact_person_email: result.data.contact_person_email,
+        estimated_monthly_spend_cents: result.data.estimated_monthly_spend_cents,
+        requested_credit_limit_cents: result.data.requested_credit_limit_cents,
+        payment_terms_requested: result.data.payment_terms_requested,
+      };
+      const { error } = await supabase
+        .from("organization_applications")
+        .insert(payload as any);
       if (error) throw error;
 
       // Send email notification to admin
