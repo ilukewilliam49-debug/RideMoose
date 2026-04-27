@@ -79,7 +79,7 @@ describe("/corporate-apply — inline validation UI", () => {
     renderPage();
 
     // Wait for the form to render (skeleton hidden once auth+query resolve).
-    const submit = await screen.findByRole("button", { name: /submit application/i });
+    await screen.findByRole("button", { name: /submit application/i });
 
     // Fill the form with deliberately invalid values.
     const setValue = (id: string, value: string) => {
@@ -95,24 +95,18 @@ describe("/corporate-apply — inline validation UI", () => {
     setValue("phone", "abc"); // bad phone
     setValue("payment_terms_requested", "1"); // below min 7
 
-    const submit2 = screen.getByRole("button", { name: /submit application/i });
-    console.log("SAME BUTTON?", submit === submit2);
-    console.log("BUTTON DISABLED?", (submit2 as HTMLButtonElement).disabled);
+    // Re-query the submit button — re-renders from controlled inputs may
+    // produce a fresh DOM node, so the original reference can be stale.
+    const submit = screen.getByRole("button", { name: /submit application/i });
     await act(async () => {
-      (submit2 as HTMLButtonElement).click();
-      await new Promise((r) => setTimeout(r, 50));
+      (submit as HTMLButtonElement).click();
+      await new Promise((r) => setTimeout(r, 0));
     });
-    const errEls = document.querySelectorAll('[id$="-error"]');
-    console.log("ERROR ELEMENTS:", errEls.length, Array.from(errEls).map(e => e.id));
-    console.log("TOAST CALLS:", toastError.mock.calls.length);
 
     // Each error should appear inline, with id "<field>-error".
-    await waitFor(
-      () => {
-        expect(document.getElementById("company_name-error")).toBeTruthy();
-      },
-      { timeout: 3000 },
-    );
+    await waitFor(() => {
+      expect(document.getElementById("company_name-error")).toBeTruthy();
+    });
 
     const expectError = (fieldId: string, expected: string) => {
       const el = document.getElementById(`${fieldId}-error`);
