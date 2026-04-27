@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Upload, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, AlertTriangle, Upload, Save, Trash2, Cloud, CloudOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_VEHICLE_YEAR = CURRENT_YEAR - 15;
@@ -165,6 +167,7 @@ const FileField = ({ id, label, helper, optional, file, onChange, error }: FileF
 
 const DriverApply = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -172,6 +175,7 @@ const DriverApply = () => {
   const [submitted, setSubmitted] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [missingFiles, setMissingFiles] = useState<string[]>([]);
+  const [cloudSync, setCloudSync] = useState<"idle" | "saving" | "synced" | "error">("idle");
   const restoredRef = useRef(false);
 
   useEffect(() => {
@@ -182,56 +186,133 @@ const DriverApply = () => {
     };
   }, []);
 
-  // Restore draft on mount
+  // Restore draft on mount: prefer Supabase (cross-device) for signed-in users,
+  // fall back to localStorage for guests or if cloud read fails.
   useEffect(() => {
-    const draft = loadDraft();
-    if (!draft) {
-      restoredRef.current = true;
-      return;
-    }
-    setForm((f) => ({ ...f, ...draft.form }));
-    setStep(Math.min(Math.max(draft.step, 0), STEPS.length - 1));
-    setDraftSavedAt(draft.saved_at);
-    const missing = Object.entries(draft.fileNames)
-      .filter(([, name]) => !!name)
-      .map(([k]) => k);
-    setMissingFiles(missing);
-    restoredRef.current = true;
-    const when = new Date(draft.saved_at).toLocaleString();
-    toast.success(`Draft restored from ${when}`, {
-      description: missing.length
-        ? "Please re-attach your uploaded files — they aren't saved across sessions."
-        : "Pick up where you left off.",
-    });
-  }, []);
+    if (authLoading) return;
+    if (restoredRef.current) return;
 
-  // Auto-save draft on changes (debounced)
+    let cancelled = false;
+    (async () => {
+      let payload: DraftPayload | null = null;
+      let source: "cloud" | "local" | null = null;
+
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from("driver_application_drafts")
+            .select("step, form, file_names, saved_at")
+            .eq("applicant_user_id", user.id)
+            .maybeSingle();
+          if (!error && data) {
+            payload = {
+              v: DRAFT_VERSION,
+              step: data.step ?? 0,
+              form: (data.form ?? {}) as DraftPayload["form"],
+              fileNames: (data.file_names ?? {}) as DraftPayload["fileNames"],
+              saved_at: data.saved_at,
+            };
+            source = "cloud";
+          }
+        } catch {
+          /* fall through to local */
+        }
+      }
+
+      if (!payload) {
+        payload = loadDraft();
+        if (payload) source = "local";
+      }
+
+      if (cancelled) return;
+
+      if (payload) {
+        setForm((f) => ({ ...f, ...payload!.form }));
+        setStep(Math.min(Math.max(payload!.step, 0), STEPS.length - 1));
+        setDraftSavedAt(payload.saved_at);
+        const missing = Object.entries(payload.fileNames || {})
+          .filter(([, name]) => !!name)
+          .map(([k]) => k);
+        setMissingFiles(missing);
+        const when = new Date(payload.saved_at).toLocaleString();
+        toast.success(
+          source === "cloud"
+            ? `Draft restored from your account · ${when}`
+            : `Draft restored from this device · ${when}`,
+          {
+            description: missing.length
+              ? "Please re-attach your uploaded files — they aren't saved across sessions."
+              : "Pick up where you left off.",
+          },
+        );
+      }
+      restoredRef.current = true;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
+
+  // Auto-save draft on changes (debounced) — local always, cloud when signed in.
   useEffect(() => {
     if (!restoredRef.current || submitted) return;
     if (isFormEmpty(form) && step === 0) return;
-    const handle = setTimeout(() => {
+    const handle = setTimeout(async () => {
+      const payload = serializeDraft(form, step);
       try {
-        const payload = serializeDraft(form, step);
         localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-        setDraftSavedAt(payload.saved_at);
       } catch {
-        // localStorage may be unavailable (private mode / quota); silently ignore.
+        /* localStorage may be unavailable */
       }
-    }, 600);
-    return () => clearTimeout(handle);
-  }, [form, step, submitted]);
+      setDraftSavedAt(payload.saved_at);
 
-  const clearDraft = () => {
+      if (user) {
+        setCloudSync("saving");
+        try {
+          const { error } = await supabase
+            .from("driver_application_drafts")
+            .upsert(
+              {
+                applicant_user_id: user.id,
+                step: payload.step,
+                form: payload.form,
+                file_names: payload.fileNames,
+                saved_at: payload.saved_at,
+              },
+              { onConflict: "applicant_user_id" },
+            );
+          setCloudSync(error ? "error" : "synced");
+        } catch {
+          setCloudSync("error");
+        }
+      }
+    }, 800);
+    return () => clearTimeout(handle);
+  }, [form, step, submitted, user]);
+
+  const clearDraft = async () => {
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {
       /* noop */
+    }
+    if (user) {
+      try {
+        await supabase
+          .from("driver_application_drafts")
+          .delete()
+          .eq("applicant_user_id", user.id);
+      } catch {
+        /* noop */
+      }
     }
     setForm(INITIAL);
     setErrors({});
     setStep(0);
     setDraftSavedAt(null);
     setMissingFiles([]);
+    setCloudSync("idle");
   };
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -313,6 +394,16 @@ const DriverApply = () => {
       } catch {
         /* noop */
       }
+      if (user) {
+        try {
+          await supabase
+            .from("driver_application_drafts")
+            .delete()
+            .eq("applicant_user_id", user.id);
+        } catch {
+          /* noop */
+        }
+      }
       setSubmitted(true);
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -375,6 +466,23 @@ const DriverApply = () => {
               <span>
                 Draft auto-saved · {new Date(draftSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
+              {user ? (
+                <span className="inline-flex items-center gap-1">
+                  {cloudSync === "error" ? (
+                    <>
+                      <CloudOff className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="text-amber-500">Cloud sync failed</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="h-3.5 w-3.5 text-primary" />
+                      <span>{cloudSync === "saving" ? "Syncing…" : "Synced to your account"}</span>
+                    </>
+                  )}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/80">· Sign in to sync across devices</span>
+              )}
               {missingFiles.length > 0 && (
                 <span className="ml-2 text-amber-500">
                   · Re-attach {missingFiles.length} file{missingFiles.length > 1 ? "s" : ""}

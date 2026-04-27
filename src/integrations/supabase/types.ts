@@ -101,6 +101,39 @@ export type Database = {
           },
         ]
       }
+      driver_application_drafts: {
+        Row: {
+          applicant_user_id: string
+          created_at: string
+          file_names: Json
+          form: Json
+          id: string
+          saved_at: string
+          step: number
+          updated_at: string
+        }
+        Insert: {
+          applicant_user_id: string
+          created_at?: string
+          file_names?: Json
+          form?: Json
+          id?: string
+          saved_at?: string
+          step?: number
+          updated_at?: string
+        }
+        Update: {
+          applicant_user_id?: string
+          created_at?: string
+          file_names?: Json
+          form?: Json
+          id?: string
+          saved_at?: string
+          step?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       driver_shift_events: {
         Row: {
           created_at: string
