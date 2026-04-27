@@ -62,6 +62,60 @@ const INITIAL: FormState = {
 
 const STEPS = ["Contact", "Vehicle & Tier", "Documents", "Review"] as const;
 
+const DRAFT_KEY = "pickyou.driver_apply_draft.v1";
+const DRAFT_VERSION = 1;
+
+type DraftPayload = {
+  v: number;
+  step: number;
+  form: Omit<FormState, "drivers_license" | "vehicle_registration" | "proof_of_insurance" | "chauffeurs_permit">;
+  fileNames: {
+    drivers_license: string | null;
+    vehicle_registration: string | null;
+    proof_of_insurance: string | null;
+    chauffeurs_permit: string | null;
+  };
+  saved_at: string;
+};
+
+const serializeDraft = (form: FormState, step: number): DraftPayload => ({
+  v: DRAFT_VERSION,
+  step,
+  form: {
+    full_name: form.full_name,
+    email: form.email,
+    phone: form.phone,
+    tier: form.tier,
+    vehicle_make: form.vehicle_make,
+    vehicle_model: form.vehicle_model,
+    vehicle_year: form.vehicle_year,
+  },
+  fileNames: {
+    drivers_license: form.drivers_license?.name ?? null,
+    vehicle_registration: form.vehicle_registration?.name ?? null,
+    proof_of_insurance: form.proof_of_insurance?.name ?? null,
+    chauffeurs_permit: form.chauffeurs_permit?.name ?? null,
+  },
+  saved_at: new Date().toISOString(),
+});
+
+const loadDraft = (): DraftPayload | null => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as DraftPayload;
+    if (parsed?.v !== DRAFT_VERSION) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const isFormEmpty = (f: FormState) =>
+  !f.full_name && !f.email && !f.phone && !f.tier &&
+  !f.vehicle_make && !f.vehicle_model && !f.vehicle_year &&
+  !f.drivers_license && !f.vehicle_registration && !f.proof_of_insurance && !f.chauffeurs_permit;
+
 const FieldError = ({ id, message }: { id: string; message?: string }) =>
   message ? (
     <p id={`${id}-error`} role="alert" className="mt-1 flex items-center gap-1 text-xs text-destructive">
