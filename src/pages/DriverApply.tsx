@@ -308,6 +308,11 @@ const DriverApply = () => {
         submitted_at: new Date().toISOString(),
       };
       sessionStorage.setItem("pickyou.driver_apply_draft", JSON.stringify(summary));
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* noop */
+      }
       setSubmitted(true);
     } catch {
       toast.error("Something went wrong. Please try again.");
