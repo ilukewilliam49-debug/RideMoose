@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,50 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, ArrowLeft, CheckCircle, Clock, XCircle, AlertTriangle, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+// Validation schema — mirrors required fields and reasonable bounds.
+const phoneRegex = /^[+\d][\d\s\-().]{6,}$/;
+
+const applicationSchema = z.object({
+  company_name: z.string().trim()
+    .min(2, { message: "Company name must be at least 2 characters" })
+    .max(120, { message: "Company name must be 120 characters or fewer" }),
+  registration_number: z.string().trim()
+    .max(60, { message: "Registration number must be 60 characters or fewer" })
+    .optional().or(z.literal("")),
+  billing_email: z.string().trim()
+    .email({ message: "Enter a valid billing email" })
+    .max(255, { message: "Email must be 255 characters or fewer" }),
+  accounts_payable_email: z.string().trim()
+    .max(255, { message: "Email must be 255 characters or fewer" })
+    .email({ message: "Enter a valid email" })
+    .optional().or(z.literal("")),
+  phone: z.string().trim()
+    .regex(phoneRegex, { message: "Enter a valid phone number" })
+    .max(40, { message: "Phone number is too long" })
+    .optional().or(z.literal("")),
+  address: z.string().trim()
+    .max(255, { message: "Address must be 255 characters or fewer" })
+    .optional().or(z.literal("")),
+  contact_person_name: z.string().trim()
+    .min(2, { message: "Contact name must be at least 2 characters" })
+    .max(120, { message: "Contact name must be 120 characters or fewer" }),
+  contact_person_email: z.string().trim()
+    .email({ message: "Enter a valid contact email" })
+    .max(255, { message: "Email must be 255 characters or fewer" }),
+  estimated_monthly_spend_cents: z.number({ invalid_type_error: "Enter a number" })
+    .int().min(0, { message: "Cannot be negative" })
+    .max(10_000_000_00, { message: "Value is too large" }),
+  requested_credit_limit_cents: z.number({ invalid_type_error: "Enter a number" })
+    .int().min(0, { message: "Cannot be negative" })
+    .max(10_000_000_00, { message: "Value is too large" }),
+  payment_terms_requested: z.number({ invalid_type_error: "Enter a number" })
+    .int().min(7, { message: "Minimum 7 days" })
+    .max(90, { message: "Maximum 90 days" }),
+});
+
+type FieldErrors = Partial<Record<keyof z.infer<typeof applicationSchema>, string>>;
 
 const BusinessApply = () => {
   const { user, profile, loading: authLoading } = useAuth();
