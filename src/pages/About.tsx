@@ -1,21 +1,19 @@
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import { Phone, MapPin, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 const About = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const prevTitle = document.title;
+    document.title = "About PickYou — Local Yellowknife Transportation";
+    return () => { document.title = prevTitle; };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>About PickYou — Local Yellowknife Transportation</title>
-        <meta
-          name="description"
-          content="PickYou is a Yellowknife-based transportation platform connecting riders with local taxis, independent drivers, and couriers."
-        />
-        <link rel="canonical" href="https://pickyou.ca/about" />
-      </Helmet>
-
       <LandingNav />
 
       <main className="mx-auto max-w-3xl px-5 lg:px-8 py-12 md:py-20">

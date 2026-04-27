@@ -1,5 +1,5 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { Package, MapPin, Camera, ShieldCheck, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,17 +7,15 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 const CourierInfo = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const prevTitle = document.title;
+    document.title = "Courier & Package Delivery in Yellowknife | PickYou";
+    return () => { document.title = prevTitle; };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>Courier & Package Delivery in Yellowknife | PickYou</title>
-        <meta
-          name="description"
-          content="Same-day package delivery across Yellowknife. $8 base, $1.50/km, $12 minimum. Photo proof of delivery and live tracking included."
-        />
-        <link rel="canonical" href="https://pickyou.ca/courier" />
-      </Helmet>
-
       <LandingNav />
 
       <main className="mx-auto max-w-5xl px-5 lg:px-8 py-12 md:py-20">
