@@ -98,6 +98,13 @@ describe("/corporate-apply — inline validation UI", () => {
     });
     // Debug: print all elements with id ending -error
     const errEls = document.querySelectorAll('[id$="-error"]');
+    console.log("BUTTON TEXT:", submit.textContent);
+    console.log("ALL BUTTONS:", screen.getAllByRole("button").map(b => b.textContent));
+    await act(async () => {
+      fireEvent.click(submit);
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const errEls = document.querySelectorAll('[id$="-error"]');
     console.log("ERROR ELEMENTS:", errEls.length, Array.from(errEls).map(e => e.id));
     console.log("TOAST CALLS:", toastError.mock.calls);
 
