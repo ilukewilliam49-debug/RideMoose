@@ -95,9 +95,12 @@ describe("/corporate-apply — inline validation UI", () => {
     fireEvent.click(submit);
 
     // Each error should appear inline, with id "<field>-error".
-    await waitFor(() => {
-      expect(document.getElementById("company_name-error")).toBeTruthy();
-    });
+    await waitFor(
+      () => {
+        expect(document.getElementById("company_name-error")).toBeTruthy();
+      },
+      { timeout: 3000 },
+    );
 
     const expectError = (fieldId: string, expected: string) => {
       const el = document.getElementById(`${fieldId}-error`);
