@@ -92,12 +92,6 @@ describe("/corporate-apply — inline validation UI", () => {
     setValue("phone", "abc"); // bad phone
     setValue("payment_terms_requested", "1"); // below min 7
 
-    await act(async () => {
-      fireEvent.click(submit);
-      await new Promise((r) => setTimeout(r, 50));
-    });
-    // Debug: print all elements with id ending -error
-    const errEls = document.querySelectorAll('[id$="-error"]');
     console.log("BUTTON TEXT:", submit.textContent);
     console.log("ALL BUTTONS:", screen.getAllByRole("button").map(b => b.textContent));
     await act(async () => {
