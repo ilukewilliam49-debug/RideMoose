@@ -29,17 +29,15 @@ const RideInfo = () => {
     };
   }, [passengers]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const prevTitle = document.title;
+    document.title = "Ride Services in Yellowknife — Taxi & PickYou | PickYou";
+    return () => { document.title = prevTitle; };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>Ride Services in Yellowknife — Taxi & PickYou | PickYou</title>
-        <meta
-          name="description"
-          content="Book a metered Taxi or a PickYou independent driver in Yellowknife. Transparent pricing, fast pickup, group fares for 5–6 passengers."
-        />
-        <link rel="canonical" href="https://pickyou.ca/ride" />
-      </Helmet>
-
       <LandingNav />
 
       <main className="mx-auto max-w-6xl px-5 lg:px-8 py-12 md:py-20">
