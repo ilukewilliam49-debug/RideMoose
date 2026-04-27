@@ -21,6 +21,9 @@ const LandingFooter = () => {
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("landing.footerCompany")}</h4>
             <div className="flex flex-col gap-2">
+              <Link to="/about" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
+                About
+              </Link>
               <Link to="/terms" className="text-sm text-foreground/70 hover:text-foreground transition-colors">
                 {t("landing.footerTerms")}
               </Link>
@@ -37,9 +40,9 @@ const LandingFooter = () => {
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("landing.footerProducts")}</h4>
             <div className="flex flex-col gap-2">
-              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerRide")}</Link>
+              <Link to="/ride" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerRide")}</Link>
               <Link to="/drive" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerDrive")}</Link>
-              <Link to="/login" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerCourier")}</Link>
+              <Link to="/courier" className="text-sm text-foreground/70 hover:text-foreground transition-colors">{t("landing.footerCourier")}</Link>
             </div>
           </div>
 

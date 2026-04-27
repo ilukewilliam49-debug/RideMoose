@@ -69,6 +69,9 @@ const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
 const BusinessMembers = lazy(() => import("./pages/BusinessMembers"));
 const BusinessInvoices = lazy(() => import("./pages/BusinessInvoices"));
 const BusinessRides = lazy(() => import("./pages/BusinessRides"));
+const RideInfo = lazy(() => import("./pages/RideInfo"));
+const CourierInfo = lazy(() => import("./pages/CourierInfo"));
+const About = lazy(() => import("./pages/About"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -132,6 +135,9 @@ const AppContent = () => {
           <Route path="/t/:token" element={<GuestTrack />} />
           <Route path="/t/:token/rate" element={<GuestRate />} />
           <Route path="/drive" element={<DriveLanding />} />
+          <Route path="/ride" element={<RideInfo />} />
+          <Route path="/courier" element={<CourierInfo />} />
+          <Route path="/about" element={<About />} />
           <Route path="/business" element={<BusinessLanding />} />
           <Route path="/business/apply" element={<BusinessApply />} />
 
