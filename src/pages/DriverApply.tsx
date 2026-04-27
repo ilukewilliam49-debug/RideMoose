@@ -232,8 +232,9 @@ const DriverApply = () => {
     setStep(0);
     setDraftSavedAt(null);
     setMissingFiles([]);
-    toast.success("Draft cleared");
   };
+
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => {
       if (!e[key as string]) return e;
