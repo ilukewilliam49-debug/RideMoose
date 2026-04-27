@@ -136,6 +136,7 @@ const AppContent = () => {
           <Route path="/t/:token" element={<GuestTrack />} />
           <Route path="/t/:token/rate" element={<GuestRate />} />
           <Route path="/drive" element={<DriveLanding />} />
+          <Route path="/driver-apply" element={<DriverApply />} />
           <Route path="/ride" element={<RideInfo />} />
           <Route path="/courier" element={<CourierInfo />} />
           <Route path="/about" element={<About />} />
