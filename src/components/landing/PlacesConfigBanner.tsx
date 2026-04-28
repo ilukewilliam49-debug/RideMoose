@@ -45,8 +45,8 @@ const PlacesConfigBanner = () => {
           // Try to peek at the response body the SDK attached to the error.
           let body: any = null;
           try {
-            // @ts-expect-error — context is available at runtime
-            body = await error.context?.json?.();
+            const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
+            body = await ctx?.json?.();
           } catch {
             /* no-op */
           }
