@@ -120,6 +120,8 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
   beforeEach(() => {
     cloudStore.clear();
     upsertSpy.mockClear();
+    toastError.mockClear();
+    toastSuccess.mockClear();
     localStorage.clear();
     sessionStorage.clear();
   });
