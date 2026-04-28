@@ -15,8 +15,13 @@ vi.mock("@/hooks/useAuth", () => ({
 vi.mock("@/components/landing/LandingNav", () => ({ default: () => null }));
 vi.mock("@/components/landing/LandingFooter", () => ({ default: () => null }));
 
+const toastError = vi.fn();
+const toastSuccess = vi.fn();
 vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: {
+    error: (...a: any[]) => toastError(...a),
+    success: (...a: any[]) => toastSuccess(...a),
+  },
 }));
 
 const cloudStore = new Map<string, any>();
@@ -115,6 +120,8 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
   beforeEach(() => {
     cloudStore.clear();
     upsertSpy.mockClear();
+    toastError.mockClear();
+    toastSuccess.mockClear();
     localStorage.clear();
     sessionStorage.clear();
   });
@@ -207,5 +214,74 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
       proof_of_insurance: "insurance.pdf",
       chauffeurs_permit: null,
     });
+  }, 20000);
+
+  it("blocks Submit on the restored Step 4 review when document blobs are missing", async () => {
+    const { unmount } = renderPage();
+    await fillThroughStep4();
+
+    // Wait for the debounced upsert to flush so the cloud row reflects step=3.
+    await waitFor(
+      () => {
+        const last = upsertSpy.mock.calls.at(-1)?.[0];
+        expect(last?.step).toBe(3);
+        expect(last?.file_names?.drivers_license).toBe("license.pdf");
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // ---- Simulate reload ----
+    unmount();
+    cleanup();
+    toastError.mockClear();
+    renderPage();
+
+    // Wait for the restore effect to complete and land on Step 4.
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
+    await screen.findByText(/review your application/i);
+    expect(screen.getByText(/step 4 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/re-attach 3 files/i)).toBeInTheDocument();
+
+    // Clear toast spies AFTER restore (which fires a success toast) so we
+    // can isolate any toasts triggered by the Submit click below.
+    toastError.mockClear();
+    toastSuccess.mockClear();
+
+    // Click Submit on the restored Review screen.
+    const submitBtn = screen.getByRole("button", {
+      name: /submit application/i,
+    });
+    expect(submitBtn).toBeEnabled();
+    fireEvent.click(submitBtn);
+
+    // Submission MUST be blocked with the validation error toast.
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith(
+        "Please complete all required fields",
+      );
+    });
+
+    // The success/confirmation screen must NOT have rendered.
+    expect(screen.queryByText(/application received/i)).not.toBeInTheDocument();
+    expect(toastSuccess).not.toHaveBeenCalled();
+
+    // The user remains on Step 4 (Review) — the form did not advance into
+    // the submitted state. The Submit button must still be present and the
+    // "Continue" button (only on prior steps) must not have appeared.
+    expect(screen.getByText(/step 4 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/review your application/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /submit application/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^continue$/i }),
+    ).not.toBeInTheDocument();
+
+    // The missing-files banner must still be visible, telling the user
+    // exactly which validation gate is blocking submission.
+    expect(screen.getByText(/re-attach 3 files/i)).toBeInTheDocument();
+
+    // Cloud draft must still exist — submission was not finalized.
+    expect(cloudStore.has("user-driver-step4")).toBe(true);
   }, 20000);
 });
