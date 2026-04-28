@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { decodeStopsParam, encodeStopsParam, type RideStop } from "@/types/stops";
+import { PASSENGER_COUNT_STORAGE_KEY } from "./usePassengerCount";
 
 export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
 
