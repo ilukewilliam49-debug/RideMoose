@@ -15,8 +15,13 @@ vi.mock("@/hooks/useAuth", () => ({
 vi.mock("@/components/landing/LandingNav", () => ({ default: () => null }));
 vi.mock("@/components/landing/LandingFooter", () => ({ default: () => null }));
 
+const toastError = vi.fn();
+const toastSuccess = vi.fn();
 vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: {
+    error: (...a: any[]) => toastError(...a),
+    success: (...a: any[]) => toastSuccess(...a),
+  },
 }));
 
 const cloudStore = new Map<string, any>();
