@@ -119,6 +119,14 @@ export const useRideBookingState = () => {
     }
   }, []);
 
+  // Persist passengerCount so it carries across the booking flow and back to /ride.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(PASSENGER_COUNT_STORAGE_KEY, String(passengerCount));
+    } catch { /* ignore */ }
+  }, [passengerCount]);
+
   // Persist stops back to URL on change so refresh / back-nav preserves them.
   // Only fully geocoded stops are serialised.
   useEffect(() => {
