@@ -790,10 +790,21 @@ const DriverApply = () => {
   );
 };
 
-const Row = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-start justify-between gap-4 border-b border-border/30 py-1.5 last:border-0">
+const Row = ({ label, value, error }: { label: string; value: string; error?: string }) => (
+  <div
+    className={`flex items-start justify-between gap-4 border-b border-border/30 py-1.5 last:border-0 ${
+      error ? "bg-destructive/5 -mx-2 rounded-md px-2" : ""
+    }`}
+  >
     <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
-    <dd className="text-right text-sm font-medium">{value}</dd>
+    <dd className="text-right">
+      <div className={`text-sm font-medium ${error ? "text-destructive" : ""}`}>{value}</div>
+      {error && (
+        <p role="alert" className="mt-0.5 text-[11px] font-medium text-destructive">
+          {error}
+        </p>
+      )}
+    </dd>
   </div>
 );
 
