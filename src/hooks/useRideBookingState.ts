@@ -23,7 +23,21 @@ export const useRideBookingState = () => {
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
   const [pendingRideId, setPendingRideId] = useState<string | null>(null);
-  const [passengerCount, setPassengerCount] = useState(1);
+  const [passengerCount, setPassengerCount] = useState(() => {
+    const fromUrl = searchParams.get("passengers");
+    if (fromUrl) {
+      const n = parseInt(fromUrl, 10);
+      if (Number.isFinite(n) && n >= 1 && n <= 6) return n;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(PASSENGER_COUNT_STORAGE_KEY);
+        const n = raw ? parseInt(raw, 10) : NaN;
+        if (Number.isFinite(n) && n >= 1 && n <= 6) return n;
+      } catch { /* ignore */ }
+    }
+    return 1;
+  });
   const [billToOrg, setBillToOrg] = useState(false);
   const [poNumber, setPoNumber] = useState("");
   const [costCenter, setCostCenter] = useState("");
