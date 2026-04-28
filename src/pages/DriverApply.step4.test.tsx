@@ -325,9 +325,12 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
       screen.getByRole("button", { name: /submit application/i }),
     );
 
-    // Top error banner appears with the count, role=alert, and jump link.
-    const banner = await screen.findByRole("alert");
-    expect(banner.textContent).toMatch(/3 required documents are missing/i);
+    // Top error banner appears with the count and Documents jump link.
+    const bannerHeading = await screen.findByText(
+      /3 required documents are missing/i,
+    );
+    const banner = bannerHeading.closest("[role='alert']") as HTMLElement;
+    expect(banner).not.toBeNull();
     expect(banner.textContent).toMatch(/driver's license is required/i);
     expect(banner.textContent).toMatch(/vehicle registration is required/i);
     expect(banner.textContent).toMatch(/proof of insurance is required/i);
