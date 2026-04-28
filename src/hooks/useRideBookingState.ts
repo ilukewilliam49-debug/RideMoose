@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { decodeStopsParam, encodeStopsParam, type RideStop } from "@/types/stops";
+import { PASSENGER_COUNT_STORAGE_KEY } from "./usePassengerCount";
 
 export type ServiceType = "taxi" | "private_hire" | "courier" | "large_delivery" | "retail_delivery" | "personal_shopper";
 
@@ -22,7 +23,21 @@ export const useRideBookingState = () => {
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [authorizedAmountCents, setAuthorizedAmountCents] = useState(0);
   const [pendingRideId, setPendingRideId] = useState<string | null>(null);
-  const [passengerCount, setPassengerCount] = useState(1);
+  const [passengerCount, setPassengerCount] = useState(() => {
+    const fromUrl = searchParams.get("passengers");
+    if (fromUrl) {
+      const n = parseInt(fromUrl, 10);
+      if (Number.isFinite(n) && n >= 1 && n <= 6) return n;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(PASSENGER_COUNT_STORAGE_KEY);
+        const n = raw ? parseInt(raw, 10) : NaN;
+        if (Number.isFinite(n) && n >= 1 && n <= 6) return n;
+      } catch { /* ignore */ }
+    }
+    return 1;
+  });
   const [billToOrg, setBillToOrg] = useState(false);
   const [poNumber, setPoNumber] = useState("");
   const [costCenter, setCostCenter] = useState("");
@@ -103,6 +118,14 @@ export const useRideBookingState = () => {
       }
     }
   }, []);
+
+  // Persist passengerCount so it carries across the booking flow and back to /ride.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(PASSENGER_COUNT_STORAGE_KEY, String(passengerCount));
+    } catch { /* ignore */ }
+  }, [passengerCount]);
 
   // Persist stops back to URL on change so refresh / back-nav preserves them.
   // Only fully geocoded stops are serialised.

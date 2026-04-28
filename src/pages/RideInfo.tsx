@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import PassengerCountPicker from "@/components/rider/PassengerCountPicker";
+import { usePassengerCount } from "@/hooks/usePassengerCount";
+import { useSearchParams } from "react-router-dom";
 
 const BASE_FARE = 8.20;
 const PER_KM = 3.00;
@@ -14,7 +16,19 @@ const VAN_SURCHARGE = 6.00;
 const GST_RATE = 0.05;
 
 const RideInfo = () => {
-  const [passengers, setPassengers] = useState(2);
+  const [searchParams] = useSearchParams();
+  const [passengers, setPassengers] = usePassengerCount(2);
+
+  // Hydrate from ?passengers= URL param if present (e.g. deep links).
+  useEffect(() => {
+    const p = searchParams.get("passengers");
+    if (!p) return;
+    const parsed = parseInt(p, 10);
+    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 6) {
+      setPassengers(parsed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const { taxiTotal, pickyouTotal, vanApplied } = useMemo(() => {
     const subtotal = BASE_FARE + PER_KM * SAMPLE_KM;

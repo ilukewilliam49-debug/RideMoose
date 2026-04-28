@@ -22,6 +22,7 @@ import {
   type RecentKind,
 } from "@/hooks/useRecentLocations";
 import PassengerCountPicker from "@/components/rider/PassengerCountPicker";
+import { usePassengerCount } from "@/hooks/usePassengerCount";
 
 const YellowknifeMap = lazy(() => import("./YellowknifeMap"));
 
@@ -187,7 +188,7 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
   const { t } = useTranslation();
   const [pickup, setPickup] = useState<LocationValue>({ description: "" });
   const [dropoff, setDropoff] = useState<LocationValue>({ description: "" });
-  const [passengers, setPassengers] = useState<number>(1);
+  const [passengers, setPassengers] = usePassengerCount(1);
 
   const submit = () => onSubmit(pickup, dropoff, passengers);
 
