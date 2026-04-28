@@ -234,6 +234,7 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
     unmount();
     cleanup();
     toastError.mockClear();
+    toastSuccess.mockClear();
     renderPage();
 
     // Wait for the restore effect to complete and land on Step 4.
