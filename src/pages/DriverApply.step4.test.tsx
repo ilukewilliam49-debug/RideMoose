@@ -234,7 +234,6 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
     unmount();
     cleanup();
     toastError.mockClear();
-    toastSuccess.mockClear();
     renderPage();
 
     // Wait for the restore effect to complete and land on Step 4.
@@ -242,6 +241,11 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
     await screen.findByText(/review your application/i);
     expect(screen.getByText(/step 4 of 4/i)).toBeInTheDocument();
     expect(screen.getByText(/re-attach 3 files/i)).toBeInTheDocument();
+
+    // Clear toast spies AFTER restore (which fires a success toast) so we
+    // can isolate any toasts triggered by the Submit click below.
+    toastError.mockClear();
+    toastSuccess.mockClear();
 
     // Click Submit on the restored Review screen.
     const submitBtn = screen.getByRole("button", {
