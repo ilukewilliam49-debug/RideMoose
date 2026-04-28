@@ -100,9 +100,8 @@ describe("DriverApply — Step 2 (Vehicle & Tier) persistence + validation", () 
     renderPage();
     await fillStepOneAndAdvance();
 
-    fireEvent.click(screen.getByLabelText(/^pickyou$/i, { selector: "button" }).closest("label")!);
-    // Click the radio item directly via its accessible role/name.
-    // (The label is wrapped around the RadioGroupItem; clicking the label toggles it.)
+    const pickyouRadio = document.getElementById("tier-pickyou")!;
+    fireEvent.click(pickyouRadio.closest("label")!);
     fireEvent.change(screen.getByLabelText(/make/i), { target: { value: "Toyota" } });
     fireEvent.change(screen.getByLabelText(/model/i), { target: { value: "Camry" } });
     fireEvent.change(screen.getByLabelText(/year/i), {
