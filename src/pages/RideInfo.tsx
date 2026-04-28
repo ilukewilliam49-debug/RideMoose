@@ -16,19 +16,35 @@ const VAN_SURCHARGE = 6.00;
 const GST_RATE = 0.05;
 
 const RideInfo = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [passengers, setPassengers] = usePassengerCount(2);
 
-  // Hydrate from ?passengers= URL param if present (e.g. deep links).
+  // Hydrate from ?passengers= on mount and on back/forward navigation
+  // (useSearchParams updates when the URL changes via popstate).
   useEffect(() => {
     const p = searchParams.get("passengers");
     if (!p) return;
     const parsed = parseInt(p, 10);
-    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 6) {
+    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 6 && parsed !== passengers) {
       setPassengers(parsed);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Reflect passenger changes back into the URL so back/forward restores state
+  // and the value can be shared/deep-linked. Uses replace to avoid history spam
+  // on initial hydration, push when the user actively changes the count.
+  useEffect(() => {
+    const current = searchParams.get("passengers");
+    const next = String(passengers);
+    if (current === next) return;
+    const params = new URLSearchParams(searchParams);
+    params.set("passengers", next);
+    // push so back/forward navigates between distinct counts
+    setSearchParams(params, { replace: !current });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passengers]);
+
 
   const { taxiTotal, pickyouTotal, vanApplied } = useMemo(() => {
     const subtotal = BASE_FARE + PER_KM * SAMPLE_KM;
