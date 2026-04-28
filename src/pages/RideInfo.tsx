@@ -8,6 +8,7 @@ import LandingFooter from "@/components/landing/LandingFooter";
 import PassengerCountPicker from "@/components/rider/PassengerCountPicker";
 import { usePassengerCount } from "@/hooks/usePassengerCount";
 import { useSearchParams } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 
 const BASE_FARE = 8.20;
 const PER_KM = 3.00;
