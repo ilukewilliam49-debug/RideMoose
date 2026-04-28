@@ -29,6 +29,7 @@ import { useTranslation } from "react-i18next";
 
 import LandingNav from "@/components/landing/LandingNav";
 import LandingHero, { type LandingTab } from "@/components/landing/LandingHero";
+import PlacesConfigBanner from "@/components/landing/PlacesConfigBanner";
 import LandingDriver from "@/components/landing/LandingDriver";
 import LandingFooter from "@/components/landing/LandingFooter";
 import RideMap from "@/components/map/MapContainer";
