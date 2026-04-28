@@ -21,6 +21,7 @@ import {
   type RecentLocation,
   type RecentKind,
 } from "@/hooks/useRecentLocations";
+import PassengerCountPicker from "@/components/rider/PassengerCountPicker";
 
 const YellowknifeMap = lazy(() => import("./YellowknifeMap"));
 
@@ -58,7 +59,7 @@ const LandingHero = () => {
   }, [tab]);
 
   const handleBookingSubmit = useCallback(
-    (pickup?: LocationValue, dropoff?: LocationValue) => {
+    (pickup?: LocationValue, dropoff?: LocationValue, passengers?: number) => {
       // Persist any concrete selections as recent so they appear next visit.
       // Authenticated users sync via Supabase; guests fall back to localStorage.
       if (pickup?.description) {
@@ -87,6 +88,9 @@ const LandingHero = () => {
       if (dropoff?.lat != null && dropoff?.lng != null) {
         params.set("dropoffLat", String(dropoff.lat));
         params.set("dropoffLng", String(dropoff.lng));
+      }
+      if (passengers && passengers > 0) {
+        params.set("passengers", String(passengers));
       }
       navigate(`/login?${params.toString()}`);
     },
@@ -174,15 +178,18 @@ type LocationValue = {
 
 type RideCardProps = {
   pickupRef: React.RefObject<HTMLInputElement>;
-  onSubmit: (pickup?: LocationValue, dropoff?: LocationValue) => void;
+  onSubmit: (pickup?: LocationValue, dropoff?: LocationValue, passengers?: number) => void;
 };
+
+const VAN_SURCHARGE = 6.0;
 
 const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
   const { t } = useTranslation();
   const [pickup, setPickup] = useState<LocationValue>({ description: "" });
   const [dropoff, setDropoff] = useState<LocationValue>({ description: "" });
+  const [passengers, setPassengers] = useState<number>(1);
 
-  const submit = () => onSubmit(pickup, dropoff);
+  const submit = () => onSubmit(pickup, dropoff, passengers);
 
   return (
     <motion.div
@@ -226,6 +233,18 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
             />
           }
         />
+      </div>
+
+      <div className="mt-4">
+        <PassengerCountPicker value={passengers} onChange={setPassengers} max={6} />
+        {passengers >= 5 && (
+          <p className="mt-2 text-[11px] text-amber-600">
+            {t(
+              "landing.vanSurchargeNote",
+              `Van price applied: +$${VAN_SURCHARGE.toFixed(2)} for groups of 5–6.`
+            )}
+          </p>
+        )}
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
