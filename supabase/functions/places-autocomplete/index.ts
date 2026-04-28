@@ -20,7 +20,13 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
     if (!apiKey) {
-      throw new Error("GOOGLE_MAPS_API_KEY not configured");
+      return new Response(
+        JSON.stringify({
+          error: "GOOGLE_MAPS_API_KEY not configured",
+          code: "MISSING_API_KEY",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Bias results to Northwest Territories (centered on Yellowknife)
@@ -40,7 +46,22 @@ serve(async (req) => {
 
     if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
       console.error("Google Places API error:", data.status, data.error_message);
-      throw new Error(`Google Places API error: ${data.status}`);
+      // Map Google's auth/billing failure modes to a stable client-facing code
+      const authStatuses = new Set([
+        "REQUEST_DENIED",
+        "INVALID_REQUEST",
+        "OVER_QUERY_LIMIT",
+        "OVER_DAILY_LIMIT",
+      ]);
+      const code = authStatuses.has(data.status) ? "INVALID_API_KEY" : "UPSTREAM_ERROR";
+      return new Response(
+        JSON.stringify({
+          error: `Google Places API error: ${data.status}`,
+          details: data.error_message ?? null,
+          code,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Filter to only NT results
@@ -59,10 +80,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("Error:", (error as Error).message);
+    return new Response(
+      JSON.stringify({ error: (error as Error).message, code: "UNKNOWN" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
