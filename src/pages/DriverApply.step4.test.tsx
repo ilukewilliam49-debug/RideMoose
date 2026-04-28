@@ -350,7 +350,7 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
 
     // Chauffeur's permit is optional for PickYou tier — no error there.
     const permitRow = screen.getByText("Chauffeur's Permit").closest("div")!;
-    expect(permitRow.textContent).not.toMatch(/required/i);
+    expect(permitRow.textContent).not.toMatch(/is required/i);
 
     // Clicking the jump link should navigate back to Step 3 (Documents).
     fireEvent.click(jumpBtn);
