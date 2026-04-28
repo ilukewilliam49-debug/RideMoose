@@ -123,7 +123,7 @@ describe("DriverApply — Step 3 submission flips verification status from pendi
     // Step indicator should show "Step 3 of 4 · Documents" and the Submit
     // button should NOT yet be visible (Continue still controls flow).
     expect(screen.getByText(/step 3 of 4/i)).toBeInTheDocument();
-    expect(screen.getByText(/· documents/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Documents$/)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /submit application/i }),
     ).not.toBeInTheDocument();
