@@ -196,6 +196,29 @@ describe("DriverApply — Step 2 (Vehicle & Tier) persistence + validation", () 
     const restoredPickyou = document.getElementById("tier-pickyou")!;
     expect(restoredPickyou.getAttribute("aria-checked")).not.toBe("true");
 
+    // Strict equality check: restored UI state must match the mocked cloud row
+    // exactly across tier + vehicle fields, before any further interaction.
+    const cloudRow = cloudStore.get("user-driver-step2");
+    expect(cloudRow).toBeTruthy();
+    const restoredState = {
+      tier:
+        document.getElementById("tier-taxi")?.getAttribute("aria-checked") === "true"
+          ? "taxi"
+          : document.getElementById("tier-pickyou")?.getAttribute("aria-checked") ===
+              "true"
+            ? "pickyou"
+            : null,
+      vehicle_make: (screen.getByLabelText(/make/i) as HTMLInputElement).value,
+      vehicle_model: (screen.getByLabelText(/model/i) as HTMLInputElement).value,
+      vehicle_year: (screen.getByLabelText(/year/i) as HTMLInputElement).value,
+    };
+    expect(restoredState).toEqual({
+      tier: cloudRow.form.tier,
+      vehicle_make: cloudRow.form.vehicle_make,
+      vehicle_model: cloudRow.form.vehicle_model,
+      vehicle_year: cloudRow.form.vehicle_year,
+    });
+
     // Restoration banner present, and not in cloud-error state.
     expect(screen.getByText(/draft auto-saved/i)).toBeInTheDocument();
     expect(screen.queryByText(/cloud sync failed/i)).not.toBeInTheDocument();
