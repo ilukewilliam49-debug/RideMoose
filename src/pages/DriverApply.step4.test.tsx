@@ -284,4 +284,81 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
     // Cloud draft must still exist — submission was not finalized.
     expect(cloudStore.has("user-driver-step4")).toBe(true);
   }, 20000);
+
+  it("renders inline field-level errors and the top error banner with the Documents jump link after Submit on a restored Step 4", async () => {
+    const { unmount } = renderPage();
+    await fillThroughStep4();
+
+    await waitFor(
+      () => {
+        const last = upsertSpy.mock.calls.at(-1)?.[0];
+        expect(last?.step).toBe(3);
+        expect(last?.file_names?.drivers_license).toBe("license.pdf");
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // ---- Simulate reload ----
+    unmount();
+    cleanup();
+    toastError.mockClear();
+    toastSuccess.mockClear();
+    renderPage();
+
+    // Wait for restore + land on Step 4.
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
+    await screen.findByText(/review your application/i);
+
+    // No errors should be visible before Submit is clicked.
+    expect(
+      screen.queryByText(/driver's license is required/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/required documents are missing/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /go to documents to re-attach/i }),
+    ).not.toBeInTheDocument();
+
+    // Click Submit — validation should fail because no blobs are present.
+    fireEvent.click(
+      screen.getByRole("button", { name: /submit application/i }),
+    );
+
+    // Top error banner appears with the count and Documents jump link.
+    const bannerHeading = await screen.findByText(
+      /3 required documents are missing/i,
+    );
+    const banner = bannerHeading.closest("[role='alert']") as HTMLElement;
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toMatch(/driver's license is required/i);
+    expect(banner.textContent).toMatch(/vehicle registration is required/i);
+    expect(banner.textContent).toMatch(/proof of insurance is required/i);
+
+    const jumpBtn = screen.getByRole("button", {
+      name: /go to documents to re-attach/i,
+    });
+    expect(jumpBtn).toBeInTheDocument();
+
+    // Inline per-row field-level errors render on each missing document row.
+    const dlRow = screen.getByText("Driver's License").closest("div")!;
+    expect(dlRow.textContent).toMatch(/driver's license is required/i);
+    const regRow = screen.getByText("Registration").closest("div")!;
+    expect(regRow.textContent).toMatch(/vehicle registration is required/i);
+    const insRow = screen.getByText("Insurance").closest("div")!;
+    expect(insRow.textContent).toMatch(/proof of insurance is required/i);
+
+    // Chauffeur's permit is optional for PickYou tier — no error there.
+    const permitRow = screen.getByText("Chauffeur's Permit").closest("div")!;
+    expect(permitRow.textContent).not.toMatch(/is required/i);
+
+    // Clicking the jump link should navigate back to Step 3 (Documents).
+    fireEvent.click(jumpBtn);
+    await screen.findByText(/step 3 of 4/i);
+    expect(
+      screen.queryByText(/review your application/i),
+    ).not.toBeInTheDocument();
+    // The Documents step should expose the file inputs again.
+    expect(document.getElementById("drivers_license")).toBeInTheDocument();
+  }, 20000);
 });
