@@ -186,9 +186,47 @@ const VAN_SURCHARGE = 6.0;
 
 const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [pickup, setPickup] = useState<LocationValue>({ description: "" });
   const [dropoff, setDropoff] = useState<LocationValue>({ description: "" });
   const [passengers, setPassengers] = usePassengerCount(1);
+  const [clampNotice, setClampNotice] = useState<{ original: string; clamped: number } | null>(null);
+
+  // Hydrate from ?passengers= on mount + back/forward; clamp invalid values.
+  useEffect(() => {
+    const raw = searchParams.get("passengers");
+    if (raw === null) return;
+    const trimmed = raw.trim();
+    const isInt = /^-?\d+$/.test(trimmed);
+    const parsed = parseInt(trimmed, 10);
+    const valid = isInt && Number.isFinite(parsed) && parsed >= 1 && parsed <= 6;
+    if (valid) {
+      if (parsed !== passengers) setPassengers(parsed);
+      setClampNotice(null);
+    } else {
+      const clamped = isInt && Number.isFinite(parsed)
+        ? Math.min(6, Math.max(1, parsed))
+        : 1;
+      setPassengers(clamped);
+      setClampNotice({ original: raw, clamped });
+      const params = new URLSearchParams(searchParams);
+      params.set("passengers", String(clamped));
+      setSearchParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Sync URL from state when user changes the picker (only if param already present,
+  // to avoid polluting the homepage URL for users who didn't deep-link).
+  useEffect(() => {
+    const current = searchParams.get("passengers");
+    if (current === null) return;
+    if (current === String(passengers)) return;
+    const params = new URLSearchParams(searchParams);
+    params.set("passengers", String(passengers));
+    setSearchParams(params, { replace: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passengers]);
 
   const submit = () => onSubmit(pickup, dropoff, passengers);
 
@@ -238,6 +276,18 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
 
       <div className="mt-4">
         <PassengerCountPicker value={passengers} onChange={setPassengers} max={6} />
+        {clampNotice && (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300"
+          >
+            {t(
+              "landing.passengersClamped",
+              `Passenger count "${clampNotice.original}" is out of range. Adjusted to ${clampNotice.clamped} (allowed 1–6).`
+            )}
+          </p>
+        )}
         {passengers >= 5 && (
           <p className="mt-2 text-[11px] text-amber-600">
             {t(
@@ -247,6 +297,7 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
           </p>
         )}
       </div>
+
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
