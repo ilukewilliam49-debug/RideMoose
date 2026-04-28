@@ -135,7 +135,8 @@ describe("DriverApply — Step 2 (Vehicle & Tier) persistence + validation", () 
       target: { value: String(validYear) },
     });
 
-    // Wait for debounced (800ms) cloud upsert.
+    // Wait for the debounced (800ms) cloud upsert to flush with the LATEST
+    // values — not just an earlier intermediate save from the tier click.
     await waitFor(
       () => {
         const last = upsertSpy.mock.calls.at(-1)?.[0];
@@ -146,23 +147,44 @@ describe("DriverApply — Step 2 (Vehicle & Tier) persistence + validation", () 
         // Step index for Vehicle & Tier is 1.
         expect(last?.step).toBe(1);
       },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // And the UI must reflect the synced state before we tear down.
+    await waitFor(
+      () => {
+        expect(screen.getByText(/synced to your account/i)).toBeInTheDocument();
+      },
       { timeout: 3000 },
     );
 
-    await waitFor(() => {
-      expect(screen.getByText(/synced to your account/i)).toBeInTheDocument();
-    });
+    // Confirm what's actually in the mocked cloud store before "reloading".
+    const stored = cloudStore.get("user-driver-step2");
+    expect(stored?.form?.vehicle_year).toBe(String(validYear));
+    expect(stored?.step).toBe(1);
 
     // ---- Simulate reload ----
     unmount();
     cleanup();
     renderPage();
 
-    // Should land back on Step 2 with all fields restored from the cloud row.
+    // Wait for the async restore effect to:
+    //   1. Read the cloud row,
+    //   2. Set step back to 1 (so Step 2 fields render), and
+    //   3. Hydrate the form state.
+    // The "Draft auto-saved" banner only renders once draftSavedAt is set,
+    // which happens at the end of the restore effect — perfect signal.
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
     await screen.findByText(/which tier are you applying for\?/i);
-    await waitFor(() => {
-      expect((screen.getByLabelText(/make/i) as HTMLInputElement).value).toBe("Toyota");
-    });
+
+    await waitFor(
+      () => {
+        expect((screen.getByLabelText(/make/i) as HTMLInputElement).value).toBe(
+          "Toyota",
+        );
+      },
+      { timeout: 3000, interval: 50 },
+    );
     expect((screen.getByLabelText(/model/i) as HTMLInputElement).value).toBe("Camry");
     expect((screen.getByLabelText(/year/i) as HTMLInputElement).value).toBe(
       String(validYear),
