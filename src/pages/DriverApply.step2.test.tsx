@@ -227,4 +227,173 @@ describe("DriverApply — Step 2 (Vehicle & Tier) persistence + validation", () 
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await screen.findByLabelText(/driver's license/i);
   }, 15000);
+
+  it("highlights ALL Step 2 inline errors after a reload that lands on an empty Vehicle & Tier screen", async () => {
+    const { unmount } = renderPage();
+    await fillStepOneAndAdvance();
+
+    // We're on Step 2 with NO vehicle fields filled. The debounced auto-save
+    // should still flush a cloud row with step=1 (form has step-1 contact data
+    // so isFormEmpty is false).
+    await waitFor(
+      () => {
+        const last = upsertSpy.mock.calls.at(-1)?.[0];
+        expect(last?.step).toBe(1);
+        expect(last?.form?.full_name).toBe("Alex Driver");
+        expect(last?.form?.tier).toBe("");
+        expect(last?.form?.vehicle_make).toBe("");
+        expect(last?.form?.vehicle_model).toBe("");
+        expect(last?.form?.vehicle_year).toBe("");
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // ---- Simulate reload ----
+    unmount();
+    cleanup();
+    toastError.mockClear();
+    renderPage();
+
+    // Restore lands us back on Step 2.
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
+    await screen.findByText(/which tier are you applying for\?/i);
+    expect(screen.getByText(/step 2 of 4/i)).toBeInTheDocument();
+
+    // No errors visible before Continue is clicked.
+    expect(screen.queryByText(/choose a tier/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^required$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/enter a year/i)).not.toBeInTheDocument();
+
+    // Click Continue with all Step 2 fields empty.
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    // Inline tier error.
+    await screen.findByText(/choose a tier/i);
+
+    // Make + model render the literal "Required" message via Zod min(...).
+    const requiredMessages = screen.getAllByText(/^required$/i);
+    expect(requiredMessages.length).toBeGreaterThanOrEqual(2);
+
+    // Year is empty -> Number("") = NaN -> "Enter a year" message.
+    expect(screen.getByText(/enter a year/i)).toBeInTheDocument();
+
+    // a11y: each invalid field input is marked aria-invalid="true".
+    expect(
+      (screen.getByLabelText(/make/i) as HTMLInputElement).getAttribute(
+        "aria-invalid",
+      ),
+    ).toBe("true");
+    expect(
+      (screen.getByLabelText(/model/i) as HTMLInputElement).getAttribute(
+        "aria-invalid",
+      ),
+    ).toBe("true");
+    expect(
+      (screen.getByLabelText(/year/i) as HTMLInputElement).getAttribute(
+        "aria-invalid",
+      ),
+    ).toBe("true");
+
+    // Toast error fires telling the user to fix the highlighted fields.
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith(
+        "Please correct the highlighted fields",
+      );
+    });
+
+    // Form must NOT have advanced to Step 3 (Documents).
+    expect(screen.getByText(/step 2 of 4/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/driver's license/i)).not.toBeInTheDocument();
+  }, 15000);
+
+  it("highlights only the missing Step 2 fields after a reload that lands on a partially-filled Vehicle & Tier screen", async () => {
+    const { unmount } = renderPage();
+    await fillStepOneAndAdvance();
+
+    // Fill ONLY tier + make. Leave model + year empty.
+    fireEvent.click(document.getElementById("tier-pickyou")!.closest("label")!);
+    fireEvent.change(screen.getByLabelText(/make/i), {
+      target: { value: "Toyota" },
+    });
+
+    await waitFor(
+      () => {
+        const last = upsertSpy.mock.calls.at(-1)?.[0];
+        expect(last?.step).toBe(1);
+        expect(last?.form?.tier).toBe("pickyou");
+        expect(last?.form?.vehicle_make).toBe("Toyota");
+        expect(last?.form?.vehicle_model).toBe("");
+        expect(last?.form?.vehicle_year).toBe("");
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // ---- Simulate reload ----
+    unmount();
+    cleanup();
+    toastError.mockClear();
+    renderPage();
+
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
+    await screen.findByText(/which tier are you applying for\?/i);
+
+    // Restored values.
+    expect((screen.getByLabelText(/make/i) as HTMLInputElement).value).toBe(
+      "Toyota",
+    );
+    expect((screen.getByLabelText(/model/i) as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText(/year/i) as HTMLInputElement).value).toBe("");
+
+    // Click Continue — should fail validation on model + year only.
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    // Model + year missing → inline errors visible.
+    await screen.findByText(/enter a year/i);
+    const requiredMessages = screen.getAllByText(/^required$/i);
+    // Exactly one "Required" (model). Make is filled, so make has none.
+    expect(requiredMessages).toHaveLength(1);
+
+    // Tier was satisfied, so no "Choose a tier" error.
+    expect(screen.queryByText(/choose a tier/i)).not.toBeInTheDocument();
+
+    // Make is valid → not marked aria-invalid.
+    expect(
+      (screen.getByLabelText(/make/i) as HTMLInputElement).getAttribute(
+        "aria-invalid",
+      ),
+    ).not.toBe("true");
+
+    // Model + year are invalid.
+    expect(
+      (screen.getByLabelText(/model/i) as HTMLInputElement).getAttribute(
+        "aria-invalid",
+      ),
+    ).toBe("true");
+    expect(
+      (screen.getByLabelText(/year/i) as HTMLInputElement).getAttribute(
+        "aria-invalid",
+      ),
+    ).toBe("true");
+
+    // Did NOT advance.
+    expect(screen.getByText(/step 2 of 4/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/driver's license/i)).not.toBeInTheDocument();
+
+    // Filling the missing fields and clicking Continue should now advance,
+    // and the previously-shown errors must clear.
+    fireEvent.change(screen.getByLabelText(/model/i), {
+      target: { value: "Camry" },
+    });
+    fireEvent.change(screen.getByLabelText(/year/i), {
+      target: { value: String(MIN_VEHICLE_YEAR + 2) },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/^required$/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/enter a year/i)).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByLabelText(/driver's license/i);
+  }, 15000);
 });
