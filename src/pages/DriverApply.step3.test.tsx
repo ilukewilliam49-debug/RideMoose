@@ -204,4 +204,207 @@ describe("DriverApply — Step 3 (Documents) persistence + verification UI", () 
     expect(screen.getByText("license-v2.pdf")).toBeInTheDocument();
     expect(screen.queryByText(/cloud sync failed/i)).not.toBeInTheDocument();
   }, 20000);
+
+  it("shows inline required-document errors after reload on Step 3 (PickYou tier — chauffeur's permit stays optional)", async () => {
+    const { unmount } = renderPage();
+    await fillStepsOneAndTwo();
+
+    // Upload all three required documents on Step 3 so the cloud row pins us
+    // here after reload (file_names present, step=2).
+    fireEvent.change(
+      document.getElementById("drivers_license") as HTMLInputElement,
+      { target: { files: [makeFile("license.pdf")] } },
+    );
+    fireEvent.change(
+      document.getElementById("vehicle_registration") as HTMLInputElement,
+      { target: { files: [makeFile("registration.pdf")] } },
+    );
+    fireEvent.change(
+      document.getElementById("proof_of_insurance") as HTMLInputElement,
+      { target: { files: [makeFile("insurance.pdf")] } },
+    );
+
+    await waitFor(
+      () => {
+        const last = upsertSpy.mock.calls.at(-1)?.[0];
+        expect(last?.step).toBe(2);
+        expect(last?.file_names?.drivers_license).toBe("license.pdf");
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // ---- Simulate reload ----
+    unmount();
+    cleanup();
+    renderPage();
+
+    // Restored on Step 3 — file blobs are gone but file_names persisted.
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
+    await screen.findByLabelText(/driver's license/i);
+    expect(screen.getByText(/step 3 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/re-attach 3 files/i)).toBeInTheDocument();
+
+    // No inline errors should be visible before the user attempts to continue.
+    expect(
+      screen.queryByText(/driver's license is required/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/vehicle registration is required/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/proof of insurance is required/i),
+    ).not.toBeInTheDocument();
+
+    // Click Continue — validation must fail because no blobs are attached.
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    // Inline per-field errors render for each missing required document.
+    await screen.findByText(/driver's license is required/i);
+    expect(
+      screen.getByText(/vehicle registration is required/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/proof of insurance is required/i),
+    ).toBeInTheDocument();
+
+    // The driver's license input must be marked invalid for a11y.
+    const dlInput = document.getElementById("drivers_license") as HTMLInputElement;
+    expect(dlInput.getAttribute("aria-invalid")).toBe("true");
+    const regInput = document.getElementById(
+      "vehicle_registration",
+    ) as HTMLInputElement;
+    expect(regInput.getAttribute("aria-invalid")).toBe("true");
+    const insInput = document.getElementById(
+      "proof_of_insurance",
+    ) as HTMLInputElement;
+    expect(insInput.getAttribute("aria-invalid")).toBe("true");
+
+    // Chauffeur's permit is OPTIONAL on the PickYou tier — it must NOT be
+    // marked required, must NOT show an error, and must NOT be aria-invalid.
+    expect(
+      screen.queryByText(/chauffeur's permit is required/i),
+    ).not.toBeInTheDocument();
+    const permitInput = document.getElementById(
+      "chauffeurs_permit",
+    ) as HTMLInputElement;
+    expect(permitInput.getAttribute("aria-invalid")).not.toBe("true");
+    // The "(optional)" tag must be visible next to the Chauffeur's Permit label.
+    const permitLabel = screen.getByText(/chauffeur's permit/i).closest("label");
+    expect(permitLabel?.textContent).toMatch(/\(optional\)/i);
+
+    // We should still be on Step 3 — the form did not advance to Review.
+    expect(screen.getByText(/step 3 of 4/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/review your application/i),
+    ).not.toBeInTheDocument();
+
+    // Re-attach the driver's license — its inline error must clear immediately,
+    // while the other two errors remain visible.
+    fireEvent.change(dlInput, {
+      target: { files: [makeFile("license-fresh.pdf")] },
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/driver's license is required/i),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(/vehicle registration is required/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/proof of insurance is required/i),
+    ).toBeInTheDocument();
+  }, 20000);
+
+  it("marks chauffeur's permit as a required document on the Taxi tier after reload on Step 3", async () => {
+    const { unmount } = renderPage();
+
+    // Step 1
+    const fullName = await screen.findByLabelText(/full name/i);
+    await new Promise((r) => setTimeout(r, 50));
+    fireEvent.change(fullName, { target: { value: "Tara Taxi" } });
+    fireEvent.change(screen.getByLabelText(/^email$/i), {
+      target: { value: "tara@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/phone number/i), {
+      target: { value: "(867) 555-0123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    // Step 2 — Taxi tier (chauffeur's permit becomes required).
+    await screen.findByText(/which tier are you applying for\?/i);
+    fireEvent.click(document.getElementById("tier-taxi")!.closest("label")!);
+    fireEvent.change(screen.getByLabelText(/make/i), { target: { value: "Ford" } });
+    fireEvent.change(screen.getByLabelText(/model/i), { target: { value: "Escape" } });
+    fireEvent.change(screen.getByLabelText(/year/i), {
+      target: { value: String(MIN_VEHICLE_YEAR + 3) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    // Step 3 — upload all 4 required documents (taxi includes chauffeur's permit).
+    await screen.findByLabelText(/driver's license/i);
+    fireEvent.change(
+      document.getElementById("drivers_license") as HTMLInputElement,
+      { target: { files: [makeFile("license.pdf")] } },
+    );
+    fireEvent.change(
+      document.getElementById("vehicle_registration") as HTMLInputElement,
+      { target: { files: [makeFile("registration.pdf")] } },
+    );
+    fireEvent.change(
+      document.getElementById("proof_of_insurance") as HTMLInputElement,
+      { target: { files: [makeFile("insurance.pdf")] } },
+    );
+    fireEvent.change(
+      document.getElementById("chauffeurs_permit") as HTMLInputElement,
+      { target: { files: [makeFile("permit.pdf")] } },
+    );
+
+    await waitFor(
+      () => {
+        const last = upsertSpy.mock.calls.at(-1)?.[0];
+        expect(last?.step).toBe(2);
+        expect(last?.form?.tier).toBe("taxi");
+        expect(last?.file_names?.chauffeurs_permit).toBe("permit.pdf");
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // ---- Simulate reload ----
+    unmount();
+    cleanup();
+    renderPage();
+
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
+    await screen.findByLabelText(/driver's license/i);
+    expect(screen.getByText(/step 3 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/re-attach 4 files/i)).toBeInTheDocument();
+
+    // The chauffeur's permit label must NOT show "(optional)" on the Taxi tier.
+    const permitLabel = screen.getByText(/chauffeur's permit/i).closest("label");
+    expect(permitLabel?.textContent || "").not.toMatch(/\(optional\)/i);
+
+    // Click Continue — all 4 required document errors should appear inline,
+    // including the chauffeur's permit since the user is on the Taxi tier.
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    await screen.findByText(/driver's license is required/i);
+    expect(
+      screen.getByText(/vehicle registration is required/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/proof of insurance is required/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/chauffeur's permit is required for taxi tier/i),
+    ).toBeInTheDocument();
+
+    const permitInput = document.getElementById(
+      "chauffeurs_permit",
+    ) as HTMLInputElement;
+    expect(permitInput.getAttribute("aria-invalid")).toBe("true");
+
+    // Still on Step 3.
+    expect(screen.getByText(/step 3 of 4/i)).toBeInTheDocument();
+  }, 20000);
 });
