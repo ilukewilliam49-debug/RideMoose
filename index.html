@@ -8,6 +8,15 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
 
+    <!-- Security headers (delivered via <meta http-equiv> for static hosting).
+         X-Frame-Options is not honored in <meta> per spec, so we use the
+         modern CSP `frame-ancestors 'none'` directive which provides the
+         same click-jacking protection. The Vite dev server also sets the
+         real HTTP header X-Frame-Options: DENY (see vite.config.ts). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' blob: https:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https:;" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
     <title>PickYou — Yellowknife Taxi, Airport Transfer &amp; Courier Service</title>
     <meta
       name="description"

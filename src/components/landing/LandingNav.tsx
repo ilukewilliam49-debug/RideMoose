@@ -101,6 +101,14 @@ const LandingNav = () => {
             <LanguageSwitcher collapsed />
             <Button
               size="sm"
+              variant="ghost"
+              className="rounded-full px-2.5 text-[11px] font-bold sm:px-4 sm:text-xs"
+              onClick={() => navigate("/login")}
+            >
+              {t("nav.logIn", "Log in")}
+            </Button>
+            <Button
+              size="sm"
               className="rounded-full px-2.5 text-[11px] font-bold sm:px-5 sm:text-xs"
               onClick={() => navigate("/login")}
             >

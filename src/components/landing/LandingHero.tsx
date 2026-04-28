@@ -100,6 +100,22 @@ const LandingHero = () => {
 
   return (
     <section className="relative">
+      {/* ── Hero headline band — sits above the map on every breakpoint ── */}
+      <div className="border-b border-border/40 bg-background">
+        <div className="mx-auto max-w-7xl px-4 py-6 text-center sm:px-5 md:py-10 lg:px-8 lg:text-left">
+          <h1 className="text-balance text-2xl font-black tracking-tight text-foreground sm:text-3xl md:text-4xl lg:text-5xl">
+            Your Ride. Your Choice.{" "}
+            <span className="text-primary">
+              Yellowknife&rsquo;s Premier Taxi &amp; Courier App.
+            </span>
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base lg:mx-0">
+            Book a metered taxi or independent PickYou driver in seconds — or
+            send a courier across town. Local, fast, and fair.
+          </p>
+        </div>
+      </div>
+
       {/* ── Mobile layout: stacked (map on top, booking card below) ──
           The map gets a bounded height so it stays fully visible, and the
           card flows in normal document flow underneath it instead of being

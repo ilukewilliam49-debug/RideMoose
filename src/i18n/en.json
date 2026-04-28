@@ -17,7 +17,8 @@
     "ride": "Ride",
     "drive": "Drive",
     "business": "Business",
-    "signUp": "Sign up"
+    "signUp": "Sign up",
+    "logIn": "Log in"
   },
   "landing": {
     "badge": "Your Ride. Your Choice.",

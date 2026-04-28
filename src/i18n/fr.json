@@ -17,7 +17,8 @@
     "ride": "Voyager",
     "drive": "Conduire",
     "business": "Entreprise",
-    "signUp": "S'inscrire"
+    "signUp": "S'inscrire",
+    "logIn": "Connexion"
   },
   "landing": {
     "badge": "Votre trajet. Votre choix.",
