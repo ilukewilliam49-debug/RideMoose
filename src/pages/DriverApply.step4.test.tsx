@@ -265,22 +265,21 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
     expect(screen.queryByText(/application received/i)).not.toBeInTheDocument();
     expect(toastSuccess).not.toHaveBeenCalled();
 
-    // The user is bounced back to Step 3 (Documents) with inline validation
-    // errors flagging each missing required document.
-    await screen.findByLabelText(/driver's license/i);
-    expect(screen.getByText(/step 3 of 4/i)).toBeInTheDocument();
-    expect(screen.getByText(/driver's license is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/vehicle registration is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/proof of insurance is required/i)).toBeInTheDocument();
-
-    // Submit is gone (back on Step 3 with Continue), confirming the form
-    // did not advance into the submitted state.
+    // The user remains on Step 4 (Review) — the form did not advance into
+    // the submitted state. The Submit button must still be present and the
+    // "Continue" button (only on prior steps) must not have appeared.
+    expect(screen.getByText(/step 4 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/review your application/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /submit application/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /^continue$/i }),
+      screen.getByRole("button", { name: /submit application/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^continue$/i }),
+    ).not.toBeInTheDocument();
+
+    // The missing-files banner must still be visible, telling the user
+    // exactly which validation gate is blocking submission.
+    expect(screen.getByText(/re-attach 3 files/i)).toBeInTheDocument();
 
     // Cloud draft must still exist — submission was not finalized.
     expect(cloudStore.has("user-driver-step4")).toBe(true);
