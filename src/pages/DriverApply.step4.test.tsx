@@ -215,4 +215,69 @@ describe("DriverApply — Step 4 (Review) reload persistence", () => {
       chauffeurs_permit: null,
     });
   }, 20000);
+
+  it("blocks Submit on the restored Step 4 review when document blobs are missing", async () => {
+    const { unmount } = renderPage();
+    await fillThroughStep4();
+
+    // Wait for the debounced upsert to flush so the cloud row reflects step=3.
+    await waitFor(
+      () => {
+        const last = upsertSpy.mock.calls.at(-1)?.[0];
+        expect(last?.step).toBe(3);
+        expect(last?.file_names?.drivers_license).toBe("license.pdf");
+      },
+      { timeout: 5000, interval: 50 },
+    );
+
+    // ---- Simulate reload ----
+    unmount();
+    cleanup();
+    toastError.mockClear();
+    renderPage();
+
+    // Wait for the restore effect to complete and land on Step 4.
+    await screen.findByText(/draft auto-saved/i, undefined, { timeout: 5000 });
+    await screen.findByText(/review your application/i);
+    expect(screen.getByText(/step 4 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/re-attach 3 files/i)).toBeInTheDocument();
+
+    // Click Submit on the restored Review screen.
+    const submitBtn = screen.getByRole("button", {
+      name: /submit application/i,
+    });
+    expect(submitBtn).toBeEnabled();
+    fireEvent.click(submitBtn);
+
+    // Submission MUST be blocked with the validation error toast.
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith(
+        "Please complete all required fields",
+      );
+    });
+
+    // The success/confirmation screen must NOT have rendered.
+    expect(screen.queryByText(/application received/i)).not.toBeInTheDocument();
+    expect(toastSuccess).not.toHaveBeenCalled();
+
+    // The user is bounced back to Step 3 (Documents) with inline validation
+    // errors flagging each missing required document.
+    await screen.findByLabelText(/driver's license/i);
+    expect(screen.getByText(/step 3 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/driver's license is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/vehicle registration is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/proof of insurance is required/i)).toBeInTheDocument();
+
+    // Submit is gone (back on Step 3 with Continue), confirming the form
+    // did not advance into the submitted state.
+    expect(
+      screen.queryByRole("button", { name: /submit application/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^continue$/i }),
+    ).toBeInTheDocument();
+
+    // Cloud draft must still exist — submission was not finalized.
+    expect(cloudStore.has("user-driver-step4")).toBe(true);
+  }, 20000);
 });
