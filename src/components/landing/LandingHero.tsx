@@ -235,6 +235,18 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
         />
       </div>
 
+      <div className="mt-4">
+        <PassengerCountPicker value={passengers} onChange={setPassengers} max={6} />
+        {passengers >= 5 && (
+          <p className="mt-2 text-[11px] text-amber-600">
+            {t(
+              "landing.vanSurchargeNote",
+              `Van price applied: +$${VAN_SURCHARGE.toFixed(2)} for groups of 5–6.`
+            )}
+          </p>
+        )}
+      </div>
+
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
