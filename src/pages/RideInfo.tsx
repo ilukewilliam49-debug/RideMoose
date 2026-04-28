@@ -145,6 +145,18 @@ const RideInfo = () => {
 
             <PassengerCountPicker value={passengers} onChange={setPassengers} max={6} />
 
+            {clampNotice && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600"
+              >
+                The link's passenger count <strong>“{clampNotice.original}”</strong> isn't valid (must be 1–6).
+                We've set it to <strong>{clampNotice.clamped}</strong>.
+              </div>
+            )}
+
+
             <div className="grid gap-3 sm:grid-cols-2 pt-2">
               <div className="rounded-xl bg-secondary/50 p-4 space-y-1">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">Taxi</p>
