@@ -689,31 +689,85 @@ const DriverApply = () => {
             </div>
           )}
 
-          {step === 3 && (
-            <div className="space-y-4 text-sm">
-              <h2 className="text-lg font-bold">Review your application</h2>
-              <dl className="grid gap-2 rounded-xl bg-background/40 p-4">
-                <Row label="Name" value={form.full_name} />
-                <Row label="Email" value={form.email} />
-                <Row label="Phone" value={form.phone} />
-                <Row label="Tier" value={form.tier === "taxi" ? "Taxi" : "PickYou"} />
-                <Row
-                  label="Vehicle"
-                  value={`${form.vehicle_year} ${form.vehicle_make} ${form.vehicle_model}`}
-                />
-                <Row label="Driver's License" value={form.drivers_license?.name ?? "—"} />
-                <Row label="Registration" value={form.vehicle_registration?.name ?? "—"} />
-                <Row label="Insurance" value={form.proof_of_insurance?.name ?? "—"} />
-                <Row
-                  label="Chauffeur's Permit"
-                  value={form.chauffeurs_permit?.name ?? (form.tier === "pickyou" ? "Not required" : "—")}
-                />
-              </dl>
-              <p className="text-xs text-muted-foreground">
-                By submitting, you confirm the information is accurate. We'll review and email you within 24 hours.
-              </p>
-            </div>
-          )}
+          {step === 3 && (() => {
+            const reviewDocErrors = [
+              errors.drivers_license,
+              errors.vehicle_registration,
+              errors.proof_of_insurance,
+              errors.chauffeurs_permit,
+            ].filter(Boolean) as string[];
+            const goToDocuments = () => setStep(2);
+            return (
+              <div className="space-y-4 text-sm">
+                <h2 className="text-lg font-bold">Review your application</h2>
+
+                {reviewDocErrors.length > 0 && (
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-destructive"
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">
+                          {reviewDocErrors.length === 1
+                            ? "1 required document is missing"
+                            : `${reviewDocErrors.length} required documents are missing`}
+                        </p>
+                        <ul className="ml-4 list-disc space-y-0.5 text-xs">
+                          {reviewDocErrors.map((msg) => (
+                            <li key={msg}>{msg}</li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          onClick={goToDocuments}
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold underline underline-offset-2 hover:opacity-80"
+                        >
+                          Go to Documents to re-attach
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <dl className="grid gap-2 rounded-xl bg-background/40 p-4">
+                  <Row label="Name" value={form.full_name} />
+                  <Row label="Email" value={form.email} />
+                  <Row label="Phone" value={form.phone} />
+                  <Row label="Tier" value={form.tier === "taxi" ? "Taxi" : "PickYou"} />
+                  <Row
+                    label="Vehicle"
+                    value={`${form.vehicle_year} ${form.vehicle_make} ${form.vehicle_model}`}
+                  />
+                  <Row
+                    label="Driver's License"
+                    value={form.drivers_license?.name ?? "—"}
+                    error={errors.drivers_license}
+                  />
+                  <Row
+                    label="Registration"
+                    value={form.vehicle_registration?.name ?? "—"}
+                    error={errors.vehicle_registration}
+                  />
+                  <Row
+                    label="Insurance"
+                    value={form.proof_of_insurance?.name ?? "—"}
+                    error={errors.proof_of_insurance}
+                  />
+                  <Row
+                    label="Chauffeur's Permit"
+                    value={form.chauffeurs_permit?.name ?? (form.tier === "pickyou" ? "Not required" : "—")}
+                    error={errors.chauffeurs_permit}
+                  />
+                </dl>
+                <p className="text-xs text-muted-foreground">
+                  By submitting, you confirm the information is accurate. We'll review and email you within 24 hours.
+                </p>
+              </div>
+            );
+          })()}
 
           <div className="mt-7 flex items-center justify-between gap-3">
             <Button variant="outline" onClick={back} disabled={step === 0 || submitting}>
@@ -736,10 +790,21 @@ const DriverApply = () => {
   );
 };
 
-const Row = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-start justify-between gap-4 border-b border-border/30 py-1.5 last:border-0">
+const Row = ({ label, value, error }: { label: string; value: string; error?: string }) => (
+  <div
+    className={`flex items-start justify-between gap-4 border-b border-border/30 py-1.5 last:border-0 ${
+      error ? "bg-destructive/5 -mx-2 rounded-md px-2" : ""
+    }`}
+  >
     <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
-    <dd className="text-right text-sm font-medium">{value}</dd>
+    <dd className="text-right">
+      <div className={`text-sm font-medium ${error ? "text-destructive" : ""}`}>{value}</div>
+      {error && (
+        <p role="alert" className="mt-0.5 text-[11px] font-medium text-destructive">
+          {error}
+        </p>
+      )}
+    </dd>
   </div>
 );
 
