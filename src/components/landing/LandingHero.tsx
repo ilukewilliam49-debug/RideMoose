@@ -374,9 +374,20 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
         </button>
       </div>
 
+      {validationError && (
+        <p
+          role="alert"
+          aria-live="polite"
+          className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive"
+        >
+          {validationError}
+        </p>
+      )}
+
       <Button
         size="lg"
         onClick={submit}
+        aria-disabled={!canSubmit}
         className="mt-4 h-12 w-full rounded-xl text-sm font-bold"
       >
         {t("landing.requestRide")}
