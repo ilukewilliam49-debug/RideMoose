@@ -244,7 +244,47 @@ const RideCard = ({ pickupRef, onSubmit }: RideCardProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passengers]);
 
-  const submit = () => onSubmit(pickup, dropoff, passengers);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const isValidCoord = (loc: LocationValue) =>
+    loc.description.trim().length > 0 &&
+    typeof loc.lat === "number" &&
+    Number.isFinite(loc.lat) &&
+    typeof loc.lng === "number" &&
+    Number.isFinite(loc.lng);
+
+  const pickupValid = isValidCoord(pickup);
+  const dropoffValid = isValidCoord(dropoff);
+  const canSubmit = pickupValid && dropoffValid;
+
+  const submit = () => {
+    if (!canSubmit) {
+      if (!pickupValid && !dropoffValid) {
+        setValidationError(
+          t(
+            "landing.selectBothFromSuggestions",
+            "Please select both pickup and dropoff from the suggestions list."
+          )
+        );
+      } else if (!pickupValid) {
+        setValidationError(
+          t("landing.selectPickupFromSuggestions", "Please select a pickup address from the suggestions.")
+        );
+      } else {
+        setValidationError(
+          t("landing.selectDropoffFromSuggestions", "Please select a dropoff address from the suggestions.")
+        );
+      }
+      return;
+    }
+    setValidationError(null);
+    onSubmit(pickup, dropoff, passengers);
+  };
+
+  // Clear the error once both inputs become valid again.
+  useEffect(() => {
+    if (canSubmit && validationError) setValidationError(null);
+  }, [canSubmit, validationError]);
 
   return (
     <motion.div
