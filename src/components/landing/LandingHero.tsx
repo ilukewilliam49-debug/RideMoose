@@ -424,25 +424,38 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   const [suggestions, setSuggestions] = useState<Prediction[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorState, setErrorState] = useState<{
+    message: string;
+    attempt: number; // number of attempts made so far (1-based)
+    retrying: boolean;
+  } | null>(null);
   const { recents, addRecent } = useRecentLocations(kind);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastQueryRef = useRef<string>("");
   const containerRef = useRef<HTMLDivElement>(null);
   const reqIdRef = useRef(0);
+
+  const MAX_AUTO_RETRIES = 2;
 
   const showRecents = useMemo(
     () => value.description.trim().length === 0 && recents.length > 0,
     [value.description, recents.length]
   );
 
-  const search = useCallback(async (q: string) => {
+  const search = useCallback(async (q: string, attempt = 1) => {
     const trimmed = q.trim();
     if (trimmed.length < 3) {
       setSuggestions([]);
       setLoading(false);
+      setErrorState(null);
       return;
     }
+    lastQueryRef.current = trimmed;
+    clearTimeout(retryTimerRef.current);
     const myReq = ++reqIdRef.current;
     setLoading(true);
+    if (attempt === 1) setErrorState(null);
     try {
       const { data, error } = await supabase.functions.invoke("places-autocomplete", {
         body: { input: trimmed },
@@ -451,20 +464,50 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
       if (error) throw error;
       const predictions: Prediction[] = data?.predictions || [];
       setSuggestions(predictions);
+      setErrorState(null);
       setOpen(true);
-    } catch {
+    } catch (e) {
       if (myReq !== reqIdRef.current) return;
       setSuggestions([]);
+      const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+      const baseMsg = isOffline
+        ? "You appear to be offline."
+        : "Couldn't load suggestions.";
+      if (attempt < MAX_AUTO_RETRIES) {
+        // Exponential backoff: 600ms, 1200ms
+        const delay = 600 * Math.pow(2, attempt - 1);
+        setErrorState({ message: baseMsg, attempt, retrying: true });
+        retryTimerRef.current = setTimeout(() => {
+          search(lastQueryRef.current, attempt + 1);
+        }, delay);
+      } else {
+        setErrorState({ message: baseMsg, attempt, retrying: false });
+      }
+      setOpen(true);
     } finally {
       if (myReq === reqIdRef.current) setLoading(false);
     }
+  }, []);
+
+  const retryNow = useCallback(() => {
+    if (!lastQueryRef.current) return;
+    search(lastQueryRef.current, 1);
+  }, [search]);
+
+  // Cleanup pending retry on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(retryTimerRef.current);
+      clearTimeout(debounceRef.current);
+    };
   }, []);
 
   const handleType = (text: string) => {
     onChange({ description: text, lat: undefined, lng: undefined });
     setOpen(true);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(text), 350);
+    clearTimeout(retryTimerRef.current);
+    debounceRef.current = setTimeout(() => search(text, 1), 350);
   };
 
   const handleSelectPrediction = async (prediction: Prediction) => {
