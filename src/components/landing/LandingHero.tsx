@@ -558,7 +558,7 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
   };
 
   const dropdownVisible =
-    open && (suggestions.length > 0 || loading || showRecents);
+    open && (suggestions.length > 0 || loading || showRecents || !!errorState);
 
   return (
     <div ref={containerRef} className="relative">
