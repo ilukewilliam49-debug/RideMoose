@@ -632,7 +632,33 @@ const LocationInput = forwardRef<HTMLInputElement, LocationInputProps>(({
               </>
             )}
 
-            {!loading && suggestions.length === 0 && !showRecents && value.description.trim().length >= 3 && (
+            {errorState && !loading && suggestions.length === 0 && (
+              <div className="flex items-start gap-2 rounded-xl bg-destructive/5 px-3 py-2.5">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+                <div className="flex-1 text-xs">
+                  <p className="font-medium text-destructive">
+                    {t("landing.suggestionsError", errorState.message)}
+                  </p>
+                  <p className="mt-0.5 text-muted-foreground">
+                    {errorState.retrying
+                      ? t("landing.suggestionsRetrying", `Retrying… (attempt ${errorState.attempt + 1})`)
+                      : t("landing.suggestionsRetryHint", "We tried a couple of times without luck.")}
+                  </p>
+                </div>
+                {!errorState.retrying && (
+                  <button
+                    type="button"
+                    onClick={retryNow}
+                    className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-[11px] font-semibold text-foreground transition hover:bg-accent"
+                  >
+                    <RefreshCw className="h-3 w-3" aria-hidden />
+                    {t("landing.suggestionsRetry", "Try again")}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {!errorState && !loading && suggestions.length === 0 && !showRecents && value.description.trim().length >= 3 && (
               <div className="px-3 py-3 text-center text-xs text-muted-foreground">
                 {t("landing.noSuggestions", "No matches yet — keep typing")}
               </div>
